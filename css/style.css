@@ -1,6 +1,42 @@
 body,html{overflow:hidden;margin:0;padding:0;width:100%;height:100%;font-family:'Microsoft YaHei',sans-serif;background:linear-gradient(to bottom right,#f5fff5,#e8f5e9)}
 /* @font-face{font-family:'Ximai';src:url('fonts/字制区喜脉喜欢体.ttf') format('truetype');font-weight:400;font-style:normal;font-display:block} */
 
+/* 加载华文中宋 (两种名称指向同一个文件) */
+@font-face {
+    font-family: 'STZhongsong';
+    src: url('../fonts/STZhongsong.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'STZhongSong';
+    src: url('../fonts/STZhongsong.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+/* 加载华文楷书 */
+@font-face {
+    font-family: 'STKaiti';
+    src: url('../fonts/STKaiti.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+/* 加载华文行书 */
+@font-face {
+    font-family: 'STXingkai';
+    src: url('../fonts/STXingkai.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+
+
 /* 核心布局与弹窗 */
 /* #warningMessage{display:none;text-align:center;font-size:50px;color:red;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%)} */
 .settings-modal{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);display:flex;justify-content:center;align-items:center;opacity:0;visibility:hidden;transition:all .3s;z-index:999}
