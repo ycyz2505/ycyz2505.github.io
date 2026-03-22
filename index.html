@@ -7,9 +7,9 @@
 </head>
 <body>
     <!-- (此处保留你原有的 <div id="loadingOverlay"> 和 <div id="pageContent"> 的全部 DOM 结构) -->
-    <div id="loadingOverlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 9999; display: flex; justify-content: center; align-items: center;">
+    <!-- <div id="loadingOverlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 9999; display: flex; justify-content: center; align-items: center;">
         <div style="font-size: 24px; color: #1b5e20;">正在加载字体，请稍候...</div>
-    </div>
+    </div> -->
 
     <div id="pageContent" style="display: none;">
         <!-- 导航栏 -->
@@ -294,6 +294,24 @@
     <script src="js/features/modal_settings.js"></script>
     <script src="js/features/modal_lost_found.js"></script>
     <script src="js/features/modal_notification.js"></script>
+
+    <script>
+        (function() {
+            const targetWidth = 1920;
+            function resize() {
+                const currentWidth = document.documentElement.clientWidth || document.body.clientWidth;
+                const scale = currentWidth / targetWidth;
+                const pageContent = document.getElementById('pageContent');
+                if (pageContent) {
+                    pageContent.style.zoom = scale;
+                    pageContent.style.width = targetWidth + 'px';
+                    document.body.style.overflowX = 'hidden';
+                }
+            }
+            resize();
+            window.addEventListener('resize', resize);
+        })();
+    </script>
 
     <!-- 5. 引入主入口启动程序 (必须最后加载) -->
     <script src="js/features/main.js"></script>
