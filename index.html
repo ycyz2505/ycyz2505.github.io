@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>中考倒计时 - C2201|中考必胜</title>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- (此处保留你原有的 <div id="loadingOverlay"> 和 <div id="pageContent"> 的全部 DOM 结构) -->
+    <div id="loadingOverlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 9999; display: flex; justify-content: center; align-items: center;">
+        <div style="font-size: 24px; color: #1b5e20;">正在加载字体，请稍候...</div>
+    </div>
+
+    <div id="pageContent" style="display: none;">
+        <!-- 导航栏 -->
+        <header>
+            <nav class="navbar">
+                <div class="brand">杨村一中&nbsp;高一（5）班</div>
+                <!-- <a href="https://c2201.github.io/">首页</a>
+                <a href="https://c2201.github.io/countdown/">新&nbsp;·&nbsp;二十四节气中考倒计时</a> -->
+                <!-- <a href="https://c2201.github.io/wheel/">转盘</a> -->
+            </nav>
+        </header>
+     
+        <!-- 时钟 -->
+        <div id="currentDateTime">
+            <div class="time-section"></div>
+            <div class="date-section"></div>
+        </div>
+
+        <!-- 作息提示容器 -->
+        <div id="scheduleContainer" class="schedule-container">
+            <div class="schedule-item">
+                <span class="schedule-title">天气：</span>
+                <span class="schedule-value" id="weatherInfo">加载中...</span>
+            </div>
+            <div class="schedule-item">
+                <span class="schedule-title">当前：</span>
+                <span class="schedule-value" id="currentSchedule">加载中...</span>
+            </div>
+            <div class="schedule-item">
+                <span class="schedule-title">下节课：</span>
+                <span class="schedule-value" id="nextSchedule">加载中...</span>
+            </div>
+            <div class="schedule-item">
+                <span class="schedule-title" id="countdownName">倒计时：</span>
+                <span class="schedule-value" id="countdownTimer" style="font-size: 28px;">--:--</span>
+            </div>
+            <div class="timetable" id="todayTimetable"></div>
+        </div>
+     
+        <!-- 中考倒计时 -->
+        <div class="small-title">距离2028年高考仅剩</div>
+        <div id="daysUntil" class="big-title"></div>
+     
+        <!-- 时间轴 -->
+        <div class="timeline-container">
+            <div class="timeline-progress" id="timeline">
+                <div class="end-marker">
+                    <div id="timelineEndTitle" style="white-space: nowrap;">高考日</div>
+                    <div id="timelineEndDate" style="font-size:0.9em; margin-top:3px">6月7日</div>
+                </div>
+            </div>
+        </div>
+     
+        <!-- 金句 -->
+        <div id="goldenPhrase"></div>
+
+        <!-- 每日60s -->
+        <div class="right-image-container">
+            <img id="apiImage" src="" alt="每日60s">
+        </div>
+
+        <!-- 底部按钮 -->
+        <div class="action-buttons">
+            <button id="settingsButton" class="action-button">⚙️ 设置</button>
+            <button id="changelogButton" class="action-button">📝 更新日志</button>
+            <button id="announcementButton" class="action-button">📢 公告</button>
+            <button id="phraseSelectButton" class="action-button">📜 选择金句</button>
+            <button id="lostAndFoundButton" class="action-button">🔍 寻物</button>
+            <button id="notificationButton" class="action-button">🔔 通知</button>
+        </div>
+
+        <!-- 设置模态框 -->
+        <div class="settings-modal" id="settingsModal">
+            <div class="settings-content">
+                <div class="settings-header">
+                    <h3>设置</h3>
+                    <span class="close-btn" id="closeSettings">&times;</span>
+                </div>
+                <div class="settings-body">
+                    <div class="switch-container">
+                        <label class="switch">
+                            <span class="switch-text">金句自动轮播</span>
+                            <input type="checkbox" id="goldenSwitch" checked>
+                            <span class="slider"></span>
+                        </label>
+                        <label class="switch">
+                            <span class="switch-text">显示每日60s</span>
+                            <input type="checkbox" id="imageSwitch">
+                            <span class="slider"></span>
+                        </label>
+                        <div class="probability-control">
+                            <span class="switch-text">联网获取金句的概率(%)</span>
+                            <div class="range-group">
+                                <input type="range" id="apiProbability" min="0" max="100" value="50">
+                                <input type="number" id="apiProbabilityValue" min="0" max="100" value="50">
+                                <button class="reset-btn" onclick="resetProbability()">重置</button>
+                            </div>
+                        </div>
+                        <div class="probability-control">
+                            <span class="switch-text">金句轮播时间间隔（秒）</span>
+                            <div class="range-group">
+                                <input type="range" id="intervalSlider" min="1" max="60" value="15">
+                                <input type="number" id="intervalValue" min="1" max="60" value="15">
+                                <button class="reset-btn" onclick="resetInterval()">重置</button>
+                            </div>
+                        </div>
+                        <label class="switch">
+                            <span class="switch-text">启用点击刷新金句</span>
+                            <input type="checkbox" id="clickRefreshSwitch">
+                            <span class="slider"></span>
+                        </label>
+                        <label class="switch">
+                            <span class="switch-text">开启金句动画效果</span>
+                            <input type="checkbox" id="animationSwitch" checked>
+                            <span class="slider"></span>
+                        </label>
+                        <label class="switch">
+                            <span class="switch-text">本地金句只展示原创</span>
+                            <input type="checkbox" id="originalSwitch">
+                            <span class="slider"></span>
+                        </label>
+                        <label class="switch">
+                            <span class="switch-text">自动刷新页面</span>
+                            <input type="checkbox" id="autoRefreshSwitch">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 更新日志模态框 -->
+        <div class="settings-modal" id="changelogModal">
+            <div class="settings-content">
+                <div class="settings-header">
+                    <h3>更新日志</h3>
+                    <span class="close-btn" id="closeChangelog">&times;</span>
+                </div>
+                <div class="text-content" id="changelogContent">
+                    暂无。
+                </div>
+            </div>
+        </div>
+
+        <!-- 公告板模态框 -->
+        <div class="settings-modal" id="announcementModal">
+            <div class="settings-content">
+                <div class="settings-header" style="padding-bottom: 8px;">
+                    <h3 style="font-size: 1.2em;">公告</h3>
+                    <span class="close-btn" id="closeAnnouncement">&times;</span>
+                </div>
+                <div class="announcement-content">
+                    <!-- <div class="announcement-card">
+                        <div class="announcement-title">📢 倒计时网站征稿活动开始啦！</div>
+                        <div class="announcement-time">2025.3.1</div>
+                        <div class="announcement-body">
+                            C2201倒计时网站底部金句轮播内容<strong>开始征稿了</strong>！选上的作品可以放在网站上<strong>轮播展示</strong>！
+                            <ul>
+                                <li><strong>参与条件：</strong>是个人都能参加</li>
+                                <li><strong>时间：</strong>即日起至2025年5月31日（活动已结束）</li>
+                                <li><strong>征稿内容：</strong><strong>励志文字</strong>、优美<strong>作文素材</strong>、<strong>诗歌（含现代诗）</strong>或<strong>整活</strong>（<strong>不能八卦</strong>）等（特别地，既可以原创，也可以投你在其他地方看到的很好的句子上来，但是要<strong>标明出处</strong>；若是原创句子可选择展示时是否显示署名）（一个句子展示的概率：励志文字 = 优美作文素材 > 整活，可根据具体情况调整，特别地，若原创句子写的<strong>过于精妙</strong>，可以<strong>提高展示概率</strong>）</li>
+                                <li><strong>字数要求：</strong>1~80字（包含标点）</li>
+                                <li><strong>提交格式：</strong>你的名字+句子内容+是否原创（+若非原创，标明出处）</li>
+                                <li><strong>提交方式：</strong>写在便利贴上交给TQC</li>
+                            </ul>
+                            <p class="announcement-footnote">最终解释权归TQC所有</p>
+                        </div>
+                    </div> -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 金句选择模态框 -->
+        <div class="settings-modal" id="phraseModal">
+            <div class="settings-content">
+                <div class="settings-header">
+                    <h3>选择金句</h3>
+                    <span class="close-btn" id="closePhrase">&times;</span>
+                </div>
+                <div class="text-content" id="phraseList"></div>
+            </div>
+        </div>
+
+        <!-- 寻物模态框 -->
+        <div class="settings-modal" id="lostAndFoundModal">
+            <div class="settings-content">
+                <div class="settings-header">
+                    <h3>寻物</h3>
+                    <div style="display: flex; align-items: center;">
+                        <span class="maximize-btn" id="maximizeLostAndFound">⛶</span>
+                        <span class="close-btn" id="closeLostAndFound">&times;</span>
+                    </div>
+                </div>
+                <div class="notification-container" style="display: flex; flex-direction: column; height: 100%;">
+                    <div class="big-title" style="
+                        background: linear-gradient(135deg, #FF0000 0%, #FF6B00 25%, #FFD700 50%, #FF6B00 75%, #FF0000 100%);
+                        -webkit-background-clip: text;
+                        background-clip: text;
+                        -webkit-text-fill-color: transparent;
+                        background-size: 200% 200%;
+                        animation: gradient-pulse 4s ease infinite;
+                        text-shadow: 2px 2px 4px rgba(0,0,0,0.3), 0 0 10px rgba(255,107,0,0.5);
+                        font-size: 120px;
+                        font-family: STXingkai, cursive;
+                        letter-spacing: 4px;
+                        width: 100%;
+                        text-align: center;
+                        margin: -8px 0 0;
+                        padding: 0;
+                        line-height: 1.2;
+                    ">寻物</div>
+                    
+                    <div class="announcement-content" id="lostAndFoundList" style="flex: 1; overflow-y: auto; padding: 10px;">
+                        <div class="add-button">+</div>
+                    </div>
+                    
+                    <div class="notification-footer" style="position: sticky; bottom: 0; background: white; z-index: 10; padding: 10px 15px; border-top: 1px solid #eee;">
+                        <div class="font-size-control">
+                            <span class="font-size-label">字体大小:</span>
+                            <input type="range" id="lostAndFoundFontSizeSlider" min="12" max="120" value="28">
+                            <input type="number" id="lostAndFoundFontSizeValue" min="12" max="120" value="28">
+                            <span>px</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 通知模态框 -->
+        <div class="settings-modal" id="notificationModal">
+            <div class="settings-content">
+                <div class="settings-header">
+                    <h3>通知</h3>
+                    <div style="display: flex; align-items: center;">
+                        <span class="maximize-btn" id="maximizeNotification">⛶</span>
+                        <span class="close-btn" id="closeNotification">&times;</span>
+                    </div>
+                </div>
+                <div class="notification-container">
+                    <div id="notificationContent">
+                        <div class="empty-notification">暂无通知，点击下方按钮添加</div>
+                    </div>
+                    <div class="notification-footer">
+                        <button class="add-notification-btn" id="addNotificationBtn">+ 添加通知</button>
+                        <div class="font-size-control">
+                            <span class="font-size-label">字体大小:</span>
+                            <input type="range" id="fontSizeSlider" min="12" max="120" value="16">
+                            <input type="number" id="fontSizeValue" min="12" max="120" value="16">
+                            <span>px</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- <div id="warningMessage">按下&nbsp;Alt&nbsp;+&nbsp;Shift&nbsp;+&nbsp;G&nbsp;解锁彩蛋</div> -->
+    
+    <!-- 1. 引入基础数据 -->
+    <script src="js/data/solarterms.js"></script>
+    <script src="js/data/timetable.js"></script>
+    <script src="js/data/schedule.js"></script>
+    <script src="js/data/phrases.js"></script>
+
+    <!-- 2. 引入状态与工具 (必须优先加载) -->
+    <script src="js/features/00_state.js"></script>
+    <script src="js/features/01_utils.js"></script>
+
+    <!-- 3. 引入独立功能模块 (一个文件只做一件事) -->
+    <script src="js/features/clock.js"></script>
+    <script src="js/features/weather.js"></script>
+    <script src="js/features/daily_image.js"></script>
+    <script src="js/features/timeline.js"></script>
+    <script src="js/features/exam_countdown.js"></script>
+    <script src="js/features/school_schedule.js"></script>
+    <script src="js/features/golden_phrase.js"></script>
+    <script src="js/features/auto_refresh.js"></script>
+    <!-- <script src="js/features/graduation.js"></script> -->
+
+    <!-- 4. 引入各类弹窗交互模块 -->
+    <script src="js/features/modal_core.js"></script>
+    <script src="js/features/modal_settings.js"></script>
+    <script src="js/features/modal_lost_found.js"></script>
+    <script src="js/features/modal_notification.js"></script>
+
+    <!-- 5. 引入主入口启动程序 (必须最后加载) -->
+    <script src="js/features/main.js"></script>
+</body>
+</html>
