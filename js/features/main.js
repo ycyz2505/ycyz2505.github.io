@@ -21,6 +21,7 @@ window.onload = function() {
     safeInit('SchoolSchedule', () => window.App.SchoolSchedule && window.App.SchoolSchedule.init());
     safeInit('GoldenPhrase', () => window.App.GoldenPhrase && window.App.GoldenPhrase.init());
     safeInit('AutoRefresh', () => window.App.AutoRefresh && window.App.AutoRefresh.init());
+    safeInit('ModalPhrase', () => window.App.ModalPhrase && window.App.ModalPhrase.init());
     
     // 2. 初始化弹窗交互模块
     safeInit('ModalCore', () => window.App.ModalCore && window.App.ModalCore.init());

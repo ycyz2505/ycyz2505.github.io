@@ -5,7 +5,8 @@ window.App.ModalCore = {
             { btn: 'changelogButton', modal: 'changelogModal', close: 'closeChangelog' },
             { btn: 'announcementButton', modal: 'announcementModal', close: 'closeAnnouncement' },
             { btn: 'lostAndFoundButton', modal: 'lostAndFoundModal', close: 'closeLostAndFound' },
-            { btn: 'notificationButton', modal: 'notificationModal', close: 'closeNotification' }
+            { btn: 'notificationButton', modal: 'notificationModal', close: 'closeNotification' },
+            { btn: 'phraseSelectButton', modal: 'phraseModal', close: 'closePhrase' }   // 新增这一行
         ];
 
         modals.forEach(({btn, modal, close}) => {

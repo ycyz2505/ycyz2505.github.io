@@ -97,7 +97,7 @@
                         </label>
                         <label class="switch">
                             <span class="switch-text">显示每日60s</span>
-                            <input type="checkbox" id="imageSwitch">
+                            <input type="checkbox" id="imageSwitch" checked>
                             <span class="slider"></span>
                         </label>
                         <div class="probability-control">
@@ -126,11 +126,11 @@
                             <input type="checkbox" id="animationSwitch" checked>
                             <span class="slider"></span>
                         </label>
-                        <label class="switch">
+                        <!-- <label class="switch">
                             <span class="switch-text">本地金句只展示原创</span>
                             <input type="checkbox" id="originalSwitch">
                             <span class="slider"></span>
-                        </label>
+                        </label> -->
                         <label class="switch">
                             <span class="switch-text">自动刷新页面</span>
                             <input type="checkbox" id="autoRefreshSwitch">
@@ -149,7 +149,7 @@
                     <span class="close-btn" id="closeChangelog">&times;</span>
                 </div>
                 <div class="text-content" id="changelogContent">
-                    暂无。
+                    本网站是网站作者在初中时做的，稍微改了下就搬过来了。因为整体重构过，所以有一些bug。
                 </div>
             </div>
         </div>
@@ -305,6 +305,13 @@
                 if (pageContent) {
                     pageContent.style.zoom = scale;
                     pageContent.style.width = targetWidth + 'px';
+                    
+                    // ★新增：强制设定高度为 1080px (假设这是你的设计基准)
+                    // 这样 absolute top:50% 才会基于 1080px 计算，而不是基于内容高度
+                    pageContent.style.height = '1080px'; 
+                    pageContent.style.position = 'relative'; // 确保子元素的 absolute 也就是相对于它
+                    pageContent.style.overflow = 'hidden';   // 防止内容溢出
+                    
                     document.body.style.overflowX = 'hidden';
                 }
             }

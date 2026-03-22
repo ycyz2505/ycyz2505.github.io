@@ -76,9 +76,9 @@ window.App.GoldenPhrase = {
         this.bindClickRefresh();
         
         // ★新增：初始化位置调整
-        this.adjustPosition();
-        // ★新增：窗口大小改变时调整位置
-        window.addEventListener('resize', () => this.adjustPosition());
+        // this.adjustPosition();
+        // // ★新增：窗口大小改变时调整位置
+        // window.addEventListener('resize', () => this.adjustPosition());
     },
 
     startTimer() {
@@ -151,7 +151,7 @@ window.App.GoldenPhrase = {
             container.innerHTML = `「 ${formatted} 」`;
             container.style.opacity = 1;
             // ★新增：内容更新后重新计算位置 (因为文字行数可能变了)
-            setTimeout(() => this.adjustPosition(), 50); 
+            // setTimeout(() => this.adjustPosition(), 50); 
         };
 
         if (isAnim) {
@@ -273,7 +273,7 @@ window.App.GoldenPhrase = {
             const phraseHeight = phrase.offsetHeight;
             // 计算需要的 margin-top：(空隙 - 金句高度) / 2
             // 减去20px稍微偏上一点点，视觉更平衡，也可以不减
-            let marginTop = (gap - phraseHeight) / 2;
+            let marginTop = (gap - phraseHeight) / 2 - 100;
             
             // 设置最小值，防止重叠
             if (marginTop < 20) marginTop = 20;

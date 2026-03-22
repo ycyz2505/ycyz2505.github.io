@@ -1,4 +1,4 @@
-body,html{margin:0;padding:0;width:100%;height:100%;font-family:'Microsoft YaHei',sans-serif;background:linear-gradient(to bottom right,#f5fff5,#e8f5e9)}
+body,html{overflow:hidden;margin:0;padding:0;width:100%;height:100%;font-family:'Microsoft YaHei',sans-serif;background:linear-gradient(to bottom right,#f5fff5,#e8f5e9)}
 /* @font-face{font-family:'Ximai';src:url('fonts/字制区喜脉喜欢体.ttf') format('truetype');font-weight:400;font-style:normal;font-display:block} */
 
 /* 核心布局与弹窗 */
@@ -63,12 +63,14 @@ body,html{margin:0;padding:0;width:100%;height:100%;font-family:'Microsoft YaHei
 .solar-term-marker{position:absolute;top:-45px;width:70px;text-align:center;transform:translateX(-50%);cursor:pointer;transition:all .3s;z-index:2}
 .current-marker{position:absolute;left:0;top:-10px;width:3px;height:30px;background:#ff5722;transform:translateX(-50%);transition:left .5s ease-out;box-shadow:0 2px 4px rgba(255,87,34,.3)}
 .end-marker{position:absolute;right:-15px;top:-45px;width:90px;text-align:center;color:#d32f2f;font-weight:700;text-shadow:0 2px 4px rgba(211,47,47,.2);transform:translateX(30%)}
-.right-image-container{position:fixed;right:25px;top:50%;transform:translateY(-50%);z-index:5;background:#fff;padding:10px;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,.1)}
-.right-image-container img{height:80vh;object-fit:cover;display:block;margin:0 auto}
+/* 每日60s：采用绝对定位 + 垂直居中变换 (top:50% + translateY) */
+.right-image-container{position:absolute;right:50px;top:45%;transform:translateY(-50%);z-index:5;background:#fff;padding:10px;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,.1);display:flex}
+/* 强制图片高度为 800px (在1080px的总高度下，这会留出上下各约140px的空间，完全不会遮挡) */
+.right-image-container img{height:800px;object-fit:cover;display:block;border-radius:6px;width:auto}
 
 /* 金句与金句列表 */
 /* 移除了 margin 的具体数值，改为 JS 控制，初始设为 0 */
-#goldenPhrase{text-align: center;margin: 0 auto;width: 760px;font-size: 26px;color: #1b5e20;min-height: 40px;font-family: STZhongSong, cursive;text-shadow: 1px 1px 2px rgba(0,0,0,.1);transition: opacity .5s, transform .3s;position: relative;top: 0;cursor: pointer;z-index: 5;}
+#goldenPhrase{text-align:center;margin:0 auto;width:760px;font-size:26px;color:#1b5e20;min-height:40px;font-family:STZhongSong,cursive;text-shadow:1px 1px 2px rgba(0,0,0,.1);transition:opacity .5s,transform .3s;position:relative;top:0;cursor:pointer;z-index:5;}
 #goldenPhrase:active{transform:scale(.98)}
 #goldenPhrase.no-animation{transition:none!important}
 #goldenPhrase.no-animation:active{transform:none!important}
