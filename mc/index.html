@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minecraft Java版 入门指南 (PCL2篇)</title>
+    <style>
+        :root {
+            --mc-green: #4CAF50;
+            --mc-dark-green: #388E3C;
+            --mc-brown: #795548;
+            --mc-bg: #f4f4f9;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            background-color: var(--mc-bg);
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+        header {
+            background-color: var(--mc-green);
+            color: white;
+            text-align: center;
+            padding: 2rem 0;
+            border-bottom: 8px solid var(--mc-dark-green);
+        }
+        header h1 {
+            margin: 0;
+            font-size: 2.5rem;
+            text-shadow: 2px 2px 0px rgba(0,0,0,0.2);
+        }
+        .container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .step {
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px dashed #ddd;
+        }
+        .step:last-child {
+            border-bottom: none;
+        }
+        .step h2 {
+            color: var(--mc-brown);
+            display: flex;
+            align-items: center;
+        }
+        .step-number {
+            background-color: var(--mc-brown);
+            color: white;
+            min-width: 30px;
+            height: 30px;
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 50%;
+            margin-right: 10px;
+            font-size: 1.2rem;
+        }
+        .highlight {
+            background-color: #ffe0b2;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        a {
+            color: #1976D2;
+            text-decoration: none;
+            word-break: break-all;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        .keyboard {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            background: #eee;
+            padding: 15px;
+            border-radius: 8px;
+        }
+        .key-item {
+            background: white;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            box-shadow: 0 2px 0 #ccc;
+            text-align: center;
+        }
+        kbd {
+            background-color: #333;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 1.1em;
+        }
+        footer {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>⛏️ 我的世界 (Minecraft) 快速入门</h1>
+        <p>信息课专属教程 —— PCL2 启动与联机指南</p>
+        <p>提示：本网站由 AI (Gemini 3 Pro) 根据提供的安装方法生成</p>
+    </header>
+
+    <div class="container">
+        <div class="step">
+            <h2><span class="step-number">1</span> 下载与放置 PCL2 启动器</h2>
+            <ol>
+                <li>访问蓝奏云链接：<a href="https://ltcat.lanzouv.com/b0aj6gsid" target="_blank">https://ltcat.lanzouv.com/b0aj6gsid</a></li>
+                <li>输入密码：<span class="highlight">pcl2</span> 进入文件夹。</li>
+                <li>点击 <strong>“PCL 正式版”</strong>，然后点击 <strong>“普通下载”</strong>。</li>
+                <li>下载完成后打开这个压缩包，把里面的 <code>Plain Craft Launcher 2.exe</code> 文件复制到你的 <strong>D 盘</strong>。</li>
+            </ol>
+        </div>
+
+        <div class="step">
+            <h2><span class="step-number">2</span> 安装 Java 运行环境（可能是非必须的，但是后续要是遇到问题，可以把这一步做了再试试，没准就成功了）</h2>
+            <p>游玩我们需要用到 Java 环境，请按照以下步骤安装：</p>
+            <ol>
+                <li>访问此官方链接下载 Java 21 安装包：<br><a href="https://download.oracle.com/java/21/latest/jdk-21_windows-x64_bin.exe" target="_blank">https://download.oracle.com/java/21/latest/jdk-21_windows-x64_bin.exe</a></li>
+                <li>下载好之后，直接双击打开该安装包。</li>
+                <li>不需要修改任何设置，一路点击 <strong>“下一步”</strong> 直到完成安装即可。</li>
+            </ol>
+        </div>
+
+        <div class="step">
+            <h2><span class="step-number">3</span> 下载游戏本体并启动</h2>
+            <ol>
+                <li>Java 安装好之后，打开 <strong>D 盘</strong>，双击运行 <code>Plain Craft Launcher 2.exe</code>。</li>
+                <li>在启动器顶部的 <strong>“下载”</strong> 页面中，找到并下载 <span class="highlight">1.18.2</span> 版本（机房电脑配置拉，带不动更高的版本）。等待进度条走完。</li>
+                <li>回到启动器主页，在账号区域输入你的 <strong>用户名</strong>，注意不能跟其他人的重了。</li>
+                <li>点击右下角的 <strong>“启动”</strong> 按钮，进入游戏！</li>
+            </ol>
+        </div>
+
+        <div class="step">
+            <h2><span class="step-number">4</span> 畅玩与机房联机</h2>
+            <p>启动游戏后，你可以选择：</p>
+            <ul>
+                <li><strong>单人游戏：</strong> 自己创建一个世界独自探索。</li>
+                <li><strong>多人游戏：</strong> 实现同机房内的局域网联机！<br>
+                <em>（联机小贴士：如果你想当房主，进入单人游戏后按 <code>Esc</code> 选择 <strong>“对局域网开放”</strong>。其他同学就可以在“多人游戏”列表中看到并加入你的世界啦！）</em></li>
+            </ul>
+            <p>进入世界后建议去设置 -> 视频设置里把画质等调低避免卡顿。</p>
+            
+            <h3 style="margin-top: 30px;">🎮 附：基础操作按键</h3>
+            <div class="keyboard">
+                <div class="key-item"><kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> <br>前后左右移动</div>
+                <div class="key-item"><kbd>空格键</kbd> <br>跳跃</div>
+                <div class="key-item"><strong>鼠标左键</strong> <br>攻击 / 破坏方块 (长按)</div>
+                <div class="key-item"><strong>鼠标右键</strong> <br>放置方块 / 使用物品</div>
+                <div class="key-item"><kbd>E</kbd> <br>打开/关闭背包</div>
+                <div class="key-item"><kbd>Shift</kbd> (左) <br>潜行 (防止从边缘掉落)</div>
+                <div class="key-item"><kbd>Q</kbd> <br>丢弃手中物品</div>
+                <div class="key-item"><kbd>Esc</kbd> <br>打开暂停菜单</div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>祝你在方块世界中探索愉快！创造属于你的奇迹！✨</p>
+    </footer>
+
+</body>
+</html>
