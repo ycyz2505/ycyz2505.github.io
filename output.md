@@ -145,6 +145,11 @@ input:checked~.switch-text{color:#4CAF50}
 @keyframes gradient-pulse{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
 @keyframes button-pulse{0%,100%{box-shadow:0 0 0 0 rgba(139,195,74,0)}70%{box-shadow:0 0 0 10px rgba(139,195,74,0)}}
 
+/* ===== 寻物：字号通过 CSS 变量控制，方便整表重渲染 ===== */
+#lostAndFoundList{ --laf-font-size: 28px; }
+#lostAndFoundList .editable,
+#lostAndFoundList .static-text{ font-size: var(--laf-font-size) !important; }
+
 ```
 
 ## 2 `index.html`
@@ -157,6 +162,13 @@ input:checked~.switch-text{color:#4CAF50}
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+    <div id="serviceBanner" style="
+        position:fixed;top:10px;right:10px;z-index:99999;display:none;
+        background:#ff9800;color:#fff;padding:6px 14px;border-radius:4px;
+        font-size:12px;box-shadow:0 2px 8px rgba(0,0,0,.2);">
+        本地服务未启动，数据将不会被保存
+    </div>
+
     <div id="pageContent" style="display: none;">
         <!-- 导航栏 -->
         <header>
@@ -269,6 +281,11 @@ input:checked~.switch-text{color:#4CAF50}
                             <input type="checkbox" id="animationSwitch" checked>
                             <span class="slider"></span>
                         </label>
+                        <!-- <label class="switch">
+                            <span class="switch-text">本地金句只展示原创</span>
+                            <input type="checkbox" id="originalSwitch">
+                            <span class="slider"></span>
+                        </label> -->
                         <label class="switch">
                             <span class="switch-text">自动刷新页面</span>
                             <input type="checkbox" id="autoRefreshSwitch">
@@ -294,6 +311,10 @@ input:checked~.switch-text{color:#4CAF50}
                     2026.9.24
                     1. 修复天气无法获取的 bug；
                     2. 更新课表与作息表；
+                    3. 实现数据本地存储，新增运行在本地的 LocalDataServer.exe 用于启动本地 http 服务以实现网页直接读写本地磁盘；
+                    4. 大幅精简现有代码，长度缩小 40%，提升运行效率；
+                    5. 修复每次打开网页默认显示每日 60s 的 bug；
+                    6. 修复周六课表无课时“下节课”不显示“无”的 bug；
                 </div>
             </div>
         </div>
@@ -303,9 +324,29 @@ input:checked~.switch-text{color:#4CAF50}
             <div class="settings-content">
                 <div class="settings-header" style="padding-bottom: 8px;">
                     <h3 style="font-size: 1.2em;">公告</h3>
-                    <span class="close-btn" id="closeAnnouncement">&times;</span>
+                    <div style="display: flex; align-items: center;">
+                        <span class="maximize-btn" id="maximizeAnnouncement">⛶</span>
+                        <span class="close-btn" id="closeAnnouncement">&times;</span>
+                    </div>
                 </div>
-                <div class="announcement-content"></div>
+                <div class="announcement-content">
+                    <div class="announcement-card">
+                        <div class="announcement-title">📢 倒计时网站征稿活动开始啦！</div>
+                        <div class="announcement-time">2025.3.1</div>
+                        <div class="announcement-body">
+                            C2201倒计时网站底部金句轮播内容<strong>开始征稿了</strong>！选上的作品可以放在网站上<strong>轮播展示</strong>！
+                            <ul>
+                                <li><strong>参与条件：</strong>是个人都能参加</li>
+                                <li><strong>时间：</strong>即日起至2025年5月31日（活动已结束）</li>
+                                <li><strong>征稿内容：</strong><strong>励志文字</strong>、优美<strong>作文素材</strong>、<strong>诗歌（含现代诗）</strong>或<strong>整活</strong>（<strong>不能八卦</strong>）等（特别地，既可以原创，也可以投你在其他地方看到的很好的句子上来，但是要<strong>标明出处</strong>；若是原创句子可选择展示时是否显示署名）（一个句子展示的概率：励志文字 = 优美作文素材 > 整活，可根据具体情况调整，特别地，若原创句子写的<strong>过于精妙</strong>，可以<strong>提高展示概率</strong>）</li>
+                                <li><strong>字数要求：</strong>1~80字（包含标点）</li>
+                                <li><strong>提交格式：</strong>你的名字+句子内容+是否原创（+若非原创，标明出处）</li>
+                                <li><strong>提交方式：</strong>写在便利贴上交给TQC</li>
+                            </ul>
+                            <p class="announcement-footnote">最终解释权归TQC所有</p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -349,8 +390,11 @@ input:checked~.switch-text{color:#4CAF50}
                         line-height: 1.2;
                     ">寻物</div>
 
-                    <div class="announcement-content" id="lostAndFoundList" style="flex: 1; overflow-y: auto; padding: 10px;">
-                        <div class="add-button">+</div>
+                    <!-- 列表容器 + 独立加号按钮 -->
+                    <div style="position: relative; flex: 1; overflow: hidden;">
+                        <div class="announcement-content" id="lostAndFoundList" style="
+                            height: 100%; overflow-y: auto; padding: 10px;"></div>
+                        <div class="add-button" id="addLostFoundBtn">+</div>
                     </div>
 
                     <div class="notification-footer" style="position: sticky; bottom: 0; background: white; z-index: 10; padding: 10px 15px; border-top: 1px solid #eee;">
@@ -403,6 +447,9 @@ input:checked~.switch-text{color:#4CAF50}
     <script src="js/features/00_state.js"></script>
     <script src="js/features/01_utils.js"></script>
 
+    <!-- 2.5 本地数据存储层（新增） -->
+    <script src="js/features/store.js"></script>
+
     <!-- 3. 独立功能模块 -->
     <script src="js/features/clock.js"></script>
     <script src="js/features/weather.js"></script>
@@ -447,609 +494,6 @@ input:checked~.switch-text{color:#4CAF50}
 
 ```
 
-## 3 `js/data/phrases.js`
-```js
-const localPhrases = {
-    high: [ // 45% 概率
-        // "时间在沙漏中倒流，却永远无法逆流至你的眼眸。",
-        // "落叶把秋天写成信笺，寄给了永远不会拆封的春天。",
-        // "月光在窗棂上结霜，冻结了所有未曾说出口的告白。",
-        // "若将星辰碾作粉末，能否涂抹黑夜的伤口？",
-        // "风筝切断了自己的线，从此天空成了沉默的共犯。",
-        // "火山把心事烧成灰烬，每一粒尘埃都写着遗憾。",
-        // "候鸟飞越经纬线时，把故乡折成了小小的三角形。",
-        // "钟摆在虚无里摇晃，左边是存在，右边是遗忘。",
-        // "灯塔熄灭后，海浪开始用暗语讲述沉船的故事。",
-        // "沙漠模仿海的波纹，却永远学不会潮汐的心跳。",
-        // "蝉用十七年光阴，把夏天翻译成三声短促的叹息。",
-        // "镜子里的倒影突然开口：你才是被囚禁的虚像。",
-        // "冰川在午夜流泪，海平面便漫过了人类的年轮。",
-        // "枯枝把风的形状刻进年轮，一圈就是一次轮回。",
-        // "雨滴垂直坠落，天空与大地终于有了相爱的证据。",
-        // "旧钢琴吞下所有音符，吐出铁锈色的沉默。",
-        // "候车厅的时钟吞食时间，旅客都成了消化的残渣。",
-        // "望远镜倒转方向时，星辰都坠入瞳孔的深渊。",
-
-        // "时间裂开一道缝隙，我躲在里面窥探永恒。",
-        // "风把往事揉成碎片，撒向海面时成了发光的鱼群。",
-        // "春天在冰层下苏醒，而我被永远冻在了冬天的句点。",
-        // "我们是被神遗弃的谜题，答案散落在宇宙的褶皱里。",
-        // "当所有蝴蝶选择沉睡，谁来证明世界曾扇动过翅膀？",
-        // "墓碑上刻的不是名字，是未说出口的叹息结成琥珀。",
-        // "沙漠偷走月亮的银币，买下整片星空铺在驼铃经过的路上。",
-        // "童年溺死在玻璃罐里，糖纸裹着锈迹斑斑的蝉鸣。",
-        // "火山吞掉最后一封信，岩浆在凝固前拼出歪斜的'再见'。",
-        // "镜子吃掉我的轮廓，从此所有倒影都长出荆棘。",
-        // "候鸟衔着时针南飞，四季在翅膀的震颤中碎成齑粉。",
-        // "灯塔溺亡于自己的光，潮汐带走了所有未完成的指引。",
-        // "钟摆割裂黄昏时，血色的云正在缝合天空的伤口。",
-        // "蒲公英举起白色火焰，烧穿了整个春天的沉默。",
-        // "冰川在瞳孔深处坍塌，沉没的岛屿正在长出新的年轮。",
-        // "风筝线勒进银河，断掉的那头系着童年的指纹。",
-        // "博物馆里陈列的月光，标价牌写着'已售罄'。",
-        // "候车亭吞下末班车的尾气，长椅开始腐烂成蒲公英的温床。",
-        // "日记本里的字迹集体叛逃，空白处爬满潮湿的菌丝。",
-        // "蚂蚁搬运着陨石的残骸，在混凝土裂缝里重建星座。",
-
-        // "在沙漏底部埋下绿洲的倒影，等骆驼刺刺穿时间脊背，让荒原在掌心长出春天。",
-        // "把贝壳种进季风的眼眶，潮汐涨落时便有了盐粒形状的回声，而珊瑚正悄然漫过指缝。",
-        // "冰层裂开时游鱼衔住落日，所有凝固的火焰都将在深水区重新获得指纹。",
-        // "纸船载着银河的碎屑驶向漩涡，当桅杆折断在彩虹尽头，便用露水浇筑新的星座。",
-        // "苔藓正在缝补石阶的裂缝，而星光在凌晨三点学会了倒立行走。",
-        // "候鸟衔走最后一片雪原时，年轮开始反向旋转，直到树根触到云层的静脉。",
-        // "把蝉鸣装订成褪色的琴谱，让暴雨在琴键上长出青铜的根系。",
-        // "钟摆吞食了十二个月亮，吐出的果核正在地心孵化成发光的茧。",
-        // "把彗星的尾巴编成绳结，垂钓沉没在岩浆里的青铜编钟。",
-        // "将极光裁剪成绷带，包扎被流星灼伤的冰川脊梁。",
-        // "枯叶蝶正在复制秋天的遗嘱，而泥土深处有种子在修改年轮密码。",
-        // "把闪电折进宣纸褶皱，等墨汁干涸时便游出会下雨的龙。",
-        // "陨石在湖面写下倒置的经文，每一圈涟漪都是未完成的标点。",
-        // "用蜘蛛网打捞下沉的暮色，直到露珠把月光腌制成透明的琥珀。",
-        // "仙人掌在沙漠背面豢养海啸，每根尖刺都是尚未解封的潮信。",
-        // "把蝉蜕钉在子夜的幕布上，让所有寂静都拥有裂痕的走向。",
-        // "石英在岩层深处背诵光年，而钟乳石正以毫米为单位雕刻永恒。",
-
-        "我们拒绝走入夜晚，\n于是自己点燃了太阳，\n在黄昏的裂缝里，\n种下整片银河的光。",
-        "当命运掐住我的咽喉时，\n我的选择便从指缝间生根——\n它们不知道，\n我早已把“自由”\n刻在了每根骨头的背面。",
-        "他们说这是宫殿，\n却给每块砖石刻满禁令——\n我的翅膀在金丝笼里\n进化成了装饰品。",
-        "锁链在皮肤上刺绣，\n痛觉开成淡青色藤花。\n“放我走？”你轻笑时，\n整座牢狱突然透明，\n暴露出心脏里\n未熄灭的萤火虫墓园。",
-        "你以吻封缄的囚笼，\n是月光铸的——\n每根栏杆都流淌着\n我未能说出口的\n碎钻星辰。",
-        "爱你晨光里奔赴的山川，也爱你暮色中归来的灯火，愿你孩童般清澈的欢笑，永远比岁月更辽阔。",
-        "你掌心有春天的温度，融化了我所有冬天的迟疑。",
-        "我数到第三片落花时，风突然安静。",
-        "那场樱花雨落得无声无息，像极了我们未曾说出口的告别，十五岁的风吹过，花瓣拂过睫毛的瞬间，才惊觉这盛大绚烂，原是青春一场最盛大的凋零。",
-        "后来翻毕业照，照片里的人都在笑着，可十四岁的夏天，连同夏天里懵懂的心跳、未说出口的话、和永远在走廊打闹的我们，一起永远定格在那个泛黄的午后，再也没能回来。",
-        "后来才懂，那天随手合上的教室门，“哐当”一声锁住的，是没勇气递出去的小纸条、刻在后桌你名字的笔画、和所有以为“永远”不会散的我们——原来青春最疼的告别，是连句“再见”都悬在喉咙里，永远停在了那个蝉鸣震耳欲聋的午后。",
-        "那三年，是初夏阳光穿过树叶，碎金般洒满斑驳课桌的清澈时光；我们如同被风偶然聚拢又轻轻吹散的云，在彼此生命最透亮的扉页上，留下了一行行带着栀子花香与纸飞机轨迹的、永不褪色的诗。",
-        "记得阳光里跳舞的粉笔灰，奔跑时风中的青柠香。三年时光是青春扉页上透明的诗行，你的笑声是跳动的星光。愿此去山长水阔，你身影永远轻盈，眸中盛满星辰。纵使散作漫天星子，也请记得：曾有一束光，以“同窗”为名，刻下我们永不褪色的夏天——它永不告别，只流淌在望向远方的目光里。",
-
-        "远村秋色如画，红树间疏黄。——晏殊《诉衷情·芙蓉金菊斗馨香》",
-        "绿水本无忧，因风皱面。青山原不老，为雪白头。——李文甫",
-        "脉脉花疏天淡，云来去、数枝雪。——范成大《霜天晓角·梅》",
-        "但屈指西风几时来，又不道流年暗中偷换。——苏轼《洞仙歌·冰肌玉骨》",
-
-        "心有好风景，再不怕旁人煞风景。",
-        "我是残败的中世纪，你是我的文艺复兴。",
-        "一起去啊，更远的地方。",
-        "醉后不知天在水，一舟清梦压星间。",
-        "拥抱一朵玫瑰需要耐心和勇气。",
-        "夏日刚到，来日还长。",
-        "所有的苦难与背负尽头，都是行云流水般的此世光明。",
-        "且视他人之疑目如盏盏鬼火，大胆地去走你的夜路。——史铁生《病隙碎笔》",
-        "少年振衣，岂不可作千里风幡看？少年瞬目，亦可壮作万古清流想。——张晓风《林中杂想》",
-        "人心中的成见就像一座大山，任你怎么努力也休想搬动。——申公豹",
-        "再次相见，不必寒暄。",
-        "颠倒世界的一万六千亩玫瑰凋落了，但你的长夏永远不会凋落，那是连神明都夸口称赞过的美丽的夏天。——《惊封》",
-        "每个人所谓的悲欢离合都只是天地的一瞬间而已，眨眼就会被冲散，从此万籁俱寂，再也找不到踪迹。相遇是件何其珍贵的事情！",
-        "宇宙于百忙之中让你降临，是为了让你看见自己的特别。——张皓宸《你是宇宙安排的邂逅》",
-        "何事能奈我潇洒，将落魂都笑纳。是非皆闲话，就且随它吧。名利都放下，不过是手中的沙，何必牵挂。——檀健次《灯火千万》",
-
-        "天雷滚滚我好怕怕，劈的我浑身掉渣渣~ ——哪吒",
-        "若前方无路，我就踏出一条路。——敖丙",
-        "若天地不容，我就扭转这乾坤。——哪吒",
-        // "时间——一晃就过去了。",
-        "申公豹：“人心中的成见就像一座大山……” 石矶娘娘：“太好了每个人心里都有我。”",
-        "他（一头戴着皇冠的猪）是个传奇。——史蒂夫"
-
-        // "我没法活成光，只好活成它的影子。——某同学原创🌟",
-        // "重逢很难，不如从未相见。——某同学原创🌟",
-        // "若想要改变一条汹涌的河水流向，则必将要等待一场天崩地裂。——DXL原创🌟",
-        // "我的灵魂之上凿刻的，是对命运的不屑和死亡。——DXL原创🌟",
-        // "他微微抬眼，时间好似静止，万物皆为虚无，只有他在闪闪发光。——DXL原创🌟",
-        // "何为以后？大概就是，以彼此为星轨，并以永远为期。——DXL原创🌟",
-        // "她是过去的未来，亦是未来的过去，过去因她而存在，未来因她而改变。——DXL原创🌟",
-        // "如果你不在了，我会一直坐在山谷里听从前你的回音。——某同学原创🌟",
-        // "我伏在天空怀里，听雨的心跳。——某同学原创🌟",
-        // "我在他的眼睛里看见了自己，于是我永远存活在他的眼中了。——某同学原创🌟",
-        // "太阳看见地球老去，流出的泪灼伤了我们。——某同学原创🌟",
-        // "那北极星空中舞动的极光，是我最后的归冢余望。——班上某同学原创🌟",
-        // "孩童的双眸，是未被翻译的星光，当世界用谎言，为他们戴上近视眼镜，那两汪清泉，依然倒映着宇宙最初的语法，磨损的成年人啊，只能蹲下来，借他们的瞳孔，冲洗自己生锈的『天真』。——网站作者原创🌟",
-        // "因为你爱着这个世界，所以我愿意用我的目光追随你的目光，用我的心去感受你所感受的美好。你所眷恋的人间烟火、草木山川、悲欢离合，从此也将成为我深爱的风景。——网站作者原创🌟"
-    ],
-    medium: [ // 35% 概率
-        "宝剑锋从磨砺出，梅花香自苦寒来。——《警世贤文·勤奋篇》",
-        "千淘万漉虽辛苦，吹尽狂沙始到金。——刘禹锡《浪淘沙·莫道谗言如浪深》",
-        "青春须早为，岂能长少年。——孟郊《劝学》",
-        "摩霄志在潜修羽，会接鸾凰别苇丛。——刘象《鸳鸯》",
-        "千门万户曈曈日，总把新桃换旧符。——王安石《元日》",
-        "大鹏一日同风起，扶摇直上九万里。——李白《上李邕》",
-
-        "春日最好的阳光照在这里，于是长路上洒满了光。",
-        "我无坚不摧，也无所不能。",
-        "我们与万物同行，星辰指引方向，云与光铺展成大地的模样。",
-        "如果有一天，你来到我们的所抵达的终点，能为我们献上一束花吗？",
-        "我以为我 无坚不摧 无所不能 直到你的出现 ——《称为》黄子弘凡",
-        "当丁达尔效应出现的时候，光便有了形状。",
-        "傲慢使别人无法爱我，偏见使我无法爱别人。——[英]简·奥斯汀《傲慢与偏见》",
-        "我们，不是来改变世界的。我们，就是世界！——旅行团乐队",
-        "我一直留着，你送给我的帽子。但我们的故事，只剩下，这首歌。——马赛克乐队《莫里森与杂货铺》",
-
-        "在晨曦的微光中，露珠轻吻着花瓣，如同繁星点缀于夜空的边际。",
-        "夕阳如熔金洒落，将天边染成一幅绚烂的画卷，静候那永不褪色的黄昏。",
-        "星光在夜的织锦上细细描绘，每一颗都是未完的故事，悬于无垠的宇宙之中。",
-        "风，穿越古老的巷弄，携带着时光的低语，轻抚过岁月的痕迹。",
-        "月光倾洒，如细丝般缠绕着树梢，编织着夜的静谧与温柔。",
-        "晨曦初破，霞光如织，天边渐渐泛起希望的色彩，迎接新日的诞生。",
-        "落叶在秋风中起舞，每一片都是季节的笔触，书写着岁月的诗篇。",
-        "雾气缭绕在山间，仿佛是大自然的呼吸，轻柔地覆盖着万物的梦境。",
-        "雨滴轻敲窗棂，如同天空在低语，诉说着未了的情缘。",
-        "在那遥远的天际，云彩编织着魔法的城堡，等待着勇敢的探险者去探寻。",
-
-        "有个人肚子疼去医院看病，医生摸了肚子问是什么感觉，他说，我感觉有人在摸我的肚子。",
-        "企鹅为什么肚子是白的，其他地方是黑的？因为手短只能洗到肚子[耶]",
-
-        "羌笛吹落梅，让人分不清异乡和故里。",
-        "渴望靠近篝火，又恐惧被温暖灼伤。",
-        "崩刃的剑，依旧致命，锈蚀的盾，屹立如初。",
-        "如有一味绝境，非历十方生死。",
-        "预言无用，不知道结局的人生才会刺激。",
-        "为何看不清故乡的模样，即时它就在心的中央。",
-
-        // "努力是为了寻找到死亡与死亡之间的区别。——DXL原创🌟"
-    ],
-    low: [ // 20% 概率
-        // "要么忙着活，要么忙着死。——《肖申克的救赎》",
-        // "希望是好事，也许是人间至善，而美好的事永不消逝。——《肖申克的救赎》",
-        // "当落叶枯去，你会不会为它闭上眼睛？——《小雨中》",
-        // "人会迷路，人会消失，人会被抹去然后重生。——《S.》",
-        // "截神之力，引为柴薪，依人之智，烹然烈火。——游戏《尘白禁区》角色芙提雅·伊格妮丝，由班上某（可能是唯一一个）该游戏玩家投稿"
-    ]
-};
-
-// const originalPhrases = {
-//     high: [
-//         "那北极星空中舞动的极光，是我最后的归冢余望。——班上某同学原创",
-//         "我没法活成光，只好活成它的影子。——某同学原创",
-//         "重逢很难，不如从未相见。——某同学原创",
-//         "若想要改变一条汹涌的河水流向，则必将要等待一场天崩地裂。——DXL原创",
-//         "我的灵魂之上凿刻的，是对命运的不屑和死亡。——DXL原创",
-//         "他微微抬眼，时间好似静止，万物皆为虚无，只有他在闪闪发光。——DXL原创",
-//         "何为以后？大概就是，以彼此为星轨，并以永远为期。——DXL原创",
-//         "她是过去的未来，亦是未来的过去，过去因她而存在，未来因她而改变。——DXL原创",
-//         "如果你不在了，我会一直坐在山谷里听从前你的回音。——某同学原创",
-//         "我伏在天空怀里，听雨的心跳。——某同学原创",
-//         "我在他的眼睛里看见了自己，于是我永远存活在他的眼中了。——某同学原创",
-//         "太阳看见地球老去，流出的泪灼伤了我们。——某同学原创"
-//     ],
-//     medium: [
-//         "努力是为了寻找到死亡与死亡之间的区别。——DXL原创"
-//     ],
-//     low: []
-// };
-
-
-
-window.localPhrases = localPhrases;
-```
-
-## 4 `js/data/schedule.js`
-```js
-const schedule = {
-    weekday: [
-        ["6:30-7:00", "早餐"],
-        ["7:00-7:40", "早读"],
-        ["7:40-7:50", "课间"],
-        ["7:50-8:35", "第一节课"],
-        ["8:35-9:05", "大课间"],
-        ["9:05-9:50", "第二节课"],
-        ["9:50-10:00", "课间"],
-        ["10:00-10:45", "第三节课"],
-        ["10:45-10:55", "课间"],
-        ["10:55-11:40", "第四节课"],
-        ["11:40-12:20", "午餐"],
-        ["12:20-13:50", "午休"],
-        ["13:50-14:00", "课间"],
-        ["14:00-14:45", "第五节课"],
-        ["14:45-14:55", "课间"],
-        ["14:55-15:40", "第六节课"],
-        ["15:40-15:50", "课间"],
-        ["15:50-16:35", "第七节课"],
-        ["16:35-17:05", "大课间"],
-        ["17:05-17:40", "第八节课"],
-        ["17:40-18:15", "晚餐"],
-        ["18:15-18:20", "晚自习预备"],
-        ["18:20-19:05", "第一节晚自习"],
-        ["19:05-19:15", "课间"],
-        ["19:15-20:00", "第二节晚自习"],
-        ["20:00-20:10", "课间"],
-        ["20:10-20:50", "第三节晚自习"],
-        ["20:50-21:00", "课间"],
-        ["21:00-21:40", "第四节晚自习"],
-        ["21:40-6:30", "睡觉"]
-    ],
-    friday: [
-        ["6:30-7:00", "早餐"],
-        ["7:00-7:40", "早读"],
-        ["7:40-7:50", "课间"],
-        ["7:50-8:35", "第一节课"],
-        ["8:35-9:05", "大课间"],
-        ["9:05-9:50", "第二节课"],
-        ["9:50-10:00", "课间"],
-        ["10:00-10:45", "第三节课"],
-        ["10:45-10:55", "课间"],
-        ["10:55-11:40", "第四节课"],
-        ["11:40-12:20", "午餐"],
-        ["12:20-13:50", "午休"],
-        ["13:50-14:00", "课间"],
-        ["14:00-14:45", "第五节课"],
-        ["14:45-14:55", "课间"],
-        ["14:55-15:40", "第六节课"],
-        ["15:40-15:50", "课间"],
-        ["15:50-16:35", "第七节课"],
-        ["16:35-17:05", "大课间"],
-        ["17:05-17:40", "第八节课"],
-        ["17:40-23:59", "放学回家"]
-    ],
-    saturday: [
-        ["0:00-23:59", "周末"]
-    ],
-    sunday: [
-        ["0:00-17:40", "周末"],
-        ["17:40-18:20", "返校"],
-        ["18:20-19:05", "第一节晚自习"],
-        ["19:05-19:15", "课间"],
-        ["19:15-20:00", "第二节晚自习"],
-        ["20:00-20:10", "课间"],
-        ["20:10-20:50", "第三节晚自习"],
-        ["20:50-21:00", "课间"],
-        ["21:00-21:40", "第四节晚自习"],
-        ["21:40-6:30", "睡觉"]
-    ]
-};
-
-const schedule2 = {
-    weekday: [
-        ["7:00-7:30", "早餐"],
-        ["7:30-7:50", "早读"],
-        ["7:50-8:00", "课间"],
-        ["8:00-8:40", "第一节课"],
-        ["8:40-8:50", "课间"],
-        ["8:50-9:30", "第二节课"],
-        ["9:30-9:40", "课间"],
-        ["9:40-10:20", "第三节课"],
-        ["10:20-10:30", "课间"],
-        ["10:30-11:10", "第四节课"],
-        ["11:10-11:20", "课间"],
-        ["11:20-12:00", "第五节课"],
-        ["12:00-12:40", "午餐"],
-        ["12:40-13:40", "午休"],
-        ["13:40-13:50", "课间"],
-        ["13:50-14:00", "课前唱"],
-        ["14:00-14:40", "第六节课"],
-        ["14:40-14:50", "课间"],
-        ["14:50-15:30", "第七节课"],
-        ["15:30-15:40", "课间"],
-        ["15:40-15:45", "考前准备"],
-        ["15:45-17:45", "考试"],
-        ["17:45-18:30", "晚餐"],
-        ["18:30-19:00", "政史背记"],
-        ["19:00-20:00", "第一节晚自习"],
-        ["20:00-20:10", "课间"],
-        ["20:10-21:30", "第二节晚自习"],
-        ["21:30-21:40", "课间"],
-        ["21:40-22:20", "第三节晚自习"],
-        ["22:20-7:00", "洗漱睡觉"]
-    ],
-    friday: [
-        ["7:00-7:30", "早餐"],
-        ["7:30-7:50", "早读"],
-        ["7:50-8:00", "课间"],
-        ["8:00-8:40", "第一节课"],
-        ["8:40-8:50", "课间"],
-        ["8:50-9:30", "第二节课"],
-        ["9:30-9:40", "课间"],
-        ["9:40-10:20", "第三节课"],
-        ["10:20-10:30", "课间"],
-        ["10:30-11:10", "第四节课"],
-        ["11:10-11:20", "课间"],
-        ["11:20-12:00", "第五节课"],
-        ["12:00-12:40", "午餐"],
-        ["12:40-13:40", "午休"],
-        ["13:40-13:50", "课间"],
-        ["13:50-14:00", "课前唱"],
-        ["14:00-14:40", "第六节课"],
-        ["14:40-14:50", "课间"],
-        ["14:50-15:30", "第七节课"],
-        ["15:30-15:40", "课间"],
-        ["15:40-15:45", "考前准备"],
-        ["15:45-17:25", "考试"],
-        ["17:25-23:59", "放学回家"]
-    ],
-    saturday: [
-        ["0:00-23:59", "周末"]
-    ],
-    sunday: [
-        ["17:45-18:30", "晚餐"],
-        ["18:30-19:00", "政史背记"],
-        ["19:00-20:00", "第一节晚自习"],
-        ["20:00-20:10", "课间"],
-        ["20:10-21:30", "第二节晚自习"],
-        ["21:30-21:40", "课间"],
-        ["21:40-22:20", "第三节晚自习"],
-        ["22:20-7:00", "洗漱睡觉"]
-    ]
-};
-
-const schedule_last = {
-    weekday: [
-        ["7:00-7:30", "早餐"],
-        ["7:30-7:50", "早读"],
-        ["7:50-8:00", "课间"],
-        ["8:00-8:40", "第一节课"],
-        ["8:40-8:50", "课间"],
-        ["8:50-9:30", "第二节课"],
-        ["9:30-9:40", "课间"],
-        ["9:40-10:20", "第三节课"],
-        ["10:20-10:30", "课间"],
-        ["10:30-11:10", "第四节课"],
-        ["11:10-11:20", "课间"],
-        ["11:20-12:00", "第五节课"],
-        ["12:00-12:40", "午餐"],
-        ["12:40-13:40", "午休"],
-        ["13:40-13:50", "课间"],
-        ["13:50-14:00", "课前唱"],
-        ["14:00-14:40", "第六节课"],
-        ["14:40-14:50", "课间"],
-        ["14:50-15:30", "第七节课"],
-        ["15:30-15:40", "课间"],
-        ["15:40-15:45", "考前准备"],
-        ["15:45-17:45", "考试"],
-        ["17:45-18:30", "晚餐"],
-        ["18:30-19:00", "政史背记"],
-        ["19:00-20:00", "第一节晚自习"],
-        ["20:00-20:10", "课间"],
-        ["20:10-21:30", "第二节晚自习"],
-        ["21:30-21:40", "课间"],
-        ["21:40-22:20", "第三节晚自习"],
-        ["22:20-7:00", "洗漱睡觉"]
-    ],
-    friday: [
-        ["7:00-7:30", "早餐"],
-        ["7:30-7:50", "早读"],
-        ["7:50-8:00", "课间"],
-        ["8:00-8:40", "第一节课"],
-        ["8:40-8:50", "课间"],
-        ["8:50-9:30", "第二节课"],
-        ["9:30-9:40", "课间"],
-        ["9:40-10:20", "第三节课"],
-        ["10:20-10:30", "课间"],
-        ["10:30-11:10", "第四节课"],
-        ["11:10-11:20", "课间"],
-        ["11:20-12:00", "第五节课"],
-        ["12:00-12:40", "午餐"],
-        ["12:40-13:40", "午休"],
-        ["13:40-13:50", "课间"],
-        ["13:50-14:00", "课前唱"],
-        ["14:00-14:40", "第六节课"],
-        ["14:40-14:50", "课间"],
-        ["14:50-15:30", "第七节课"],
-        ["15:30-15:40", "课间"],
-        ["15:40-15:45", "考前准备"],
-        ["15:45-17:25", "考试"],
-        ["17:25-23:59", "放学"]
-    ]
-};
-
-```
-
-## 5 `js/data/solarterms.js`
-```js
-const solarTerms = [
-    { 
-        name: '立春', 
-        month: 1, 
-        day: 3, 
-        color: '#a5d6a7',
-        image: 'images/立春.png',
-        desc: '立春是二十四节气之首，标志着冬天的结束和春天的开始。此时气温开始回暖，万物复苏，东风送暖，柳树发芽，梅花绽放。古代有迎春仪式和咬春习俗，人们祈求新年吉祥如意。'
-    },
-    { 
-        name: '雨水', 
-        month: 1, 
-        day: 18, 
-        color: '#8bc34a',
-        image: 'images/雨水.png',
-        desc: '雨水节气正值仲春之初，气温继续回升，降水增多，冰雪融化。这个时节适宜春耕备耕，农民开始忙碌农事。古人有"獭祭鱼"、"鸿雁来"等物候现象观察记载。'
-    },
-    { 
-        name: '惊蛰', 
-        month: 2, 
-        day: 5, 
-        color: '#7cb342',
-        image: 'images/惊蛰.png',
-        desc: '惊蛰时节春雷始鸣，蛰伏的昆虫被惊醒而出。此时桃花盛开，杏花怒放，田间地头一片繁忙景象。古有"桃始华"、"仓庚鸣"的物候特征。'
-    },
-    { 
-        name: '春分', 
-        month: 2, 
-        day: 20, 
-        color: '#69a63d',
-        image: 'images/春分.png',
-        desc: '春分日昼夜平分，标志着春季中期。此时莺飞草长，小麦拔节孕穗，农事活动进入繁忙阶段。民间有竖蛋游戏和祭日习俗。'
-    },
-    { 
-        name: '清明', 
-        month: 3, 
-        day: 4, 
-        color: '#5d9536',
-        image: 'images/清明.png',
-        desc: '清明时节气温升高，春雨绵绵滋润大地。这是扫墓祭祖的重要日子，也是踏青赏花的好时机。古代有蹴鞠、荡秋千等娱乐活动。'
-    },
-    { 
-        name: '谷雨', 
-        month: 3, 
-        day: 20, 
-        color: '#4d802e',
-        image: 'images/谷雨.png',
-        desc: '谷雨是春季最后一个节气，降雨量增加利于谷物生长。此时牡丹盛开，茶树抽新芽，农忙季节全面到来。有"萍始生"、"鸣鸠拂其羽"等物候现象。'
-    },
-    { 
-        name: '立夏', 
-        month: 4, 
-        day: 5, 
-        color: '#467930',
-        image: 'images/立夏.png',
-        desc: '立夏标志着夏季的开始，气温显著上升。此时蝼蝈鸣叫，蚯蚓出地面，王瓜开始生长。古代有"迎夏"仪式和尝新活动。'
-    },
-    { 
-        name: '小满', 
-        month: 4, 
-        day: 21, 
-        color: '#3d6826',
-        image: 'images/小满.png',
-        desc: '小满时节麦类作物籽粒开始饱满但未成熟。此时蚕结茧，菜子成熟可以收割。农谚有"小满小满，麦粒渐满"的说法。'
-    },
-    { 
-        name: '芒种', 
-        month: 5, 
-        day: 5, 
-        color: '#30571f',
-        image: 'images/芒种.png',
-        desc: '芒种是农忙时节，北方麦收南方插秧。此时梅子成熟，天气潮湿闷热。农谚说"芒种忙忙种"，抓紧时间播种作物。'
-    },
-    { 
-        name: '夏至', 
-        month: 5, 
-        day: 21, 
-        color: '#254517',
-        image: '夏至.png',
-        desc: '夏至日北半球白昼最长，标志着盛夏到来。此时蝉鸣阵阵，荷花盛开，农作物生长旺盛。古人有祭天仪式和消夏活动。'
-    },
-    { 
-        name: '小暑', 
-        month: 6, 
-        day: 7, 
-        color: '#1c3611',
-        image: '小暑.png',
-        desc: '小暑时节天气逐渐炎热，雷雨增多。此时蟋蟀开始在墙角鸣叫，鹰隼捕食更加频繁。农谚有"小暑大暑，灌死老鼠"的说法。'
-    },
-    { 
-        name: '大暑', 
-        month: 6, 
-        day: 22, 
-        color: '#122408',
-        image: '大暑.png',
-        desc: '大暑是一年中最热的时节，高温酷暑考验着万物生长。此时荷花盛开至极，雷阵雨频繁出现。古人有饮伏茶、晒伏姜的习俗。'
-    },
-    { 
-        name: '立秋', 
-        month: 7, 
-        day: 7, 
-        color: '#1a3a4a',
-        image: '立秋.png',
-        desc: '立秋标志着秋天的开始，气温由热转凉。此时早晚温差加大，稻谷抽穗扬花。古人有"贴秋膘"、"啃秋"等习俗。'
-    },
-    { 
-        name: '处暑', 
-        month: 7, 
-        day: 23, 
-        color: '#2d4d5d',
-        image: '处暑.png',
-        desc: '处暑时节暑气消退，秋意渐浓。此时农作物进入成熟期，农民开始收割。古代有"祭蜡"和"迎秋"仪式。'
-    },
-    { 
-        name: '白露', 
-        month: 8, 
-        day: 7, 
-        color: '#3d5d6d',
-        image: '白露.png',
-        desc: '白露时节天气转凉，清晨露水凝结成霜。此时鸿雁南飞，菊花开放。农谚有"白露白茫茫，无谷满粮仓"的说法。'
-    },
-    { 
-        name: '秋分', 
-        month: 8, 
-        day: 23, 
-        color: '#4d6d7d',
-        image: '秋分.png',
-        desc: '秋分日昼夜平分，标志着秋季中期。此时秋高气爽，桂花飘香。古代有"竖蛋"和"送秋牛"的习俗。'
-    },
-    { 
-        name: '寒露', 
-        month: 9, 
-        day: 8, 
-        color: '#5d7d8d',
-        image: '寒露.png',
-        desc: '寒露时节气温降低，露水寒冷凝结。此时菊花盛开至极，农事进入抢收阶段。古人有赏菊和饮菊花酒的习俗。'
-    },
-    { 
-        name: '霜降', 
-        month: 9, 
-        day: 23, 
-        color: '#6d8da7',
-        image: '霜降.png',
-        desc: '霜降是秋季最后一个节气，天气渐冷初霜出现。此时柿子成熟红透，枫叶变红。农谚有"霜降见霜，米谷满仓"的说法。'
-    },
-    { 
-        name: '立冬', 
-        month: 10, 
-        day: 7, 
-        color: '#7d9dc3',
-        image: '立冬.png',
-        desc: '立冬标志着冬季的开始，气温明显下降。此时水始冰地始冻，农民开始准备越冬作物。古代有"贺冬"和"补冬"的习俗。'
-    },
-    { 
-        name: '小雪', 
-        month: 10, 
-        day: 22, 
-        color: '#8da6d9',
-        image: '小雪.png',
-        desc: '小雪时节天气寒冷降雪开始。此时阴气下降阳气上升，农事进入冬闲时期。古人有腌制腊肉和观赏雪景的习俗。'
-    },
-    { 
-        name: '大雪', 
-        month: 11, 
-        day: 7, 
-        color: '#9fb4e6',
-        image: '大雪.png',
-        desc: '大雪时节降雪量增加天气更加寒冷。此时鹖鸟不鸣虎始交，农事基本结束进入农闲。古人有赏雪和制作腊肉的习俗。'
-    },
-    { 
-        name: '冬至', 
-        month: 11, 
-        day: 21, 
-        color: '#b3c2ec',
-        image: '冬至.png',
-        desc: '冬至日北半球白昼最短标志着寒冬到来。此时蚯蚓结麋角解水泉动，古代有"冬至大如年"的说法和祭祀活动。'
-    },
-    { 
-        name: '小寒', 
-        month: 12, 
-        day: 6, 
-        color: '#c5d1f0',
-        image: '小寒.png',
-        desc: '小寒时节天气寒冷但未达极点。此时雁北乡鹊始巢雉雊鸲，农事基本停止进入农闲。古人有"数九消寒"的习俗。'
-    },
-    { 
-        name: '大寒', 
-        month: 12, 
-        day: 20, 
-        color: '#d9e0ff',
-        image: '大寒.png',
-        desc: '大寒是一年中最冷时节标志着冬季尾声。此时鸡乳泽腹水泉动，农事全部结束准备过年。古人有"除旧布新"的习俗迎接新春到来。'
-    }
-];
-```
-
 ## 6 `js/data/timetable.js`
 ```js
 const timetable = {
@@ -1077,6 +521,7 @@ const timetable_last = {
     thursday: ["语文","物理","化学","数学","英语","政治","历史","数学考试"],
     friday: ["数学","语文","英语","体育","物理","化学","班会","英语考试"]
 };
+
 ```
 
 ## 7 `js/features/00_state.js`
@@ -1084,18 +529,51 @@ const timetable_last = {
 window.App = window.App || {};
 
 window.App.State = {
-    intervalDuration: 15000,
-    apiProbability: 50,
-    lostAndFoundFontSize: 28,
-    notifications: [],
-    lastPhrase: null
+    // 仅内存，不需要持久化
+    lastPhrase: null,
+
+    // ---------- 设置项：通过 App.Store 持久化 ----------
+    get intervalDuration() {
+        if (window.App.Store) return window.App.Store.getSetting('intervalDuration');
+        return 15000;
+    },
+    set intervalDuration(v) {
+        if (window.App.Store) window.App.Store.setSetting('intervalDuration', v);
+    },
+
+    get apiProbability() {
+        if (window.App.Store) return window.App.Store.getSetting('apiProbability');
+        return 50;
+    },
+    set apiProbability(v) {
+        if (window.App.Store) window.App.Store.setSetting('apiProbability', v);
+    },
+
+    get lostAndFoundFontSize() {
+        if (window.App.Store) return window.App.Store.getSetting('lostAndFoundFontSize');
+        return 28;
+    },
+    set lostAndFoundFontSize(v) {
+        if (window.App.Store) window.App.Store.setSetting('lostAndFoundFontSize', v);
+    },
+
+    // ---------- 通知列表 ----------
+    get notifications() {
+        if (window.App.Store) return window.App.Store.get('notifications') || [];
+        return this._fallbackNotifications || (this._fallbackNotifications = []);
+    },
+    set notifications(v) {
+        if (window.App.Store) window.App.Store.set('notifications', v);
+        else this._fallbackNotifications = v;
+    }
 };
 
 window.App.Timers = {
     phrase: null,
     weather: null,
     refresh: null,
-    image: null
+    image: null,
+    schoolSchedule: null
 };
 
 ```
@@ -1111,6 +589,7 @@ window.App.Utils = {
     }
 };
 
+
 ```
 
 ## 9 `js/features/auto_refresh.js`
@@ -1123,9 +602,11 @@ window.App.AutoRefresh = {
         if (!switchBtn) return;
 
         switchBtn.addEventListener('change', e => {
+            if (window.App.Store) window.App.Store.setSetting('autoRefreshSwitch', e.target.checked);
             e.target.checked ? this.start() : this.stop();
         });
 
+        // DOM 里的 checked 已在 modal_settings.applyFromStore 里被同步过
         if (switchBtn.checked) this.start();
     },
 
@@ -1172,301 +653,19 @@ window.App.Clock = (() => {
     };
 })();
 
-```
-
-## 11 `js/features/daily_image.js`
-```js
-window.App.DailyImage = {
-    init() {
-        const switchBtn = document.getElementById('imageSwitch');
-        if (switchBtn && !switchBtn.checked) {
-            const container = document.querySelector('.right-image-container');
-            if (container) container.style.display = 'none';
-            return;
-        }
-
-        this.updateImage();
-        clearInterval(window.App.Timers.image);
-        window.App.Timers.image = setInterval(() => this.updateImage(), 86400000);
-    },
-
-    updateImage() {
-        const img = document.getElementById('apiImage');
-        const container = document.querySelector('.right-image-container');
-        if (!img || !container) return;
-
-        container.style.display = 'flex';
-        img.style.opacity = '0';
-        img.style.transition = 'opacity 0.5s';
-
-        const t = Date.now();
-        const temp = new Image();
-        temp.onload = () => {
-            img.src = `https://v.api.aa1.cn/api/60s-v3/?t=${t}`;
-            img.style.opacity = '1';
-        };
-        temp.onerror = () => {
-            img.src = `https://api.03c3.cn/zb/api.php?t=${t}`;
-            img.style.opacity = '1';
-        };
-        temp.src = `https://v.api.aa1.cn/api/60s-v3/?t=${t}`;
-    }
-};
-
-```
-
-## 12 `js/features/exam_countdown.js`
-```js
-window.App.ExamCountdown = {
-    init() {
-        this.update();
-    },
-
-    update() {
-        const target = new Date(2028, 5, 7);
-        const diff = target - new Date();
-        const days = Math.max(0, Math.ceil(diff / 86400000));
-
-        const el = document.getElementById('daysUntil');
-        if (el) el.textContent = `${days}天`;
-
-        const now = new Date();
-        setTimeout(() => this.update(), 86400000 - (now % 86400000));
-    }
-};
-
-```
-
-## 13 `js/features/golden_phrase.js`
-```js
-window.App.GoldenPhrase = {
-    apiConfigs: [
-        {
-            url: 'https://zj.v.api.aa1.cn/api/wenan-shici/?type=json',
-            method: 'GET',
-            weight: 15,
-            maxRetry: 3,
-            handler(data) {
-                const text = data.msg || '';
-                return text.length <= 100 ? text : null;
-            }
-        },
-        {
-            url: 'https://api.songzixian.com/api/daily-poem?dataSource=LOCAL_DAILY_POEM',
-            method: 'GET',
-            weight: 15,
-            maxRetry: 3,
-            handler(data) {
-                if (!data.data) return null;
-                const title = (data.data.title || '').replace(/\s*·\s*/g, '·');
-                const formatted = /^《(.+)》$/.test(title) ? title : `《${title}》`;
-                return `${data.data.quotes || ''}——${data.data.author || ''}${formatted}`;
-            }
-        },
-        {
-            url: 'https://zj.v.api.aa1.cn/api/wenan-wm/?type=json',
-            method: 'GET',
-            weight: 20,
-            maxRetry: 3,
-            handler(data) {
-                const text = data.msg || '';
-                return text.length <= 100 ? text : null;
-            }
-        },
-        {
-            url: 'https://zj.v.api.aa1.cn/api/wenan-mj/?type=json',
-            method: 'GET',
-            weight: 30,
-            maxRetry: 3,
-            handler(data) {
-                const text = data.msg || '';
-                return text.length <= 100 ? text : null;
-            }
-        },
-        {
-            url: 'https://api.mu-jie.cc/stray-birds/range?type=json',
-            method: 'GET',
-            weight: 20,
-            maxRetry: 5,
-            handler(data) {
-                const cnLength = data.cn?.length || 0;
-                const enLength = data.en?.length || 0;
-                if (cnLength > 100) return null;
-                if (enLength * 0.5 + cnLength <= 100) return `${data.en}（${data.cn}）——泰戈尔`;
-                return `${data.cn}——泰戈尔`;
-            }
-        }
-    ],
-
-    init() {
-        this.fetch();
-        this.startTimer();
-        this.bindClickRefresh();
-    },
-
-    startTimer() {
-        this.stopTimer();
-        const interval = Number(window.App.State?.intervalDuration) || 15000;
-        window.App.Timers.phrase = setInterval(() => this.fetch(), interval);
-    },
-
-    stopTimer() {
-        if (window.App.Timers.phrase) {
-            clearInterval(window.App.Timers.phrase);
-            window.App.Timers.phrase = null;
-        }
-    },
-
-    async fetchWithRetry(api, retry = 0) {
-        try {
-            const res = await fetch(api.url, { method: api.method || 'GET' });
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-            const text = api.handler(await res.json());
-            if (text !== null && text !== '') return text;
-
-            if (retry < api.maxRetry) return this.fetchWithRetry(api, retry + 1);
-            throw new Error('超过最大重试次数');
-        } catch (err) {
-            if (retry < api.maxRetry) return this.fetchWithRetry(api, retry + 1);
-            throw err;
-        }
-    },
-
-    selectRandomAPI() {
-        const total = this.apiConfigs.reduce((sum, api) => sum + api.weight, 0);
-        let random = Math.random() * total;
-
-        for (const api of this.apiConfigs) {
-            if (random < api.weight) return api;
-            random -= api.weight;
-        }
-        return this.apiConfigs[0];
-    },
-
-    async fetch() {
-        const probability = Number(window.App.State?.apiProbability ?? 50);
-        if (Math.random() >= probability / 100) return this.showLocal();
-
-        try {
-            const text = await this.fetchWithRetry(this.selectRandomAPI());
-            this.updateDisplay(text);
-        } catch (err) {
-            console.warn('联网金句获取失败，改用本地金句：', err);
-            this.showLocal();
-        }
-    },
-
-    updateDisplay(text) {
-        const container = document.getElementById('goldenPhrase');
-        if (!container) return;
-
-        const finalText = text === undefined || text === null ? '' : String(text);
-        const animationEnabled = document.getElementById('animationSwitch')?.checked !== false;
-        const formatted = this.escapeHTML(finalText).replace(/\n/g, '<br>');
-
-        const apply = () => {
-            container.innerHTML = `「 ${formatted} 」`;
-            container.style.opacity = '1';
-        };
-
-        if (animationEnabled) {
-            container.style.opacity = '0';
-            setTimeout(apply, 500);
-        } else {
-            apply();
-        }
-    },
-
-    showLocal() {
-        const data = window.localPhrases || { high: [], medium: [], low: [] };
-        const toArray = value => (Array.isArray(value) ? value : []);
-        const onlyOriginal = document.getElementById('originalSwitch')?.checked || false;
-        const filter = list => (onlyOriginal ? list.filter(p => String(p).trim().endsWith('🌟')) : list);
-
-        const high = filter(toArray(data.high));
-        const medium = filter(toArray(data.medium));
-        const low = filter(toArray(data.low));
-        const all = [...high, ...medium, ...low];
-
-        if (!all.length) return this.updateDisplay('🎯 没有找到金句');
-
-        const last = window.App.State.lastPhrase;
-        const pick = list => {
-            const candidates = list.filter(p => p !== last);
-            const pool = candidates.length ? candidates : list;
-            return pool[Math.floor(Math.random() * pool.length)];
-        };
-
-        let selected;
-
-        // high 45% / medium 35% / low 20%
-        if (!onlyOriginal) {
-            const pools = [];
-            if (high.length) pools.push({ list: high, weight: 45 });
-            if (medium.length) pools.push({ list: medium, weight: 35 });
-            if (low.length) pools.push({ list: low, weight: 20 });
-
-            const total = pools.reduce((sum, pool) => sum + pool.weight, 0);
-            let random = Math.random() * total;
-
-            for (const pool of pools) {
-                if (random < pool.weight) {
-                    selected = pick(pool.list);
-                    break;
-                }
-                random -= pool.weight;
-            }
-        }
-
-        if (!selected) {
-            const candidates = all.filter(p => p !== last);
-            const pool = candidates.length ? candidates : all;
-            selected = pool[Math.floor(Math.random() * pool.length)];
-        }
-
-        window.App.State.lastPhrase = selected;
-        this.updateDisplay(selected);
-    },
-
-    bindClickRefresh() {
-        const container = document.getElementById('goldenPhrase');
-        if (!container) return;
-
-        container.addEventListener('click', () => {
-            if (!document.getElementById('clickRefreshSwitch')?.checked) return;
-
-            const animationEnabled = document.getElementById('animationSwitch')?.checked !== false;
-
-            if (animationEnabled) {
-                container.style.transform = 'scale(0.98)';
-                setTimeout(() => {
-                    container.style.transform = 'scale(1)';
-                    this.fetch();
-                }, 300);
-            } else {
-                this.fetch();
-            }
-
-            if (document.getElementById('goldenSwitch')?.checked) this.startTimer();
-        });
-    },
-
-    escapeHTML(value) {
-        return String(value)
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#039;');
-    }
-};
 
 ```
 
 ## 14 `js/features/main.js`
 ```js
-window.onload = function () {
+window.onload = async function () {
+    // 1) 先初始化本地存储，加载磁盘数据
+    try {
+        await window.App.Store.init();
+    } catch (e) {
+        console.error('❌ 本地存储初始化失败：', e);
+    }
+
     const safeInit = (name, fn) => {
         try {
             if (typeof fn === 'function') fn();
@@ -1476,7 +675,7 @@ window.onload = function () {
         }
     };
 
-    // 核心功能模块
+    // 2) 核心功能模块
     safeInit('Clock', () => window.App.Clock?.init());
     safeInit('Weather', () => window.App.Weather?.init());
     safeInit('DailyImage', () => window.App.DailyImage?.init());
@@ -1486,14 +685,14 @@ window.onload = function () {
     safeInit('GoldenPhrase', () => window.App.GoldenPhrase?.init());
     safeInit('AutoRefresh', () => window.App.AutoRefresh?.init());
 
-    // 弹窗交互模块
+    // 3) 弹窗交互模块
     safeInit('ModalCore', () => window.App.ModalCore?.init());
     safeInit('ModalSettings', () => window.App.ModalSettings?.init());
     safeInit('ModalLostFound', () => window.App.ModalLostFound?.init());
     safeInit('ModalNotification', () => window.App.ModalNotification?.init());
     safeInit('ModalPhrase', () => window.App.ModalPhrase?.init());
 
-    // 显示主界面
+    // 4) 显示主界面
     const loadingOverlay = document.getElementById('loadingOverlay');
     const pageContent = document.getElementById('pageContent');
     if (loadingOverlay) loadingOverlay.style.display = 'none';
@@ -1503,9 +702,8 @@ window.onload = function () {
 window.addEventListener('unload', () => {
     try {
         if (window.App.Timers?.phrase) clearInterval(window.App.Timers.phrase);
-    } catch (e) {
-        /* 忽略卸载时的错误 */
-    }
+        window.App.Store?.flush();
+    } catch (e) { /* ignore */ }
 });
 
 ```
@@ -1533,7 +731,7 @@ window.App.ModalCore = {
             });
         });
 
-        ['maximizeNotification', 'maximizeLostAndFound'].forEach(id => {
+        ['maximizeNotification', 'maximizeLostAndFound', 'maximizeAnnouncement'].forEach(id => {
             document.getElementById(id)?.addEventListener('click', function () {
                 const modal = this.closest('.settings-modal');
                 modal.classList.toggle('fullscreen');
@@ -1550,304 +748,6 @@ window.App.ModalCore = {
     }
 };
 
-```
-
-## 16 `js/features/modal_lost_found.js`
-```js
-window.App.ModalLostFound = {
-    init() {
-        this.bindEvents();
-        this.initFontSizeControl();
-    },
-
-    bindEvents() {
-        const list = document.getElementById('lostAndFoundList');
-        if (!list) return;
-
-        // 点击文字 -> 行内编辑
-        list.addEventListener('click', e => {
-            const target = e.target;
-            if (!target.classList.contains('editable')) return;
-
-            const input = document.createElement('input');
-            input.className = 'edit-input';
-            input.value = target.textContent;
-            input.style.width = target.offsetWidth + 'px';
-
-            input.addEventListener('blur', function () {
-                target.textContent = this.value;
-                target.style.display = 'inline';
-                input.remove();
-            });
-
-            input.addEventListener('input', function () {
-                this.style.width = this.value.length * 20 + 30 + 'px';
-            });
-
-            target.style.display = 'none';
-            target.parentNode.insertBefore(input, target);
-            input.focus();
-        });
-
-        // 新增卡片
-        const addBtn = document.querySelector('#lostAndFoundList .add-button');
-        addBtn?.addEventListener('click', () => {
-            const newCard = document.createElement('div');
-            newCard.className = 'announcement-card';
-            newCard.innerHTML = `
-                <div class="announcement-body" style="position:relative; text-align: center; font-family: STZhongsong, serif;">
-                    <span class="editable" data-type="name" style="color: #1E90FF;">同学</span>
-                    <span class="static-text">的</span>
-                    <span class="editable" data-type="item" style="color: #1E90FF;">物品</span>
-                    <button class="delete-btn">删除</button>
-                </div>
-            `;
-            list.appendChild(newCard);
-
-            newCard.querySelectorAll('.editable, .static-text').forEach(item => {
-                item.style.fontSize = `${window.App.State.lostAndFoundFontSize}px`;
-            });
-        });
-
-        // 删除（二次确认）
-        list.addEventListener('click', e => {
-            if (!e.target.classList.contains('delete-btn')) return;
-
-            if (e.target.textContent === '删除') {
-                e.target.textContent = '确认删除';
-                e.target.style.background = '#d32f2f';
-            } else {
-                e.target.closest('.announcement-card').remove();
-            }
-        });
-
-        // 点击其他区域重置删除按钮
-        document.addEventListener('click', e => {
-            if (!e.target.classList.contains('delete-btn')) {
-                document.querySelectorAll('#lostAndFoundList .delete-btn').forEach(btn => {
-                    btn.textContent = '删除';
-                    btn.style.background = '#f44';
-                });
-            }
-        });
-    },
-
-    initFontSizeControl() {
-        const slider = document.getElementById('lostAndFoundFontSizeSlider');
-        const valueInput = document.getElementById('lostAndFoundFontSizeValue');
-        if (!slider || !valueInput) return;
-
-        slider.addEventListener('input', () => this.updateFontSize(parseInt(slider.value, 10)));
-
-        valueInput.addEventListener('input', () => {
-            let val = parseInt(valueInput.value, 10) || 28;
-            val = Math.min(120, Math.max(12, val));
-            this.updateFontSize(val);
-        });
-
-        this.updateFontSize(28);
-    },
-
-    updateFontSize(size) {
-        window.App.State.lostAndFoundFontSize = size;
-
-        const slider = document.getElementById('lostAndFoundFontSizeSlider');
-        const valueInput = document.getElementById('lostAndFoundFontSizeValue');
-        if (slider) slider.value = size;
-        if (valueInput) valueInput.value = size;
-
-        document.querySelectorAll('#lostAndFoundList .editable, #lostAndFoundList .static-text').forEach(item => {
-            item.style.fontSize = `${size}px`;
-        });
-    }
-};
-
-```
-
-## 17 `js/features/modal_notification.js`
-```js
-window.App.ModalNotification = {
-    init() {
-        this.bindEvents();
-        this.render();
-    },
-
-    adjustTextareaHeight(textarea) {
-        textarea.style.height = 'auto';
-        textarea.style.height = Math.max(100, textarea.scrollHeight) + 'px';
-    },
-
-    render() {
-        const content = document.getElementById('notificationContent');
-        if (!content) return;
-
-        content.innerHTML = '';
-
-        if (window.App.State.notifications.length === 0) {
-            content.innerHTML = '<div class="empty-notification">暂无通知，点击下方按钮添加</div>';
-            return;
-        }
-
-        const currentFontSize = content.style.fontSize || '16px';
-
-        window.App.State.notifications.forEach((text, index) => {
-            const item = document.createElement('div');
-            item.className = 'notification-item';
-            item.dataset.index = index;
-            item.innerHTML = text.replace(/\n/g, '<br>');
-            item.style.fontSize = currentFontSize;
-
-            const deleteBtn = document.createElement('button');
-            deleteBtn.className = 'delete-notification-btn';
-            deleteBtn.textContent = '删除';
-            deleteBtn.dataset.index = index;
-            item.appendChild(deleteBtn);
-
-            deleteBtn.addEventListener('click', e => {
-                e.stopPropagation();
-                if (e.target.textContent === '删除') {
-                    e.target.textContent = '确认删除';
-                    e.target.style.background = '#d32f2f';
-                } else {
-                    window.App.State.notifications.splice(e.target.dataset.index, 1);
-                    this.render();
-                }
-            });
-
-            item.addEventListener('click', e => {
-                if (e.target.classList.contains('delete-notification-btn')) return;
-
-                const idx = item.dataset.index;
-                const textarea = document.createElement('textarea');
-                textarea.className = 'notification-editable';
-                textarea.value = window.App.State.notifications[idx];
-                textarea.style.fontSize = currentFontSize;
-
-                item.innerHTML = '';
-                item.appendChild(textarea);
-                this.adjustTextareaHeight(textarea);
-                textarea.focus();
-
-                textarea.addEventListener('input', () => this.adjustTextareaHeight(textarea));
-
-                textarea.addEventListener('keydown', evt => {
-                    if (evt.key === 'Enter' && !evt.shiftKey) {
-                        evt.preventDefault();
-                        const start = textarea.selectionStart;
-                        const end = textarea.selectionEnd;
-                        textarea.value =
-                            textarea.value.substring(0, start) + '\n' + textarea.value.substring(end);
-                        textarea.selectionStart = textarea.selectionEnd = start + 1;
-                        this.adjustTextareaHeight(textarea);
-                    }
-                });
-
-                textarea.addEventListener('blur', () => {
-                    window.App.State.notifications[idx] = textarea.value;
-                    this.render();
-                });
-            });
-
-            content.appendChild(item);
-        });
-    },
-
-    bindEvents() {
-        const addBtn = document.getElementById('addNotificationBtn');
-        const content = document.getElementById('notificationContent');
-        const slider = document.getElementById('fontSizeSlider');
-        const valueInput = document.getElementById('fontSizeValue');
-
-        addBtn?.addEventListener('click', () => {
-            window.App.State.notifications.push('新通知 - 点击编辑内容');
-            this.render();
-            if (content) content.scrollTop = content.scrollHeight;
-        });
-
-        if (slider && valueInput && content) {
-            slider.addEventListener('input', () => {
-                content.style.fontSize = slider.value + 'px';
-                valueInput.value = slider.value;
-                this.render();
-            });
-
-            valueInput.addEventListener('input', () => {
-                let val = parseInt(valueInput.value, 10) || 16;
-                val = Math.min(120, Math.max(12, val));
-                content.style.fontSize = val + 'px';
-                slider.value = val;
-                this.render();
-            });
-        }
-
-        document.addEventListener('click', e => {
-            if (!e.target.classList.contains('delete-notification-btn')) {
-                document.querySelectorAll('.delete-notification-btn').forEach(btn => {
-                    btn.textContent = '删除';
-                    btn.style.background = '#f44';
-                });
-            }
-        });
-    }
-};
-
-```
-
-## 18 `js/features/modal_phrase.js`
-```js
-window.App.ModalPhrase = {
-    init() {
-        const openBtn = document.getElementById('phraseSelectButton');
-        const modal = document.getElementById('phraseModal');
-        const closeBtn = document.getElementById('closePhrase');
-
-        openBtn?.addEventListener('click', () => {
-            this.populateList();
-            modal.classList.add('active');
-        });
-
-        closeBtn?.addEventListener('click', () => modal.classList.remove('active'));
-    },
-
-    populateList() {
-        const container = document.getElementById('phraseList');
-        if (!container) return;
-
-        const data = window.localPhrases || {};
-        const allPhrases = [
-            ...(data.high || []),
-            ...(data.medium || []),
-            ...(data.low || [])
-        ];
-
-        container.innerHTML = '';
-        const fragment = document.createDocumentFragment();
-
-        allPhrases.forEach(phrase => {
-            const item = document.createElement('div');
-            item.className = 'phrase-item';
-            item.innerHTML = String(phrase).replace(/\n/g, '<br>');
-
-            item.addEventListener('click', () => {
-                item.classList.add('phrase-click-effect');
-                setTimeout(() => item.classList.remove('phrase-click-effect'), 400);
-
-                window.App.GoldenPhrase?.updateDisplay(phrase);
-
-                document.getElementById('phraseModal')?.classList.remove('active');
-
-                if (document.getElementById('goldenSwitch')?.checked && window.App.GoldenPhrase) {
-                    window.App.GoldenPhrase.stopTimer();
-                    window.App.GoldenPhrase.startTimer();
-                }
-            });
-
-            fragment.appendChild(item);
-        });
-
-        container.appendChild(fragment);
-    }
-};
 
 ```
 
@@ -1855,6 +755,7 @@ window.App.ModalPhrase = {
 ```js
 window.App.ModalSettings = {
     init() {
+        this.applyFromStore();
         this.bindProbability();
         this.bindInterval();
         this.bindSwitches();
@@ -1868,31 +769,61 @@ window.App.ModalSettings = {
         return Number.isFinite(number) ? Math.min(max, Math.max(min, number)) : fallback;
     },
 
+    // 把 Store 里的设置写回 DOM
+    applyFromStore() {
+        const s = (window.App.Store && window.App.Store.get('settings')) || {};
+
+        const setChecked = (id, value, fallback) => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.checked = (value === undefined) ? fallback : !!value;
+        };
+        setChecked('goldenSwitch', s.goldenSwitch, true);
+        setChecked('imageSwitch', s.imageSwitch, true);
+        setChecked('clickRefreshSwitch', s.clickRefreshSwitch, false);
+        setChecked('animationSwitch', s.animationSwitch, true);
+        setChecked('autoRefreshSwitch', s.autoRefreshSwitch, false);
+
+        const intervalSec = (s.intervalDuration ?? 15000) / 1000;
+        const setVal = (id, value) => {
+            const el = document.getElementById(id);
+            if (el && value !== undefined) el.value = value;
+        };
+        setVal('apiProbability', s.apiProbability ?? 50);
+        setVal('apiProbabilityValue', s.apiProbability ?? 50);
+        setVal('intervalSlider', intervalSec);
+        setVal('intervalValue', intervalSec);
+        setVal('lostAndFoundFontSizeSlider', s.lostAndFoundFontSize ?? 28);
+        setVal('lostAndFoundFontSizeValue', s.lostAndFoundFontSize ?? 28);
+        setVal('fontSizeSlider', s.notificationFontSize ?? 16);
+        setVal('fontSizeValue', s.notificationFontSize ?? 16);
+
+        // 动画开关同步到元素 class
+        document.getElementById('goldenPhrase')?.classList.toggle('no-animation', !(s.animationSwitch !== false));
+    },
+
     setProbability(value) {
         const finalValue = this.clamp(value, 0, 100, 50);
-
         const slider = document.getElementById('apiProbability');
         const number = document.getElementById('apiProbabilityValue');
         if (slider) slider.value = finalValue;
         if (number) number.value = finalValue;
-        if (window.App.State) window.App.State.apiProbability = finalValue;
+        window.App.State.apiProbability = finalValue;
     },
 
     setIntervalDuration(value) {
         const finalValue = this.clamp(value, 1, 60, 15);
-
         const slider = document.getElementById('intervalSlider');
         const number = document.getElementById('intervalValue');
         if (slider) slider.value = finalValue;
         if (number) number.value = finalValue;
-        if (window.App.State) window.App.State.intervalDuration = finalValue * 1000;
+        window.App.State.intervalDuration = finalValue * 1000;
 
         if (document.getElementById('goldenSwitch')?.checked) {
             window.App.GoldenPhrase?.startTimer();
         }
     },
 
-    // 把一个 range 和一个 number 输入框双向绑定
     bindPair(rangeId, numberId, { min, max, fallback, onInput }) {
         const range = document.getElementById(rangeId);
         const number = document.getElementById(numberId);
@@ -1910,28 +841,20 @@ window.App.ModalSettings = {
             el.addEventListener('input', e => apply(e.target.value));
             el.addEventListener('change', e => apply(e.target.value));
         });
-
-        apply(range?.value ?? number?.value ?? fallback);
     },
 
     bindProbability() {
         this.bindPair('apiProbability', 'apiProbabilityValue', {
-            min: 0,
-            max: 100,
-            fallback: 50,
-            onInput: value => {
-                if (window.App.State) window.App.State.apiProbability = value;
-            }
+            min: 0, max: 100, fallback: 50,
+            onInput: value => { window.App.State.apiProbability = value; }
         });
     },
 
     bindInterval() {
         this.bindPair('intervalSlider', 'intervalValue', {
-            min: 1,
-            max: 60,
-            fallback: 15,
+            min: 1, max: 60, fallback: 15,
             onInput: value => {
-                if (window.App.State) window.App.State.intervalDuration = value * 1000;
+                window.App.State.intervalDuration = value * 1000;
                 if (document.getElementById('goldenSwitch')?.checked) {
                     window.App.GoldenPhrase?.startTimer();
                 }
@@ -1940,29 +863,30 @@ window.App.ModalSettings = {
     },
 
     bindSwitches() {
+        const saveSetting = (key, value) => {
+            if (window.App.Store) window.App.Store.setSetting(key, value);
+        };
+
         document.getElementById('goldenSwitch')?.addEventListener('change', e => {
+            saveSetting('goldenSwitch', e.target.checked);
             if (!window.App.GoldenPhrase) return;
             e.target.checked ? window.App.GoldenPhrase.startTimer() : window.App.GoldenPhrase.stopTimer();
         });
 
         document.getElementById('imageSwitch')?.addEventListener('change', e => {
-            const image = document.getElementById('apiImage');
-            if (!image) return;
-
-            if (e.target.checked) {
-                image.style.display = 'block';
-                window.App.DailyImage?.init();
-            } else {
-                image.style.display = 'none';
-                if (window.App.Timers.image) {
-                    clearInterval(window.App.Timers.image);
-                    window.App.Timers.image = null;
-                }
-            }
+            saveSetting('imageSwitch', e.target.checked);
+            // 全部交给 DailyImage 处理：它会读 Store 的最新值，决定显示/隐藏 + 定时器
+            window.App.DailyImage?.init();
         });
 
         document.getElementById('animationSwitch')?.addEventListener('change', e => {
+            saveSetting('animationSwitch', e.target.checked);
             document.getElementById('goldenPhrase')?.classList.toggle('no-animation', !e.target.checked);
+        });
+
+        // clickRefresh / autoRefresh 的持久化分别在 golden_phrase.js / auto_refresh.js 中完成
+        document.getElementById('clickRefreshSwitch')?.addEventListener('change', e => {
+            saveSetting('clickRefreshSwitch', e.target.checked);
         });
     }
 };
@@ -1986,11 +910,13 @@ window.App.SchoolSchedule = {
     },
 
     getScheduleData() {
-        return typeof schedule !== 'undefined' ? schedule : window.schedule || {};
+        if (window.App.Store) return window.App.Store.get('schedule') || {};
+        return (typeof schedule !== 'undefined') ? schedule : {};
     },
 
     getTimetableData() {
-        return typeof timetable !== 'undefined' ? timetable : window.timetable || {};
+        if (window.App.Store) return window.App.Store.get('timetable') || {};
+        return (typeof timetable !== 'undefined') ? timetable : {};
     },
 
     getTodaySchedule(day) {
@@ -2002,7 +928,6 @@ window.App.SchoolSchedule = {
 
     getCourseName(day, lessonIndex) {
         const courses = this.getTimetableData()[this.DAYS[day]] || [];
-        // 周日只有晚自习；周一至周五需整体 +1（第 0 项是早自习）
         return courses[day === 0 ? lessonIndex : lessonIndex + 1] || '';
     },
 
@@ -2033,7 +958,7 @@ window.App.SchoolSchedule = {
         const currentMinutes = now.getHours() * 60 + now.getMinutes();
         const utils = window.App.Utils;
 
-        if (day === 6) return { current: '周末', nextLesson: '' };
+        if (day === 6) return { current: '周末', nextLesson: '无' };
 
         if (day === 0 && currentMinutes < utils.timeToMinutes('17:30')) {
             return { current: '周末', nextLesson: '第一节晚自习' };
@@ -2059,35 +984,25 @@ window.App.SchoolSchedule = {
                 ? currentMinutes >= startMinutes || currentMinutes < endMinutes
                 : currentMinutes >= startMinutes && currentMinutes < endMinutes;
 
-            if (isInRange) {
-                current = name;
-                currentIndex = i;
-                break;
-            }
+            if (isInRange) { current = name; currentIndex = i; break; }
         }
 
         let nextLesson = '';
         if (currentIndex >= 0) {
             for (let i = currentIndex + 1; i < todaySchedule.length; i++) {
                 const name = todaySchedule[i][1];
-                if (this.isCourseSchedule(name)) {
-                    nextLesson = name;
-                    break;
-                }
+                if (this.isCourseSchedule(name)) { nextLesson = name; break; }
             }
         }
 
         if (!current && day === 5) return { current: '放学', nextLesson: '无' };
-
         return { current: current || '休息', nextLesson: nextLesson || '无' };
     },
 
     getCourseDisplayName(day, scheduleName) {
         if (!this.isCourseSchedule(scheduleName)) return scheduleName;
-
         const lessonItems = this.getLessonItems(this.getTodaySchedule(day));
         const lessonIndex = lessonItems.findIndex(item => item[1] === scheduleName);
-
         return lessonIndex < 0 ? scheduleName : (this.getCourseName(day, lessonIndex) || scheduleName);
     },
 
@@ -2100,9 +1015,10 @@ window.App.SchoolSchedule = {
 
         if (currentElement) currentElement.textContent = this.getCourseDisplayName(day, result.current);
         if (nextElement) {
-            nextElement.textContent = result.nextLesson === '无'
+            const next = result.nextLesson;
+            nextElement.textContent = (!next || next === '无')
                 ? '无'
-                : this.getCourseDisplayName(day, result.nextLesson);
+                : this.getCourseDisplayName(day, next);
         }
 
         this.renderTimetable(day);
@@ -2115,16 +1031,10 @@ window.App.SchoolSchedule = {
         const centered = (text) =>
             `<div class="timetable-item" style="font-family: STZhongSong, cursive; font-size:24px; text-align:center;">${text}</div>`;
 
-        if (day === 6) {
-            container.innerHTML = centered('周末无课表');
-            return;
-        }
+        if (day === 6) { container.innerHTML = centered('周末无课表'); return; }
 
         const courses = this.getTimetableData()[this.DAYS[day]] || [];
-        if (!courses.length) {
-            container.innerHTML = centered('暂无数据');
-            return;
-        }
+        if (!courses.length) { container.innerHTML = centered('暂无数据'); return; }
 
         container.innerHTML = courses.map((course, index) => {
             let label = '';
@@ -2133,8 +1043,7 @@ window.App.SchoolSchedule = {
             if (day === 0) {
                 label = `晚${index + 1}`;
             } else if (index === 0) {
-                label = '早';
-                showDivider = true;
+                label = '早'; showDivider = true;
             } else if (index <= 8) {
                 label = String(index);
                 if (index === 4 || index === 8) showDivider = true;
@@ -2190,7 +1099,6 @@ window.App.SchoolSchedule = {
             const [start, end] = timeRange.split('-');
             const startMinutes = utils.timeToMinutes(start);
             const endMinutes = utils.timeToMinutes(end);
-
             return endMinutes < startMinutes
                 ? currentMinutes >= startMinutes || currentMinutes < endMinutes
                 : currentMinutes >= startMinutes && currentMinutes < endMinutes;
@@ -2262,232 +1170,234 @@ window.App.SchoolSchedule = {
 
 ```
 
-## 21 `js/features/timeline.js`
+## 21 `js/features/store.js`
 ```js
-window.App.Timeline = {
-    init() {
-        const currentYear = new Date().getFullYear();
-        this.updateSolarTermsDates(currentYear);
-        this.generateMarkers();
-        this.updateColor();
+// ============================================================
+//  js/features/store.js
+//  本地数据存储适配层
+//  与本地 LocalDataServer.exe（127.0.0.1:17632~17641）通信
+// ============================================================
+window.App = window.App || {};
 
-        // 点击空白处关闭所有节气卡片
-        document.addEventListener('click', () => {
-            document.querySelectorAll('.solar-card').forEach(c => c.classList.remove('active'));
-            document.querySelectorAll('.solar-term-marker').forEach(m => (m.style.zIndex = '2'));
-        });
+window.App.Store = {
+    // 探测到的服务地址，例如 http://127.0.0.1:17632
+    baseUrl: null,
+    // 本地服务是否可用
+    available: false,
+    // 内存缓存：{ settings, timetable, schedule, phrases, solarterms, lostfound, notifications }
+    cache: {},
+    // 防抖写入的定时器
+    writeTimers: {},
+    // 初始化 Promise（保证只执行一次）
+    initPromise: null,
 
-        setInterval(() => this.updateColor(), 1000);
-
-        setInterval(() => {
-            this.updateSolarTermsDates(new Date().getFullYear());
-            this.generateMarkers();
-        }, 86400000);
+    // 各文件首次运行时的默认值（timetable / schedule / phrases / solarterms 在 _doInit 里动态填充）
+    defaults: {
+        settings: {
+            goldenSwitch: true,
+            imageSwitch: true,
+            apiProbability: 50,
+            intervalDuration: 15000,
+            clickRefreshSwitch: false,
+            animationSwitch: true,
+            autoRefreshSwitch: false,
+            lostAndFoundFontSize: 28,
+            notificationFontSize: 16
+        },
+        timetable: {},
+        schedule: {},
+        phrases: {},
+        solarterms: [],
+        lostfound: [],
+        notifications: []
     },
 
-    generateMarkers() {
-        const currentYear = new Date().getFullYear();
-        const gradYear = 2028;
+    // ---------- 初始化 ----------
+    init() {
+        if (this.initPromise) return this.initPromise;
+        this.initPromise = this._doInit();
+        return this.initPromise;
+    },
 
-        const springStart = solarTerms.find(t => t.name === '立春');
-        if (!springStart) return;
+    async _doInit() {
+        // 1) 从 /js/data/*.js 里拿默认值
+        this.defaults.timetable   = (typeof timetable   !== 'undefined') ? timetable   : {};
+        this.defaults.schedule    = (typeof schedule    !== 'undefined') ? schedule    : {};
+        this.defaults.phrases     = (typeof localPhrases!== 'undefined') ? localPhrases: {};
+        this.defaults.solarterms  = (typeof solarTerms  !== 'undefined') ? solarTerms  : [];
 
-        const startDate = new Date(currentYear, springStart.month - 1, springStart.day);
-        const endMarkerEl = document.querySelector('.end-marker');
-        let endDate;
+        // 2) 探测本地服务
+        await this._detectPort();
 
-        if (currentYear === gradYear) {
-            endDate = new Date(gradYear, 5, 7);
-            endMarkerEl.style.display = 'block';
-            document.getElementById('timelineEndTitle').textContent = '高考日';
-            document.getElementById('timelineEndDate').textContent = '6月7日';
-        } else {
-            endDate = new Date(currentYear, 11, 31);
-            endMarkerEl.style.display = 'none';
-        }
+        // 3) 加载全部数据文件
+        await this._loadAll();
 
-        const totalDays = (endDate - startDate) / 86400000;
-        const timeline = document.getElementById('timeline');
+        // 4) 界面提示
+        this._updateBanner();
 
-        document.querySelectorAll('.solar-term-marker').forEach(m => m.remove());
+        console.info(
+            this.available
+                ? `[Store] 本地服务已连接：${this.baseUrl}`
+                : '[Store] 本地服务未启动，运行在内存模式（修改不会被保存）'
+        );
+    },
 
-        solarTerms.forEach((term, index) => {
-            const termDate = new Date(currentYear, term.month - 1, term.day);
-            if (termDate < startDate || termDate > endDate) return;
-
-            const position = ((termDate - startDate) / 86400000 / totalDays) * 100;
-            const isPast = termDate < new Date();
-            const isTop = index % 2 === 0;
-            const topPosition = isTop ? '-45px' : '25px';
-
-            const marker = document.createElement('div');
-            marker.className = 'solar-term-marker';
-            marker.style.left = `${position}%`;
-            marker.style.top = topPosition;
-
-            const lineStyle = isTop
-                ? 'height: 15px; border-left: 1px dashed #999; position: absolute; bottom: -15px; left: 50%;'
-                : 'height: 15px; border-left: 1px dashed #999; position: absolute; top: -15px; left: 50%;';
-
-            marker.innerHTML = `
-                <div style="color: ${isPast ? '#666' : term.color}; font-weight: ${isPast ? 'normal' : '600'};">
-                    ${term.name}
-                </div>
-                <div style="font-size:0.9em; color: ${isPast ? '#999' : '#666'}; margin-top: 3px">
-                    ${term.month}月${term.day}日
-                </div>
-                <div style="${lineStyle}"></div>
-            `;
-
-            const card = document.createElement('div');
-            card.className = 'solar-card';
-
-            if (!isTop) {
-                card.style.top = 'auto';
-                card.style.bottom = '100%';
-                card.style.marginBottom = '20px';
-                card.style.transformOrigin = 'bottom center';
+    // ---------- 端口探测 ----------
+    async _detectPort() {
+        for (let port = 17632; port <= 17641; port++) {
+            const ok = await this._probe(port);
+            if (ok) {
+                this.baseUrl = `http://127.0.0.1:${port}`;
+                this.available = true;
+                return;
             }
+        }
+        this.baseUrl = null;
+        this.available = false;
+    },
 
-            card.innerHTML = `
-                <h3 style="margin:0 0 10px;">${term.name} <small style="font-size:0.6em;color:#666">${currentYear}年${term.month}月${term.day}日</small></h3>
-                <div style="display:flex; gap:15px;">
-                    <img src="${term.image}" style="width:140px;height:120px;object-fit:cover;border-radius:6px;flex-shrink:0;">
-                    <p style="text-indent:2em;margin:0;font-size:14px;">${term.desc}</p>
-                </div>
-            `;
-
-            marker.appendChild(card);
-
-            marker.addEventListener('click', e => {
-                e.stopPropagation();
-                document.querySelectorAll('.solar-card').forEach(c => c.classList.remove('active'));
-                document.querySelectorAll('.solar-term-marker').forEach(m => (m.style.zIndex = '2'));
-                card.classList.add('active');
-                marker.style.zIndex = '999';
+    _probe(port) {
+        return new Promise(resolve => {
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), 500);
+            fetch(`http://127.0.0.1:${port}/api/ping`, {
+                signal: controller.signal,
+                cache: 'no-store'
+            }).then(res => {
+                clearTimeout(timer);
+                if (!res.ok) return resolve(false);
+                return res.json().then(data => {
+                    resolve(data && data.service === 'class-local-data');
+                }).catch(() => resolve(false));
+            }).catch(() => {
+                clearTimeout(timer);
+                resolve(false);
             });
-
-            timeline.appendChild(marker);
         });
     },
 
-    updateColor() {
-        const currentYear = new Date().getFullYear();
-        const gradYear = 2028;
-        const springStart = solarTerms.find(t => t.name === '立春');
-        if (!springStart) return;
-
-        const startDate = new Date(currentYear, springStart.month - 1, springStart.day);
-        const endDate = currentYear === gradYear
-            ? new Date(gradYear, 5, 7)
-            : new Date(currentYear, 11, 31);
-
-        const progress = Math.min(1, Math.max(0, (new Date() - startDate) / (endDate - startDate)));
-        const timeline = document.getElementById('timeline');
-        if (timeline) timeline.style.setProperty('--progress-percent', `${progress * 100}%`);
+    // ---------- 批量加载 ----------
+    async _loadAll() {
+        const names = [
+            'settings', 'timetable', 'schedule',
+            'phrases', 'solarterms', 'lostfound', 'notifications'
+        ];
+        for (const name of names) {
+            this.cache[name] = await this._load(name, this.defaults[name]);
+        }
     },
 
-    // 21 世纪寿星天文历公式：[Y*D+C]-L
-    updateSolarTermsDates(year) {
-        const cMap = {
-            '小寒': 5.4055, '大寒': 20.12, '立春': 3.87, '雨水': 18.73,
-            '惊蛰': 5.63, '春分': 20.646, '清明': 4.81, '谷雨': 20.1,
-            '立夏': 5.52, '小满': 21.04, '芒种': 5.678, '夏至': 21.37,
-            '小暑': 7.108, '大暑': 22.83, '立秋': 7.5, '处暑': 23.13,
-            '白露': 7.646, '秋分': 23.042, '寒露': 8.318, '霜降': 23.438,
-            '立冬': 7.438, '小雪': 22.385, '大雪': 7.18, '冬至': 21.94
-        };
+    async _load(name, defaultValue) {
+        const safeDefault = this._clone(defaultValue);
 
-        const monthMap = {
-            '小寒': 1, '大寒': 1, '立春': 2, '雨水': 2,
-            '惊蛰': 3, '春分': 3, '清明': 4, '谷雨': 4,
-            '立夏': 5, '小满': 5, '芒种': 6, '夏至': 6,
-            '小暑': 7, '大暑': 7, '立秋': 8, '处暑': 8,
-            '白露': 9, '秋分': 9, '寒露': 10, '霜降': 10,
-            '立冬': 11, '小雪': 11, '大雪': 12, '冬至': 12
-        };
-
-        const y = year % 100;
-        const D = 0.2422;
-        const leapCount = Math.floor(y / 4);
-
-        solarTerms.forEach(term => {
-            if (!cMap[term.name]) return;
-            term.day = Math.floor(y * D + cMap[term.name]) - leapCount;
-            term.month = monthMap[term.name];
-        });
-    }
-};
-
-```
-
-## 22 `js/features/weather.js`
-```js
-window.App.Weather = {
-    init() {
-        this.fetch();
-        clearInterval(window.App.Timers.weather);
-        window.App.Timers.weather = setInterval(() => this.fetch(), 60000);
-    },
-
-    async fetch() {
-        const el = document.getElementById('weatherInfo');
-        if (!el) return;
+        if (!this.available) return safeDefault;
 
         try {
-            const locRes = await fetch('https://ipwho.is/');
-            if (!locRes.ok) throw new Error('地理位置请求失败');
+            const res = await fetch(`${this.baseUrl}/api/data/${name}`, {
+                cache: 'no-store'
+            });
 
-            const loc = await locRes.json();
-            if (loc.success !== true || typeof loc.latitude !== 'number' || typeof loc.longitude !== 'number') {
-                throw new Error(loc.message || '地理位置数据无效');
+            if (res.ok) {
+                const data = await res.json();
+                // settings 采用“合并”策略，保证后续版本新增的键有默认值
+                if (name === 'settings' && data && typeof data === 'object' && !Array.isArray(data)) {
+                    return Object.assign({}, safeDefault, data);
+                }
+                return data;
             }
 
-            const tz = loc.timezone?.id || 'auto';
-            const url =
-                'https://api.open-meteo.com/v1/forecast' +
-                `?latitude=${encodeURIComponent(loc.latitude)}` +
-                `&longitude=${encodeURIComponent(loc.longitude)}` +
-                '&current=weather_code' +
-                '&daily=temperature_2m_min,temperature_2m_max' +
-                '&forecast_days=1' +
-                `&timezone=${encodeURIComponent(tz)}`;
-
-            const res = await fetch(url);
-            if (!res.ok) throw new Error('天气数据请求失败');
-
-            const { current, daily } = await res.json();
-            if (!current || (daily && (!Array.isArray(daily.temperature_2m_min) || !Array.isArray(daily.temperature_2m_max)))) {
-                throw new Error('天气数据格式错误');
+            if (res.status === 404) {
+                // 首次运行：写入默认值
+                await this._writeNow(name, safeDefault);
+                return safeDefault;
             }
-
-            const low = this.formatTemperature(daily.temperature_2m_min[0]);
-            const high = this.formatTemperature(daily.temperature_2m_max[0]);
-            el.textContent = `${this.getWeatherName(current.weather_code)} ${low}~${high}℃`;
-        } catch (err) {
-            console.error('天气加载失败:', err);
-            el.textContent = '天气暂不可用';
+        } catch (e) {
+            console.warn(`[Store] 加载 ${name} 失败:`, e);
         }
+        return safeDefault;
     },
 
-    formatTemperature(value) {
-        const t = Number(value);
-        if (!Number.isFinite(t)) return '--';
-        return Number.isInteger(t) ? String(t) : t.toFixed(1);
+    // ---------- 对外读写 ----------
+    get(name) {
+        return this.cache[name];
     },
 
-    getWeatherName(code) {
-        const map = {
-            0: '晴', 1: '大部晴朗', 2: '局部多云', 3: '阴', 45: '雾', 48: '雾凇',
-            51: '小毛毛雨', 53: '毛毛雨', 55: '大毛毛雨', 56: '冻毛毛雨', 57: '强冻毛毛雨',
-            61: '小雨', 63: '中雨', 65: '大雨', 66: '冻雨', 67: '强冻雨',
-            71: '小雪', 73: '中雪', 75: '大雪', 77: '雪粒',
-            80: '小阵雨', 81: '中阵雨', 82: '强阵雨', 85: '小阵雪', 86: '强阵雪',
-            95: '雷雨', 96: '雷雨伴冰雹', 99: '强雷雨伴冰雹'
-        };
-        return map[code] || '未知天气';
+    set(name, value) {
+        this.cache[name] = value;
+        this._scheduleWrite(name);
+    },
+
+    // 原地修改（例如 push 到 notifications）时调用
+    touch(name) {
+        this._scheduleWrite(name);
+    },
+
+    getSetting(key) {
+        const s = this.cache.settings || this.defaults.settings;
+        return s[key];
+    },
+
+    setSetting(key, value) {
+        if (!this.cache.settings) this.cache.settings = this._clone(this.defaults.settings);
+        this.cache.settings[key] = value;
+        this._scheduleWrite('settings');
+    },
+
+    // ---------- 写入 ----------
+    _scheduleWrite(name) {
+        if (!this.available) return;
+        if (this.writeTimers[name]) clearTimeout(this.writeTimers[name]);
+        this.writeTimers[name] = setTimeout(() => {
+            this._writeNow(name, this.cache[name]);
+            this.writeTimers[name] = null;
+        }, 150);
+    },
+
+    _writeNow(name, value) {
+        if (!this.available) return Promise.resolve();
+        return fetch(`${this.baseUrl}/api/data/${name}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(value)
+        }).catch(err => {
+            console.warn(`[Store] 保存 ${name} 失败:`, err);
+        });
+    },
+
+    // 页面关闭/隐藏时立即 flush
+    flush() {
+        if (!this.available) return;
+        Object.keys(this.writeTimers).forEach(name => {
+            if (this.writeTimers[name]) {
+                clearTimeout(this.writeTimers[name]);
+                this.writeTimers[name] = null;
+                this._writeNow(name, this.cache[name]);
+            }
+        });
+    },
+
+    // ---------- 辅助 ----------
+    _clone(v) {
+        try { return JSON.parse(JSON.stringify(v)); }
+        catch (e) { return v; }
+    },
+
+    _updateBanner() {
+        const banner = document.getElementById('serviceBanner');
+        if (!banner) return;
+        if (this.available) {
+            banner.style.display = 'none';
+        } else {
+            banner.style.display = 'block';
+            banner.textContent = '本地服务未启动（D 盘 LocalDataServer.exe），修改不会被保存';
+            // 3 秒后淡出，避免一直遮挡
+            setTimeout(() => { banner.style.opacity = '0'; banner.style.transition = 'opacity .5s'; }, 4000);
+        }
     }
 };
 
-```
+// 关闭/隐藏页面时强制 flush
+window.addEventListener('pagehide', () => window.App.Store.flush());
+window.addEventListener('beforeunload', () => window.App.Store.flush());
 
+```

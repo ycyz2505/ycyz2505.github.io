@@ -1,8 +1,17 @@
 window.App.SchoolSchedule = {
-    DAYS: ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'],
+    DAYS: [
+        'sunday',
+        'monday',
+        'tuesday',
+        'wednesday',
+        'thursday',
+        'friday',
+        'saturday'
+    ],
 
     init() {
         clearInterval(window.App.Timers.schoolSchedule);
+
         window.App.Timers.schoolSchedule = setInterval(() => {
             this.updateDisplay();
             this.updateCountdownDisplay();
@@ -13,65 +22,175 @@ window.App.SchoolSchedule = {
     },
 
     getScheduleData() {
-        if (window.App.Store) return window.App.Store.get('schedule') || {};
-        return (typeof schedule !== 'undefined') ? schedule : {};
+        if (window.App.Store) {
+            return window.App.Store.get('schedule') || {};
+        }
+
+        return typeof schedule !== 'undefined'
+            ? schedule
+            : {};
     },
 
     getTimetableData() {
-        if (window.App.Store) return window.App.Store.get('timetable') || {};
-        return (typeof timetable !== 'undefined') ? timetable : {};
+        if (window.App.Store) {
+            return window.App.Store.get('timetable') || {};
+        }
+
+        return typeof timetable !== 'undefined'
+            ? timetable
+            : {};
+    },
+
+    getDateKey(date = new Date()) {
+        const pad = value => String(value).padStart(2, '0');
+
+        return [
+            date.getFullYear(),
+            pad(date.getMonth() + 1),
+            pad(date.getDate())
+        ].join('-');
+    },
+
+    getTemporaryTimetableOverride(day = new Date().getDay()) {
+        const store = window.App.Store;
+
+        if (!store) return null;
+
+        const override = store.getSetting('temporaryTimetable');
+
+        if (!override) return null;
+
+        const isValid =
+            override.date === this.getDateKey() &&
+            Number(override.day) === Number(day) &&
+            Array.isArray(override.courses);
+
+        if (!isValid) {
+            // 日期变化、星期变化或数据损坏时自动恢复原始课表
+            store.setSetting('temporaryTimetable', null);
+            return null;
+        }
+
+        return override;
+    },
+
+    getEffectiveCourses(day = new Date().getDay()) {
+        const override = this.getTemporaryTimetableOverride(day);
+
+        if (override) {
+            return override.courses;
+        }
+
+        const courses =
+            this.getTimetableData()[this.DAYS[day]] || [];
+
+        return Array.isArray(courses) ? courses : [];
     },
 
     getTodaySchedule(day) {
         const data = this.getScheduleData();
-        if (day === 5) return data.friday;
-        if (day === 0) return data.sunday;
+
+        if (day === 5) {
+            return data.friday;
+        }
+
+        if (day === 0) {
+            return data.sunday;
+        }
+
         return data.weekday;
     },
 
     getCourseName(day, lessonIndex) {
-        const courses = this.getTimetableData()[this.DAYS[day]] || [];
-        return courses[day === 0 ? lessonIndex : lessonIndex + 1] || '';
+        const courses = this.getEffectiveCourses(day);
+
+        return courses[
+            day === 0
+                ? lessonIndex
+                : lessonIndex + 1
+        ] || '';
     },
 
     isCourseSchedule(name) {
         if (!name) return false;
-        return name.includes('节课') || name.includes('晚自习') || name.endsWith('考试');
+
+        return (
+            name.includes('节课') ||
+            name.includes('晚自习') ||
+            name.endsWith('考试')
+        );
     },
 
     getLessonItems(todaySchedule) {
-        if (!Array.isArray(todaySchedule)) return [];
-        return todaySchedule.filter(item => this.isCourseSchedule(item[1]));
+        if (!Array.isArray(todaySchedule)) {
+            return [];
+        }
+
+        return todaySchedule.filter(item =>
+            this.isCourseSchedule(item[1])
+        );
     },
 
     getNextSchoolDayTime(now) {
         const target = new Date(now);
         const day = target.getDay();
-        const daysUntilSunday = day === 5 ? 2 : day === 6 ? 1 : 0;
+
+        const daysUntilSunday =
+            day === 5 ? 2 :
+            day === 6 ? 1 :
+            0;
 
         target.setDate(target.getDate() + daysUntilSunday);
         target.setHours(17, 30, 0, 0);
 
-        return { endTime: target, label: '周日返校' };
+        return {
+            endTime: target,
+            label: '周日返校'
+        };
     },
 
     getCurrentSchedule() {
         const now = new Date();
         const day = now.getDay();
-        const currentMinutes = now.getHours() * 60 + now.getMinutes();
+        const currentMinutes =
+            now.getHours() * 60 + now.getMinutes();
+
         const utils = window.App.Utils;
 
-        if (day === 6) return { current: '周末', nextLesson: '无' };
+        if (day === 6) {
+            return {
+                current: '周末',
+                nextLesson: '无'
+            };
+        }
 
-        if (day === 0 && currentMinutes < utils.timeToMinutes('17:30')) {
-            return { current: '周末', nextLesson: '第一节晚自习' };
+        if (
+            day === 0 &&
+            currentMinutes < utils.timeToMinutes('17:30')
+        ) {
+            return {
+                current: '周末',
+                nextLesson: '第一节晚自习'
+            };
         }
 
         const todaySchedule = this.getTodaySchedule(day);
-        if (!todaySchedule) return { current: '加载中...', nextLesson: '' };
 
-        if (currentMinutes >= utils.timeToMinutes('21:30') || currentMinutes < utils.timeToMinutes('6:30')) {
-            return { current: '睡觉', nextLesson: '无' };
+        if (!todaySchedule) {
+            return {
+                current: '加载中...',
+                nextLesson: ''
+            };
+        }
+
+        if (
+            currentMinutes >= utils.timeToMinutes('21:30') ||
+            currentMinutes < utils.timeToMinutes('6:30')
+        ) {
+            return {
+                current: '睡觉',
+                nextLesson: '无'
+            };
         }
 
         let current = '';
@@ -80,141 +199,262 @@ window.App.SchoolSchedule = {
         for (let i = 0; i < todaySchedule.length; i++) {
             const [timeRange, name] = todaySchedule[i];
             const [start, end] = timeRange.split('-');
+
             const startMinutes = utils.timeToMinutes(start);
             const endMinutes = utils.timeToMinutes(end);
 
-            const isInRange = endMinutes < startMinutes
-                ? currentMinutes >= startMinutes || currentMinutes < endMinutes
-                : currentMinutes >= startMinutes && currentMinutes < endMinutes;
+            const isInRange =
+                endMinutes < startMinutes
+                    ? currentMinutes >= startMinutes ||
+                      currentMinutes < endMinutes
+                    : currentMinutes >= startMinutes &&
+                      currentMinutes < endMinutes;
 
-            if (isInRange) { current = name; currentIndex = i; break; }
-        }
-
-        let nextLesson = '';
-        if (currentIndex >= 0) {
-            for (let i = currentIndex + 1; i < todaySchedule.length; i++) {
-                const name = todaySchedule[i][1];
-                if (this.isCourseSchedule(name)) { nextLesson = name; break; }
+            if (isInRange) {
+                current = name;
+                currentIndex = i;
+                break;
             }
         }
 
-        if (!current && day === 5) return { current: '放学', nextLesson: '无' };
-        return { current: current || '休息', nextLesson: nextLesson || '无' };
+        let nextLesson = '';
+
+        if (currentIndex >= 0) {
+            for (
+                let i = currentIndex + 1;
+                i < todaySchedule.length;
+                i++
+            ) {
+                const name = todaySchedule[i][1];
+
+                if (this.isCourseSchedule(name)) {
+                    nextLesson = name;
+                    break;
+                }
+            }
+        }
+
+        if (!current && day === 5) {
+            return {
+                current: '放学',
+                nextLesson: '无'
+            };
+        }
+
+        return {
+            current: current || '休息',
+            nextLesson: nextLesson || '无'
+        };
     },
 
     getCourseDisplayName(day, scheduleName) {
-        if (!this.isCourseSchedule(scheduleName)) return scheduleName;
-        const lessonItems = this.getLessonItems(this.getTodaySchedule(day));
-        const lessonIndex = lessonItems.findIndex(item => item[1] === scheduleName);
-        return lessonIndex < 0 ? scheduleName : (this.getCourseName(day, lessonIndex) || scheduleName);
+        if (!this.isCourseSchedule(scheduleName)) {
+            return scheduleName;
+        }
+
+        const lessonItems = this.getLessonItems(
+            this.getTodaySchedule(day)
+        );
+
+        const lessonIndex = lessonItems.findIndex(
+            item => item[1] === scheduleName
+        );
+
+        if (lessonIndex < 0) {
+            return scheduleName;
+        }
+
+        return (
+            this.getCourseName(day, lessonIndex) ||
+            scheduleName
+        );
     },
 
     updateDisplay() {
         const day = new Date().getDay();
         const result = this.getCurrentSchedule();
 
-        const currentElement = document.getElementById('currentSchedule');
-        const nextElement = document.getElementById('nextSchedule');
+        const currentElement =
+            document.getElementById('currentSchedule');
 
-        if (currentElement) currentElement.textContent = this.getCourseDisplayName(day, result.current);
+        const nextElement =
+            document.getElementById('nextSchedule');
+
+        if (currentElement) {
+            currentElement.textContent =
+                this.getCourseDisplayName(
+                    day,
+                    result.current
+                );
+        }
+
         if (nextElement) {
             const next = result.nextLesson;
-            nextElement.textContent = (!next || next === '无')
-                ? '无'
-                : this.getCourseDisplayName(day, next);
+
+            nextElement.textContent =
+                !next || next === '无'
+                    ? '无'
+                    : this.getCourseDisplayName(day, next);
         }
 
         this.renderTimetable(day);
     },
 
     renderTimetable(day) {
-        const container = document.getElementById('todayTimetable');
+        const container =
+            document.getElementById('todayTimetable');
+
         if (!container) return;
 
-        const centered = (text) =>
-            `<div class="timetable-item" style="font-family: STZhongSong, cursive; font-size:24px; text-align:center;">${text}</div>`;
+        const centered = text =>
+            `<div class="timetable-item" style="
+                font-family:STZhongSong,cursive;
+                font-size:24px;
+                text-align:center;
+            ">${text}</div>`;
 
-        if (day === 6) { container.innerHTML = centered('周末无课表'); return; }
+        if (day === 6) {
+            container.innerHTML = centered('周末无课表');
+            return;
+        }
 
-        const courses = this.getTimetableData()[this.DAYS[day]] || [];
-        if (!courses.length) { container.innerHTML = centered('暂无数据'); return; }
+        const courses = this.getEffectiveCourses(day);
 
-        container.innerHTML = courses.map((course, index) => {
-            let label = '';
-            let showDivider = false;
+        if (!courses.length) {
+            container.innerHTML = centered('暂无数据');
+            return;
+        }
 
-            if (day === 0) {
-                label = `晚${index + 1}`;
-            } else if (index === 0) {
-                label = '早'; showDivider = true;
-            } else if (index <= 8) {
-                label = String(index);
-                if (index === 4 || index === 8) showDivider = true;
-            } else {
-                label = `晚${index - 8}`;
-            }
+        container.innerHTML = courses
+            .map((course, index) => {
+                let label = '';
+                let showDivider = false;
 
-            let itemStyle =
-                'display:flex;align-items:center;font-family:STZhongSong,cursive;' +
-                'font-size:24px;line-height:1;padding:2px 0;';
+                if (day === 0) {
+                    label = `晚${index + 1}`;
+                } else if (index === 0) {
+                    label = '早';
+                    showDivider = true;
+                } else if (index <= 8) {
+                    label = String(index);
 
-            if (showDivider) {
-                itemStyle += 'border-bottom:2px dashed #ddd;margin-bottom:6px;padding-bottom:6px;';
-            }
+                    if (index === 4 || index === 8) {
+                        showDivider = true;
+                    }
+                } else {
+                    label = `晚${index - 8}`;
+                }
 
-            return `
-                <div style="${itemStyle}">
-                    <div style="width:42%;text-align:right;padding-right:15px;color:#8bc34a;font-weight:bold;">
-                        ${label}
+                let itemStyle =
+                    'display:flex;' +
+                    'align-items:center;' +
+                    'font-family:STZhongSong,cursive;' +
+                    'font-size:24px;' +
+                    'line-height:1;' +
+                    'padding:2px 0;';
+
+                if (showDivider) {
+                    itemStyle +=
+                        'border-bottom:2px dashed #ddd;' +
+                        'margin-bottom:6px;' +
+                        'padding-bottom:6px;';
+                }
+
+                return `
+                    <div style="${itemStyle}">
+                        <div style="
+                            width:42%;
+                            text-align:right;
+                            padding-right:15px;
+                            color:#8bc34a;
+                            font-weight:bold;
+                        ">
+                            ${label}
+                        </div>
+                        <div style="
+                            width:58%;
+                            text-align:left;
+                            padding-left:5px;
+                            color:#333;
+                        ">
+                            ${course}
+                        </div>
                     </div>
-                    <div style="width:58%;text-align:left;padding-left:5px;color:#333;">
-                        ${course}
-                    </div>
-                </div>
-            `;
-        }).join('');
+                `;
+            })
+            .join('');
     },
 
     getNextScheduleInfo() {
         const now = new Date();
         const day = now.getDay();
-        const currentMinutes = now.getHours() * 60 + now.getMinutes();
-        const utils = window.App.Utils;
+        const currentMinutes =
+            now.getHours() * 60 + now.getMinutes();
 
+        const utils = window.App.Utils;
         const todaySchedule = this.getTodaySchedule(day);
-        if (!todaySchedule) return { endTime: '23:59', label: '加载中' };
+
+        if (!todaySchedule) {
+            return {
+                endTime: '23:59',
+                label: '加载中'
+            };
+        }
 
         const current = this.getCurrentSchedule().current;
 
-        if (current === '放学' || day === 6 || (day === 0 && current === '周末')) {
+        if (
+            current === '放学' ||
+            day === 6 ||
+            (day === 0 && current === '周末')
+        ) {
             return this.getNextSchoolDayTime(now);
         }
 
         if (current === '午休') {
-            const firstPart = currentMinutes < utils.timeToMinutes('13:10');
+            const firstPart =
+                currentMinutes < utils.timeToMinutes('13:10');
+
             return {
                 endTime: firstPart ? '13:10' : '13:40',
                 label: firstPart ? '熄灯' : '起床'
             };
         }
 
-        const currentIndex = todaySchedule.findIndex(([timeRange]) => {
-            const [start, end] = timeRange.split('-');
-            const startMinutes = utils.timeToMinutes(start);
-            const endMinutes = utils.timeToMinutes(end);
-            return endMinutes < startMinutes
-                ? currentMinutes >= startMinutes || currentMinutes < endMinutes
-                : currentMinutes >= startMinutes && currentMinutes < endMinutes;
-        });
+        const currentIndex = todaySchedule.findIndex(
+            ([timeRange]) => {
+                const [start, end] = timeRange.split('-');
 
-        if (currentIndex === -1) return { endTime: '23:59', label: '新的一天' };
+                const startMinutes =
+                    utils.timeToMinutes(start);
+
+                const endMinutes =
+                    utils.timeToMinutes(end);
+
+                return endMinutes < startMinutes
+                    ? currentMinutes >= startMinutes ||
+                      currentMinutes < endMinutes
+                    : currentMinutes >= startMinutes &&
+                      currentMinutes < endMinutes;
+            }
+        );
+
+        if (currentIndex === -1) {
+            return {
+                endTime: '23:59',
+                label: '新的一天'
+            };
+        }
 
         const currentItem = todaySchedule[currentIndex];
         const currentRange = currentItem[0];
         const currentName = currentItem[1];
 
         if (currentName.includes('课间')) {
-            return { endTime: currentRange.split('-')[1], label: '上课' };
+            return {
+                endTime: currentRange.split('-')[1],
+                label: '上课'
+            };
         }
 
         if (
@@ -223,10 +463,14 @@ window.App.SchoolSchedule = {
             currentName.includes('早读') ||
             currentName.endsWith('考试')
         ) {
-            return { endTime: currentRange.split('-')[1], label: '下课' };
+            return {
+                endTime: currentRange.split('-')[1],
+                label: '下课'
+            };
         }
 
         const nextIndex = currentIndex + 1;
+
         if (nextIndex < todaySchedule.length) {
             return {
                 endTime: todaySchedule[nextIndex][0].split('-')[0],
@@ -234,7 +478,10 @@ window.App.SchoolSchedule = {
             };
         }
 
-        return { endTime: '23:59', label: '新的一天' };
+        return {
+            endTime: '23:59',
+            label: '新的一天'
+        };
     },
 
     updateCountdownDisplay() {
@@ -242,31 +489,49 @@ window.App.SchoolSchedule = {
         const now = new Date();
 
         let target;
+
         if (result.endTime instanceof Date) {
             target = result.endTime;
         } else {
-            const [hour, minute] = result.endTime.split(':').map(Number);
+            const [hour, minute] =
+                result.endTime.split(':').map(Number);
+
             target = new Date(now);
             target.setHours(hour, minute, 0, 0);
-            if (target < now) target.setDate(target.getDate() + 1);
+
+            if (target < now) {
+                target.setDate(target.getDate() + 1);
+            }
         }
 
         const difference = Math.max(0, target - now);
         const totalSeconds = Math.floor(difference / 1000);
+
         const hours = Math.floor(totalSeconds / 3600);
-        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const minutes = Math.floor(
+            (totalSeconds % 3600) / 60
+        );
         const seconds = totalSeconds % 60;
-        const pad = n => String(n).padStart(2, '0');
 
-        const timerElement = document.getElementById('countdownTimer');
-        const labelElement = document.getElementById('countdownName');
+        const pad = value =>
+            String(value).padStart(2, '0');
 
-        if (labelElement) labelElement.textContent = `距离${result.label}还有：`;
+        const timerElement =
+            document.getElementById('countdownTimer');
+
+        const labelElement =
+            document.getElementById('countdownName');
+
+        if (labelElement) {
+            labelElement.textContent =
+                `距离${result.label}还有：`;
+        }
 
         if (timerElement) {
-            timerElement.textContent = hours > 0
-                ? `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`
-                : `${pad(minutes)}:${pad(seconds)}`;
+            timerElement.textContent =
+                hours > 0
+                    ? `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`
+                    : `${pad(minutes)}:${pad(seconds)}`;
         }
     }
 };
