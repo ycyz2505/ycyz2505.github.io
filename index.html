@@ -136,6 +136,32 @@
                             <span class="slider"></span>
                         </label>
                     </div>
+
+                    <!-- 今日课表临时编辑 -->
+                    <section class="timetable-editor" id="temporaryTimetablePanel">
+                        <div class="timetable-editor-header">
+                            <h4 class="timetable-editor-title">今日课表临时编辑</h4>
+                            <span class="timetable-editor-meta" id="temporaryTimetableDate">加载中...</span>
+                        </div>
+
+                        <p class="timetable-editor-note">
+                            修改只在今天生效，第二天会自动恢复原始课表。
+                        </p>
+
+                        <div class="timetable-editor-grid" id="temporaryTimetableEditor"></div>
+
+                        <div class="timetable-editor-actions">
+                            <div class="timetable-editor-buttons">
+                                <button type="button" class="timetable-save-btn" id="saveTemporaryTimetable">
+                                    保存今日课表
+                                </button>
+                                <button type="button" class="timetable-reset-btn" id="resetTemporaryTimetable">
+                                    恢复原始课表
+                                </button>
+                            </div>
+                            <span class="timetable-editor-status" id="temporaryTimetableStatus"></span>
+                        </div>
+                    </section>
                 </div>
             </div>
         </div>
