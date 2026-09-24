@@ -12,7 +12,6 @@ find . -type f \
     -not -path '*/\.*' \
     -not -path '*/node_modules/*' \
     -not -path '*/venv/*' \
-    -not -path './js/data/*' \
     -not -path './mc/*' \
     -not -path './old/*' \
     -not -name "$OUTPUT_FILE" \
