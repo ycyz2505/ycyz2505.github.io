@@ -1,6 +1,7 @@
 ﻿# copy.ps1
 # 兼容 Windows PowerShell 5.1 和 PowerShell 7+
 # 排除所有 .md、.sh、.ps1 文件
+# 支持交互式选择要提取的文件
 
 $OutputFile = "output.md"
 $ScriptName = Split-Path -Leaf $PSCommandPath
@@ -11,13 +12,8 @@ $RootPath = (Get-Location).Path.TrimEnd('\', '/')
 # 输出编码：UTF-8 无 BOM
 $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
 
-# 清空/创建输出文件
-[System.IO.File]::WriteAllText((Join-Path $RootPath $OutputFile), "", $utf8NoBom)
-
 # 排除规则
 $ExcludeDirs = @('node_modules', 'venv', 'mc', 'old')
-
-# 按扩展名统一排除（大小写不敏感）
 $ExcludeExts = @('.md', '.sh', '.ps1')
 
 # 手动计算相对路径（替代 .NET Core 才有的 GetRelativePath）
@@ -49,16 +45,16 @@ function Test-IsBinaryFile {
     catch { return $true }
 }
 
-# 收集文件并过滤
-$files = Get-ChildItem -Path $RootPath -Recurse -File -Force | Where-Object {
+# ---------- 1. 收集候选文件 ----------
+$candidates = Get-ChildItem -Path $RootPath -Recurse -File -Force | Where-Object {
 
-    # 排除指定扩展名的文件（.md / .sh / .ps1）
+    # 排除指定扩展名
     if ($ExcludeExts -contains $_.Extension.ToLower()) { return $false }
 
     $rel   = Get-RelativePath -Base $RootPath -Full $_.FullName
     $parts = $rel -split '[\\/]'
 
-    # 排除隐藏文件 / 目录（名字以 . 开头）
+    # 排除隐藏文件 / 目录
     foreach ($p in $parts) {
         if ($p.StartsWith('.')) { return $false }
     }
@@ -66,18 +62,94 @@ $files = Get-ChildItem -Path $RootPath -Recurse -File -Force | Where-Object {
     foreach ($d in $ExcludeDirs) {
         if ($parts -contains $d) { return $false }
     }
-
     return $true
-} | Sort-Object FullName
+} | Sort-Object FullName | Where-Object {
+    # 顺带过滤二进制文件
+    -not (Test-IsBinaryFile $_.FullName)
+}
+
+if ($candidates.Count -eq 0) {
+    Write-Host "没有找到可提取的文件。" -ForegroundColor Yellow
+    exit
+}
+
+# ---------- 2. 列出文件让用户选择 ----------
+Write-Host ""
+Write-Host "可提取的文件列表：" -ForegroundColor Cyan
+Write-Host ("-" * 60)
+
+$indexed = @()
+$i = 1
+foreach ($f in $candidates) {
+    $rel = (Get-RelativePath -Base $RootPath -Full $f.FullName) -replace '\\', '/'
+    $indexed += [PSCustomObject]@{ Index = $i; Path = $rel; File = $f }
+    Write-Host ("[{0,3}] {1}" -f $i, $rel)
+    $i++
+}
+
+Write-Host ("-" * 60)
+Write-Host ""
+Write-Host "请输入要提取的编号，支持以下格式：" -ForegroundColor Cyan
+Write-Host "  1,3,5          多个编号，用逗号分隔"
+Write-Host "  2-6            区间"
+Write-Host "  1,3-5,8        混合"
+Write-Host "  all / a        全部提取"
+Write-Host "  回车            全部提取（默认）"
+Write-Host "  none / n       取消"
+Write-Host ""
+
+$input = Read-Host "你的选择"
+
+# ---------- 3. 解析用户输入 ----------
+$selected = @()
+
+if ([string]::IsNullOrWhiteSpace($input) -or $input -match '^(all|a)$') {
+    $selected = $indexed
+}
+elseif ($input -match '^(none|n)$') {
+    Write-Host "已取消。" -ForegroundColor Yellow
+    exit
+}
+else {
+    $pickedIndices = New-Object System.Collections.Generic.HashSet[int]
+    $tokens = $input -split '[,\s]+' | Where-Object { $_ -ne '' }
+
+    foreach ($tok in $tokens) {
+        if ($tok -match '^(\d+)-(\d+)$') {
+            $from = [int]$Matches[1]
+            $to   = [int]$Matches[2]
+            if ($from -gt $to) { $tmp = $from; $from = $to; $to = $tmp }
+            for ($k = $from; $k -le $to; $k++) { [void]$pickedIndices.Add($k) }
+        }
+        elseif ($tok -match '^\d+$') {
+            [void]$pickedIndices.Add([int]$tok)
+        }
+        else {
+            Write-Host "无法识别的输入：$tok" -ForegroundColor Red
+            exit
+        }
+    }
+
+    $selected = $indexed | Where-Object { $pickedIndices.Contains($_.Index) }
+
+    if ($selected.Count -eq 0) {
+        Write-Host "没有选中任何有效文件。" -ForegroundColor Yellow
+        exit
+    }
+}
+
+Write-Host ""
+Write-Host ("已选择 {0} 个文件，开始提取..." -f $selected.Count) -ForegroundColor Green
+
+# ---------- 4. 写入输出文件 ----------
+[System.IO.File]::WriteAllText((Join-Path $RootPath $OutputFile), "", $utf8NoBom)
 
 $count = 1
 $sb = New-Object System.Text.StringBuilder
 
-foreach ($file in $files) {
-    if (Test-IsBinaryFile $file.FullName) { continue }
-
-    $relPath = Get-RelativePath -Base $RootPath -Full $file.FullName
-    $relPath = $relPath -replace '\\', '/'
+foreach ($item in $selected) {
+    $file    = $item.File
+    $relPath = $item.Path
 
     # 后缀
     $ext = ''
@@ -92,7 +164,6 @@ foreach ($file in $files) {
         $content = ''
     }
 
-    # 用单引号拼接反引号，避免 PowerShell 转义问题
     [void]$sb.AppendLine('## ' + $count + ' `' + $relPath + '`')
     [void]$sb.AppendLine('```' + $ext)
     [void]$sb.AppendLine($content)
@@ -105,4 +176,4 @@ foreach ($file in $files) {
 
 [System.IO.File]::WriteAllText((Join-Path $RootPath $OutputFile), $sb.ToString(), $utf8NoBom)
 
-Write-Host "Done! Saved to $OutputFile"
+Write-Host "Done! Saved to $OutputFile" -ForegroundColor Green

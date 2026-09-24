@@ -146,9 +146,38 @@ input:checked~.switch-text{color:#4CAF50}
 @keyframes button-pulse{0%,100%{box-shadow:0 0 0 0 rgba(139,195,74,0)}70%{box-shadow:0 0 0 10px rgba(139,195,74,0)}}
 
 /* ===== 寻物：字号通过 CSS 变量控制，方便整表重渲染 ===== */
-#lostAndFoundList{ --laf-font-size: 28px; }
-#lostAndFoundList .editable,
-#lostAndFoundList .static-text{ font-size: var(--laf-font-size) !important; }
+#lostAndFoundList{--laf-font-size:28px}
+#lostAndFoundList .editable,#lostAndFoundList .static-text{font-size:var(--laf-font-size)!important}
+
+/* ===== 今日课表临时编辑 ===== */
+.timetable-editor{margin-top:8px;padding:18px;border:1px solid #e3eee3;border-radius:8px;background:#fbfdfb;box-shadow:0 2px 8px rgba(27,94,32,.05)}
+.timetable-editor-header{display:flex;align-items:center;justify-content:space-between;gap:15px;margin-bottom:6px}
+.timetable-editor-title{margin:0;color:#1b5e20;font-size:19px;font-family:STZhongsong,serif;font-weight:600}
+.timetable-editor-meta{color:#777;font-size:13px;white-space:nowrap}
+.timetable-editor-note{margin:0 0 15px;color:#777;font-size:13px;line-height:1.6}
+.timetable-editor-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 14px;max-height:310px;overflow-y:auto;padding:2px}
+.timetable-editor-grid::-webkit-scrollbar{width:6px}
+.timetable-editor-grid::-webkit-scrollbar-track{background:#f1f5f1;border-radius:3px}
+.timetable-editor-grid::-webkit-scrollbar-thumb{background:#c6d8c6;border-radius:3px}
+.timetable-editor-grid::-webkit-scrollbar-thumb:hover{background:#8bc34a}
+.timetable-editor-row{display:flex;align-items:center;gap:9px;min-width:0}
+.timetable-editor-label{flex:0 0 42px;color:#8bc34a;font-size:14px;font-weight:700;text-align:right}
+.timetable-course-input{flex:1;min-width:0;height:34px;box-sizing:border-box;padding:5px 9px;border:1px solid #d8e5d8;border-radius:5px;outline:none;color:#333;background:#fff;font-family:'Microsoft YaHei',sans-serif;font-size:14px;transition:border-color .2s,box-shadow .2s}
+.timetable-course-input:focus{border-color:#8bc34a;box-shadow:0 0 0 3px rgba(139,195,74,.15)}
+.timetable-editor-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:16px;padding-top:14px;border-top:1px solid #e8eee8}
+.timetable-editor-buttons{display:flex;align-items:center;gap:9px}
+.timetable-save-btn,.timetable-reset-btn{border:none;border-radius:5px;padding:8px 14px;cursor:pointer;font-size:13px;transition:all .2s}
+.timetable-save-btn{background:#8bc34a;color:#fff;box-shadow:0 2px 5px rgba(139,195,74,.25)}
+.timetable-save-btn:hover{background:#7cb342;transform:translateY(-1px)}
+.timetable-reset-btn{background:#f1f5f1;color:#56705a;border:1px solid #d7e3d7}
+.timetable-reset-btn:hover{background:#e8f5e9;color:#1b5e20}
+.timetable-save-btn:disabled,.timetable-reset-btn:disabled{cursor:not-allowed;opacity:.5;transform:none}
+.timetable-editor-status{min-height:18px;color:#777;font-size:12px;text-align:right}
+@media(max-width:700px){
+.timetable-editor-header,.timetable-editor-actions{align-items:flex-start;flex-direction:column}
+.timetable-editor-meta,.timetable-editor-status{text-align:left;white-space:normal}
+.timetable-editor-grid{grid-template-columns:1fr}
+}
 
 ```
 
@@ -494,37 +523,7 @@ input:checked~.switch-text{color:#4CAF50}
 
 ```
 
-## 6 `js/data/timetable.js`
-```js
-const timetable = {
-    monday: ["英语","语文","数学","生物","美术","英语","化学","体育","班会","物理","自习","语文","自习"],
-    tuesday: ["语文","物理","化学","数学","音乐","语文","生物","英语","活动","生物","化学","化学","自习"],
-    wednesday: ["英语","英语","数学","物理","心/通","语文","自习","自习","自习","物理","数学","自习","自习"],
-    thursday: ["语文","生物","物理","化学","数学","英语","语文","体育","活动","英语","英语","生物","自习"],
-    friday: ["物/化","体育","语文","政治","生物","物理","化学","数学","英语"],
-    sunday: ["数学","数学","语文","自习"]
-};
-
-const timetable_last2 = {
-    monday: ["英语","语文","生物","物理","英语","体育","数学","技术","班会","英语","自习","生物","语文"],
-    tuesday: ["语文","语文","数学","化学","体育","英语","生物","历史","活动","生物","化学","生物","物理"],
-    wednesday: ["数学","生物","语文","化学","物理","数学","英语","美术","音乐","自习","语文","语文","化学"],
-    thursday: ["英语","语文","英语","化学","数学","体育","地理","物理","活动","自习","英语","英语","数学"],
-    friday: ["语文","化学","心理","物理","英语","政治","生物","语文","数学"],
-    sunday: ["自习","数学","物理","数学"]
-};
-
-const timetable_last = {
-    monday: ["数学","英语","政治","物理","化学","语文","语文","语文考试"],
-    tuesday: ["英语","数学","数学","语文","体育","历史","政治","文综考试"],
-    wednesday: ["数学","物理","英语","历史","音/美","化学","语文","理综考试"],
-    thursday: ["语文","物理","化学","数学","英语","政治","历史","数学考试"],
-    friday: ["数学","语文","英语","体育","物理","化学","班会","英语考试"]
-};
-
-```
-
-## 7 `js/features/00_state.js`
+## 3 `js/features/00_state.js`
 ```js
 window.App = window.App || {};
 
@@ -578,7 +577,7 @@ window.App.Timers = {
 
 ```
 
-## 8 `js/features/01_utils.js`
+## 4 `js/features/01_utils.js`
 ```js
 window.App.Utils = {
     timeToMinutes(time) {
@@ -592,90 +591,32 @@ window.App.Utils = {
 
 ```
 
-## 9 `js/features/auto_refresh.js`
-```js
-window.App.AutoRefresh = {
-    interval: 15 * 60 * 1000,
-
-    init() {
-        const switchBtn = document.getElementById('autoRefreshSwitch');
-        if (!switchBtn) return;
-
-        switchBtn.addEventListener('change', e => {
-            if (window.App.Store) window.App.Store.setSetting('autoRefreshSwitch', e.target.checked);
-            e.target.checked ? this.start() : this.stop();
-        });
-
-        // DOM 里的 checked 已在 modal_settings.applyFromStore 里被同步过
-        if (switchBtn.checked) this.start();
-    },
-
-    start() {
-        this.stop();
-        window.App.Timers.refresh = setTimeout(() => location.reload(), this.interval);
-    },
-
-    stop() {
-        if (window.App.Timers.refresh) {
-            clearTimeout(window.App.Timers.refresh);
-            window.App.Timers.refresh = null;
-        }
-    }
-};
-
-```
-
-## 10 `js/features/clock.js`
-```js
-window.App.Clock = (() => {
-    let lastHTML = '';
-    const pad = n => String(n).padStart(2, '0');
-
-    return {
-        init() {
-            this.update();
-        },
-
-        update() {
-            const d = new Date();
-            const html =
-                `<div class="time-section">${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}</div>` +
-                `<div class="date-section">${d.getFullYear()}/${pad(d.getMonth() + 1)}/${pad(d.getDate())} 周${'日一二三四五六'[d.getDay()]}</div>`;
-
-            if (html !== lastHTML) {
-                lastHTML = html;
-                const el = document.getElementById('currentDateTime');
-                if (el) el.innerHTML = html;
-            }
-
-            requestAnimationFrame(() => this.update());
-        }
-    };
-})();
-
-
-```
-
-## 14 `js/features/main.js`
+## 5 `js/features/main.js`
 ```js
 window.onload = async function () {
-    // 1) 先初始化本地存储，加载磁盘数据
     try {
         await window.App.Store.init();
     } catch (e) {
-        console.error('❌ 本地存储初始化失败：', e);
+        console.error('本地存储初始化失败：', e);
     }
 
     const safeInit = (name, fn) => {
         try {
-            if (typeof fn === 'function') fn();
-            else console.warn(`⚠️ 模块 ${name} 未找到或 init 不是函数`);
+            if (typeof fn === 'function') {
+                fn();
+            } else {
+                console.warn(
+                    `模块 ${name} 未找到或 init 不是函数`
+                );
+            }
         } catch (e) {
-            console.error(`❌ 模块 ${name} 初始化失败:`, e);
+            console.error(
+                `模块 ${name} 初始化失败:`,
+                e
+            );
         }
     };
 
-    // 2) 核心功能模块
     safeInit('Clock', () => window.App.Clock?.init());
     safeInit('Weather', () => window.App.Weather?.init());
     safeInit('DailyImage', () => window.App.DailyImage?.init());
@@ -685,30 +626,43 @@ window.onload = async function () {
     safeInit('GoldenPhrase', () => window.App.GoldenPhrase?.init());
     safeInit('AutoRefresh', () => window.App.AutoRefresh?.init());
 
-    // 3) 弹窗交互模块
     safeInit('ModalCore', () => window.App.ModalCore?.init());
     safeInit('ModalSettings', () => window.App.ModalSettings?.init());
+    safeInit('ModalTimetable', () => window.App.ModalTimetable?.init());
     safeInit('ModalLostFound', () => window.App.ModalLostFound?.init());
     safeInit('ModalNotification', () => window.App.ModalNotification?.init());
     safeInit('ModalPhrase', () => window.App.ModalPhrase?.init());
 
-    // 4) 显示主界面
-    const loadingOverlay = document.getElementById('loadingOverlay');
-    const pageContent = document.getElementById('pageContent');
-    if (loadingOverlay) loadingOverlay.style.display = 'none';
-    if (pageContent) pageContent.style.display = 'block';
+    const loadingOverlay =
+        document.getElementById('loadingOverlay');
+
+    const pageContent =
+        document.getElementById('pageContent');
+
+    if (loadingOverlay) {
+        loadingOverlay.style.display = 'none';
+    }
+
+    if (pageContent) {
+        pageContent.style.display = 'block';
+    }
 };
 
 window.addEventListener('unload', () => {
     try {
-        if (window.App.Timers?.phrase) clearInterval(window.App.Timers.phrase);
+        if (window.App.Timers?.phrase) {
+            clearInterval(window.App.Timers.phrase);
+        }
+
         window.App.Store?.flush();
-    } catch (e) { /* ignore */ }
+    } catch (e) {
+        // 忽略页面关闭阶段的异常
+    }
 });
 
 ```
 
-## 15 `js/features/modal_core.js`
+## 6 `js/features/modal_core.js`
 ```js
 window.App.ModalCore = {
     init() {
@@ -751,447 +705,23 @@ window.App.ModalCore = {
 
 ```
 
-## 19 `js/features/modal_settings.js`
-```js
-window.App.ModalSettings = {
-    init() {
-        this.applyFromStore();
-        this.bindProbability();
-        this.bindInterval();
-        this.bindSwitches();
-
-        window.resetProbability = () => this.setProbability(50);
-        window.resetInterval = () => this.setIntervalDuration(15);
-    },
-
-    clamp(value, min, max, fallback) {
-        const number = Number(value);
-        return Number.isFinite(number) ? Math.min(max, Math.max(min, number)) : fallback;
-    },
-
-    // 把 Store 里的设置写回 DOM
-    applyFromStore() {
-        const s = (window.App.Store && window.App.Store.get('settings')) || {};
-
-        const setChecked = (id, value, fallback) => {
-            const el = document.getElementById(id);
-            if (!el) return;
-            el.checked = (value === undefined) ? fallback : !!value;
-        };
-        setChecked('goldenSwitch', s.goldenSwitch, true);
-        setChecked('imageSwitch', s.imageSwitch, true);
-        setChecked('clickRefreshSwitch', s.clickRefreshSwitch, false);
-        setChecked('animationSwitch', s.animationSwitch, true);
-        setChecked('autoRefreshSwitch', s.autoRefreshSwitch, false);
-
-        const intervalSec = (s.intervalDuration ?? 15000) / 1000;
-        const setVal = (id, value) => {
-            const el = document.getElementById(id);
-            if (el && value !== undefined) el.value = value;
-        };
-        setVal('apiProbability', s.apiProbability ?? 50);
-        setVal('apiProbabilityValue', s.apiProbability ?? 50);
-        setVal('intervalSlider', intervalSec);
-        setVal('intervalValue', intervalSec);
-        setVal('lostAndFoundFontSizeSlider', s.lostAndFoundFontSize ?? 28);
-        setVal('lostAndFoundFontSizeValue', s.lostAndFoundFontSize ?? 28);
-        setVal('fontSizeSlider', s.notificationFontSize ?? 16);
-        setVal('fontSizeValue', s.notificationFontSize ?? 16);
-
-        // 动画开关同步到元素 class
-        document.getElementById('goldenPhrase')?.classList.toggle('no-animation', !(s.animationSwitch !== false));
-    },
-
-    setProbability(value) {
-        const finalValue = this.clamp(value, 0, 100, 50);
-        const slider = document.getElementById('apiProbability');
-        const number = document.getElementById('apiProbabilityValue');
-        if (slider) slider.value = finalValue;
-        if (number) number.value = finalValue;
-        window.App.State.apiProbability = finalValue;
-    },
-
-    setIntervalDuration(value) {
-        const finalValue = this.clamp(value, 1, 60, 15);
-        const slider = document.getElementById('intervalSlider');
-        const number = document.getElementById('intervalValue');
-        if (slider) slider.value = finalValue;
-        if (number) number.value = finalValue;
-        window.App.State.intervalDuration = finalValue * 1000;
-
-        if (document.getElementById('goldenSwitch')?.checked) {
-            window.App.GoldenPhrase?.startTimer();
-        }
-    },
-
-    bindPair(rangeId, numberId, { min, max, fallback, onInput }) {
-        const range = document.getElementById(rangeId);
-        const number = document.getElementById(numberId);
-        if (!range && !number) return;
-
-        const apply = value => {
-            const result = this.clamp(value, min, max, fallback);
-            if (range && range.value !== String(result)) range.value = result;
-            if (number && number.value !== String(result)) number.value = result;
-            onInput?.(result);
-        };
-
-        [range, number].forEach(el => {
-            if (!el) return;
-            el.addEventListener('input', e => apply(e.target.value));
-            el.addEventListener('change', e => apply(e.target.value));
-        });
-    },
-
-    bindProbability() {
-        this.bindPair('apiProbability', 'apiProbabilityValue', {
-            min: 0, max: 100, fallback: 50,
-            onInput: value => { window.App.State.apiProbability = value; }
-        });
-    },
-
-    bindInterval() {
-        this.bindPair('intervalSlider', 'intervalValue', {
-            min: 1, max: 60, fallback: 15,
-            onInput: value => {
-                window.App.State.intervalDuration = value * 1000;
-                if (document.getElementById('goldenSwitch')?.checked) {
-                    window.App.GoldenPhrase?.startTimer();
-                }
-            }
-        });
-    },
-
-    bindSwitches() {
-        const saveSetting = (key, value) => {
-            if (window.App.Store) window.App.Store.setSetting(key, value);
-        };
-
-        document.getElementById('goldenSwitch')?.addEventListener('change', e => {
-            saveSetting('goldenSwitch', e.target.checked);
-            if (!window.App.GoldenPhrase) return;
-            e.target.checked ? window.App.GoldenPhrase.startTimer() : window.App.GoldenPhrase.stopTimer();
-        });
-
-        document.getElementById('imageSwitch')?.addEventListener('change', e => {
-            saveSetting('imageSwitch', e.target.checked);
-            // 全部交给 DailyImage 处理：它会读 Store 的最新值，决定显示/隐藏 + 定时器
-            window.App.DailyImage?.init();
-        });
-
-        document.getElementById('animationSwitch')?.addEventListener('change', e => {
-            saveSetting('animationSwitch', e.target.checked);
-            document.getElementById('goldenPhrase')?.classList.toggle('no-animation', !e.target.checked);
-        });
-
-        // clickRefresh / autoRefresh 的持久化分别在 golden_phrase.js / auto_refresh.js 中完成
-        document.getElementById('clickRefreshSwitch')?.addEventListener('change', e => {
-            saveSetting('clickRefreshSwitch', e.target.checked);
-        });
-    }
-};
-
-```
-
-## 20 `js/features/school_schedule.js`
-```js
-window.App.SchoolSchedule = {
-    DAYS: ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'],
-
-    init() {
-        clearInterval(window.App.Timers.schoolSchedule);
-        window.App.Timers.schoolSchedule = setInterval(() => {
-            this.updateDisplay();
-            this.updateCountdownDisplay();
-        }, 1000);
-
-        this.updateDisplay();
-        this.updateCountdownDisplay();
-    },
-
-    getScheduleData() {
-        if (window.App.Store) return window.App.Store.get('schedule') || {};
-        return (typeof schedule !== 'undefined') ? schedule : {};
-    },
-
-    getTimetableData() {
-        if (window.App.Store) return window.App.Store.get('timetable') || {};
-        return (typeof timetable !== 'undefined') ? timetable : {};
-    },
-
-    getTodaySchedule(day) {
-        const data = this.getScheduleData();
-        if (day === 5) return data.friday;
-        if (day === 0) return data.sunday;
-        return data.weekday;
-    },
-
-    getCourseName(day, lessonIndex) {
-        const courses = this.getTimetableData()[this.DAYS[day]] || [];
-        return courses[day === 0 ? lessonIndex : lessonIndex + 1] || '';
-    },
-
-    isCourseSchedule(name) {
-        if (!name) return false;
-        return name.includes('节课') || name.includes('晚自习') || name.endsWith('考试');
-    },
-
-    getLessonItems(todaySchedule) {
-        if (!Array.isArray(todaySchedule)) return [];
-        return todaySchedule.filter(item => this.isCourseSchedule(item[1]));
-    },
-
-    getNextSchoolDayTime(now) {
-        const target = new Date(now);
-        const day = target.getDay();
-        const daysUntilSunday = day === 5 ? 2 : day === 6 ? 1 : 0;
-
-        target.setDate(target.getDate() + daysUntilSunday);
-        target.setHours(17, 30, 0, 0);
-
-        return { endTime: target, label: '周日返校' };
-    },
-
-    getCurrentSchedule() {
-        const now = new Date();
-        const day = now.getDay();
-        const currentMinutes = now.getHours() * 60 + now.getMinutes();
-        const utils = window.App.Utils;
-
-        if (day === 6) return { current: '周末', nextLesson: '无' };
-
-        if (day === 0 && currentMinutes < utils.timeToMinutes('17:30')) {
-            return { current: '周末', nextLesson: '第一节晚自习' };
-        }
-
-        const todaySchedule = this.getTodaySchedule(day);
-        if (!todaySchedule) return { current: '加载中...', nextLesson: '' };
-
-        if (currentMinutes >= utils.timeToMinutes('21:30') || currentMinutes < utils.timeToMinutes('6:30')) {
-            return { current: '睡觉', nextLesson: '无' };
-        }
-
-        let current = '';
-        let currentIndex = -1;
-
-        for (let i = 0; i < todaySchedule.length; i++) {
-            const [timeRange, name] = todaySchedule[i];
-            const [start, end] = timeRange.split('-');
-            const startMinutes = utils.timeToMinutes(start);
-            const endMinutes = utils.timeToMinutes(end);
-
-            const isInRange = endMinutes < startMinutes
-                ? currentMinutes >= startMinutes || currentMinutes < endMinutes
-                : currentMinutes >= startMinutes && currentMinutes < endMinutes;
-
-            if (isInRange) { current = name; currentIndex = i; break; }
-        }
-
-        let nextLesson = '';
-        if (currentIndex >= 0) {
-            for (let i = currentIndex + 1; i < todaySchedule.length; i++) {
-                const name = todaySchedule[i][1];
-                if (this.isCourseSchedule(name)) { nextLesson = name; break; }
-            }
-        }
-
-        if (!current && day === 5) return { current: '放学', nextLesson: '无' };
-        return { current: current || '休息', nextLesson: nextLesson || '无' };
-    },
-
-    getCourseDisplayName(day, scheduleName) {
-        if (!this.isCourseSchedule(scheduleName)) return scheduleName;
-        const lessonItems = this.getLessonItems(this.getTodaySchedule(day));
-        const lessonIndex = lessonItems.findIndex(item => item[1] === scheduleName);
-        return lessonIndex < 0 ? scheduleName : (this.getCourseName(day, lessonIndex) || scheduleName);
-    },
-
-    updateDisplay() {
-        const day = new Date().getDay();
-        const result = this.getCurrentSchedule();
-
-        const currentElement = document.getElementById('currentSchedule');
-        const nextElement = document.getElementById('nextSchedule');
-
-        if (currentElement) currentElement.textContent = this.getCourseDisplayName(day, result.current);
-        if (nextElement) {
-            const next = result.nextLesson;
-            nextElement.textContent = (!next || next === '无')
-                ? '无'
-                : this.getCourseDisplayName(day, next);
-        }
-
-        this.renderTimetable(day);
-    },
-
-    renderTimetable(day) {
-        const container = document.getElementById('todayTimetable');
-        if (!container) return;
-
-        const centered = (text) =>
-            `<div class="timetable-item" style="font-family: STZhongSong, cursive; font-size:24px; text-align:center;">${text}</div>`;
-
-        if (day === 6) { container.innerHTML = centered('周末无课表'); return; }
-
-        const courses = this.getTimetableData()[this.DAYS[day]] || [];
-        if (!courses.length) { container.innerHTML = centered('暂无数据'); return; }
-
-        container.innerHTML = courses.map((course, index) => {
-            let label = '';
-            let showDivider = false;
-
-            if (day === 0) {
-                label = `晚${index + 1}`;
-            } else if (index === 0) {
-                label = '早'; showDivider = true;
-            } else if (index <= 8) {
-                label = String(index);
-                if (index === 4 || index === 8) showDivider = true;
-            } else {
-                label = `晚${index - 8}`;
-            }
-
-            let itemStyle =
-                'display:flex;align-items:center;font-family:STZhongSong,cursive;' +
-                'font-size:24px;line-height:1;padding:2px 0;';
-
-            if (showDivider) {
-                itemStyle += 'border-bottom:2px dashed #ddd;margin-bottom:6px;padding-bottom:6px;';
-            }
-
-            return `
-                <div style="${itemStyle}">
-                    <div style="width:42%;text-align:right;padding-right:15px;color:#8bc34a;font-weight:bold;">
-                        ${label}
-                    </div>
-                    <div style="width:58%;text-align:left;padding-left:5px;color:#333;">
-                        ${course}
-                    </div>
-                </div>
-            `;
-        }).join('');
-    },
-
-    getNextScheduleInfo() {
-        const now = new Date();
-        const day = now.getDay();
-        const currentMinutes = now.getHours() * 60 + now.getMinutes();
-        const utils = window.App.Utils;
-
-        const todaySchedule = this.getTodaySchedule(day);
-        if (!todaySchedule) return { endTime: '23:59', label: '加载中' };
-
-        const current = this.getCurrentSchedule().current;
-
-        if (current === '放学' || day === 6 || (day === 0 && current === '周末')) {
-            return this.getNextSchoolDayTime(now);
-        }
-
-        if (current === '午休') {
-            const firstPart = currentMinutes < utils.timeToMinutes('13:10');
-            return {
-                endTime: firstPart ? '13:10' : '13:40',
-                label: firstPart ? '熄灯' : '起床'
-            };
-        }
-
-        const currentIndex = todaySchedule.findIndex(([timeRange]) => {
-            const [start, end] = timeRange.split('-');
-            const startMinutes = utils.timeToMinutes(start);
-            const endMinutes = utils.timeToMinutes(end);
-            return endMinutes < startMinutes
-                ? currentMinutes >= startMinutes || currentMinutes < endMinutes
-                : currentMinutes >= startMinutes && currentMinutes < endMinutes;
-        });
-
-        if (currentIndex === -1) return { endTime: '23:59', label: '新的一天' };
-
-        const currentItem = todaySchedule[currentIndex];
-        const currentRange = currentItem[0];
-        const currentName = currentItem[1];
-
-        if (currentName.includes('课间')) {
-            return { endTime: currentRange.split('-')[1], label: '上课' };
-        }
-
-        if (
-            currentName.includes('节课') ||
-            currentName.includes('晚自习') ||
-            currentName.includes('早读') ||
-            currentName.endsWith('考试')
-        ) {
-            return { endTime: currentRange.split('-')[1], label: '下课' };
-        }
-
-        const nextIndex = currentIndex + 1;
-        if (nextIndex < todaySchedule.length) {
-            return {
-                endTime: todaySchedule[nextIndex][0].split('-')[0],
-                label: todaySchedule[nextIndex][1]
-            };
-        }
-
-        return { endTime: '23:59', label: '新的一天' };
-    },
-
-    updateCountdownDisplay() {
-        const result = this.getNextScheduleInfo();
-        const now = new Date();
-
-        let target;
-        if (result.endTime instanceof Date) {
-            target = result.endTime;
-        } else {
-            const [hour, minute] = result.endTime.split(':').map(Number);
-            target = new Date(now);
-            target.setHours(hour, minute, 0, 0);
-            if (target < now) target.setDate(target.getDate() + 1);
-        }
-
-        const difference = Math.max(0, target - now);
-        const totalSeconds = Math.floor(difference / 1000);
-        const hours = Math.floor(totalSeconds / 3600);
-        const minutes = Math.floor((totalSeconds % 3600) / 60);
-        const seconds = totalSeconds % 60;
-        const pad = n => String(n).padStart(2, '0');
-
-        const timerElement = document.getElementById('countdownTimer');
-        const labelElement = document.getElementById('countdownName');
-
-        if (labelElement) labelElement.textContent = `距离${result.label}还有：`;
-
-        if (timerElement) {
-            timerElement.textContent = hours > 0
-                ? `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`
-                : `${pad(minutes)}:${pad(seconds)}`;
-        }
-    }
-};
-
-```
-
-## 21 `js/features/store.js`
+## 7 `js/features/store.js`
 ```js
 // ============================================================
-//  js/features/store.js
-//  本地数据存储适配层
-//  与本地 LocalDataServer.exe（127.0.0.1:17632~17641）通信
+// js/features/store.js
+// 本地数据存储适配层
+// 与本地 LocalDataServer.exe（127.0.0.1:17632~17641）通信
 // ============================================================
+
 window.App = window.App || {};
 
 window.App.Store = {
-    // 探测到的服务地址，例如 http://127.0.0.1:17632
     baseUrl: null,
-    // 本地服务是否可用
     available: false,
-    // 内存缓存：{ settings, timetable, schedule, phrases, solarterms, lostfound, notifications }
     cache: {},
-    // 防抖写入的定时器
     writeTimers: {},
-    // 初始化 Promise（保证只执行一次）
     initPromise: null,
 
-    // 各文件首次运行时的默认值（timetable / schedule / phrases / solarterms 在 _doInit 里动态填充）
     defaults: {
         settings: {
             goldenSwitch: true,
@@ -1202,8 +732,12 @@ window.App.Store = {
             animationSwitch: true,
             autoRefreshSwitch: false,
             lostAndFoundFontSize: 28,
-            notificationFontSize: 16
+            notificationFontSize: 16,
+
+            // 今日课表临时覆盖，不修改 timetable 原始数据
+            temporaryTimetable: null
         },
+
         timetable: {},
         schedule: {},
         phrases: {},
@@ -1212,27 +746,28 @@ window.App.Store = {
         notifications: []
     },
 
-    // ---------- 初始化 ----------
     init() {
         if (this.initPromise) return this.initPromise;
+
         this.initPromise = this._doInit();
         return this.initPromise;
     },
 
     async _doInit() {
-        // 1) 从 /js/data/*.js 里拿默认值
-        this.defaults.timetable   = (typeof timetable   !== 'undefined') ? timetable   : {};
-        this.defaults.schedule    = (typeof schedule    !== 'undefined') ? schedule    : {};
-        this.defaults.phrases     = (typeof localPhrases!== 'undefined') ? localPhrases: {};
-        this.defaults.solarterms  = (typeof solarTerms  !== 'undefined') ? solarTerms  : [];
+        this.defaults.timetable =
+            typeof timetable !== 'undefined' ? timetable : {};
 
-        // 2) 探测本地服务
+        this.defaults.schedule =
+            typeof schedule !== 'undefined' ? schedule : {};
+
+        this.defaults.phrases =
+            typeof localPhrases !== 'undefined' ? localPhrases : {};
+
+        this.defaults.solarterms =
+            typeof solarTerms !== 'undefined' ? solarTerms : [];
+
         await this._detectPort();
-
-        // 3) 加载全部数据文件
         await this._loadAll();
-
-        // 4) 界面提示
         this._updateBanner();
 
         console.info(
@@ -1242,16 +777,17 @@ window.App.Store = {
         );
     },
 
-    // ---------- 端口探测 ----------
     async _detectPort() {
         for (let port = 17632; port <= 17641; port++) {
             const ok = await this._probe(port);
+
             if (ok) {
                 this.baseUrl = `http://127.0.0.1:${port}`;
                 this.available = true;
                 return;
             }
         }
+
         this.baseUrl = null;
         this.available = false;
     },
@@ -1260,64 +796,93 @@ window.App.Store = {
         return new Promise(resolve => {
             const controller = new AbortController();
             const timer = setTimeout(() => controller.abort(), 500);
+
             fetch(`http://127.0.0.1:${port}/api/ping`, {
                 signal: controller.signal,
                 cache: 'no-store'
-            }).then(res => {
-                clearTimeout(timer);
-                if (!res.ok) return resolve(false);
-                return res.json().then(data => {
-                    resolve(data && data.service === 'class-local-data');
-                }).catch(() => resolve(false));
-            }).catch(() => {
-                clearTimeout(timer);
-                resolve(false);
-            });
+            })
+                .then(res => {
+                    clearTimeout(timer);
+
+                    if (!res.ok) {
+                        resolve(false);
+                        return;
+                    }
+
+                    res.json()
+                        .then(data => {
+                            resolve(
+                                data &&
+                                data.service === 'class-local-data'
+                            );
+                        })
+                        .catch(() => resolve(false));
+                })
+                .catch(() => {
+                    clearTimeout(timer);
+                    resolve(false);
+                });
         });
     },
 
-    // ---------- 批量加载 ----------
     async _loadAll() {
         const names = [
-            'settings', 'timetable', 'schedule',
-            'phrases', 'solarterms', 'lostfound', 'notifications'
+            'settings',
+            'timetable',
+            'schedule',
+            'phrases',
+            'solarterms',
+            'lostfound',
+            'notifications'
         ];
+
         for (const name of names) {
-            this.cache[name] = await this._load(name, this.defaults[name]);
+            this.cache[name] = await this._load(
+                name,
+                this.defaults[name]
+            );
         }
     },
 
     async _load(name, defaultValue) {
         const safeDefault = this._clone(defaultValue);
 
-        if (!this.available) return safeDefault;
+        if (!this.available) {
+            return safeDefault;
+        }
 
         try {
-            const res = await fetch(`${this.baseUrl}/api/data/${name}`, {
-                cache: 'no-store'
-            });
+            const res = await fetch(
+                `${this.baseUrl}/api/data/${name}`,
+                { cache: 'no-store' }
+            );
 
             if (res.ok) {
                 const data = await res.json();
-                // settings 采用“合并”策略，保证后续版本新增的键有默认值
-                if (name === 'settings' && data && typeof data === 'object' && !Array.isArray(data)) {
+
+                if (
+                    name === 'settings' &&
+                    data &&
+                    typeof data === 'object' &&
+                    !Array.isArray(data)
+                ) {
                     return Object.assign({}, safeDefault, data);
                 }
+
                 return data;
             }
 
             if (res.status === 404) {
-                // 首次运行：写入默认值
                 await this._writeNow(name, safeDefault);
                 return safeDefault;
             }
         } catch (e) {
             console.warn(`[Store] 加载 ${name} 失败:`, e);
         }
+
         return safeDefault;
     },
 
-    // ---------- 对外读写 ----------
     get(name) {
         return this.cache[name];
     },
@@ -1327,26 +892,35 @@ window.App.Store = {
         this._scheduleWrite(name);
     },
 
-    // 原地修改（例如 push 到 notifications）时调用
     touch(name) {
         this._scheduleWrite(name);
     },
 
     getSetting(key) {
-        const s = this.cache.settings || this.defaults.settings;
-        return s[key];
+        const settings =
+            this.cache.settings || this.defaults.settings;
+
+        return settings[key];
     },
 
     setSetting(key, value) {
-        if (!this.cache.settings) this.cache.settings = this._clone(this.defaults.settings);
+        if (!this.cache.settings) {
+            this.cache.settings = this._clone(
+                this.defaults.settings
+            );
+        }
+
         this.cache.settings[key] = value;
         this._scheduleWrite('settings');
     },
 
-    // ---------- 写入 ----------
     _scheduleWrite(name) {
         if (!this.available) return;
-        if (this.writeTimers[name]) clearTimeout(this.writeTimers[name]);
+
+        if (this.writeTimers[name]) {
+            clearTimeout(this.writeTimers[name]);
+        }
+
         this.writeTimers[name] = setTimeout(() => {
             this._writeNow(name, this.cache[name]);
             this.writeTimers[name] = null;
@@ -1354,19 +928,24 @@ window.App.Store = {
     },
 
     _writeNow(name, value) {
-        if (!this.available) return Promise.resolve();
+        if (!this.available) {
+            return Promise.resolve();
+        }
+
         return fetch(`${this.baseUrl}/api/data/${name}`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json'
+            },
             body: JSON.stringify(value)
         }).catch(err => {
             console.warn(`[Store] 保存 ${name} 失败:`, err);
         });
     },
 
-    // 页面关闭/隐藏时立即 flush
     flush() {
         if (!this.available) return;
+
         Object.keys(this.writeTimers).forEach(name => {
             if (this.writeTimers[name]) {
                 clearTimeout(this.writeTimers[name]);
@@ -1376,28 +955,42 @@ window.App.Store = {
         });
     },
 
-    // ---------- 辅助 ----------
-    _clone(v) {
-        try { return JSON.parse(JSON.stringify(v)); }
-        catch (e) { return v; }
+    _clone(value) {
+        try {
+            return JSON.parse(JSON.stringify(value));
+        } catch (e) {
+            return value;
+        }
     },
 
     _updateBanner() {
         const banner = document.getElementById('serviceBanner');
+
         if (!banner) return;
+
         if (this.available) {
             banner.style.display = 'none';
-        } else {
-            banner.style.display = 'block';
-            banner.textContent = '本地服务未启动（D 盘 LocalDataServer.exe），修改不会被保存';
-            // 3 秒后淡出，避免一直遮挡
-            setTimeout(() => { banner.style.opacity = '0'; banner.style.transition = 'opacity .5s'; }, 4000);
+            return;
         }
+
+        banner.style.display = 'block';
+        banner.textContent =
+            '本地服务未启动（D 盘 LocalDataServer.exe），修改不会被保存';
+
+        setTimeout(() => {
+            banner.style.opacity = '0';
+            banner.style.transition = 'opacity .5s';
+        }, 4000);
     }
 };
 
-// 关闭/隐藏页面时强制 flush
-window.addEventListener('pagehide', () => window.App.Store.flush());
-window.addEventListener('beforeunload', () => window.App.Store.flush());
+window.addEventListener('pagehide', () => {
+    window.App.Store.flush();
+});
+
+window.addEventListener('beforeunload', () => {
+    window.App.Store.flush();
+});
 
 ```
+
