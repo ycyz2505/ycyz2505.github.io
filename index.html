@@ -6,22 +6,14 @@
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-    <!-- (此处保留你原有的 <div id="loadingOverlay"> 和 <div id="pageContent"> 的全部 DOM 结构) -->
-    <!-- <div id="loadingOverlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 9999; display: flex; justify-content: center; align-items: center;">
-        <div style="font-size: 24px; color: #1b5e20;">正在加载字体，请稍候...</div>
-    </div> -->
-
     <div id="pageContent" style="display: none;">
         <!-- 导航栏 -->
         <header>
             <nav class="navbar">
                 <div class="brand">杨村一中&nbsp;高二（22）班</div>
-                <!-- <a href="https://c2201.github.io/">首页</a>
-                <a href="https://c2201.github.io/countdown/">新&nbsp;·&nbsp;二十四节气中考倒计时</a> -->
-                <!-- <a href="https://c2201.github.io/wheel/">转盘</a> -->
             </nav>
         </header>
-     
+
         <!-- 时钟 -->
         <div id="currentDateTime">
             <div class="time-section"></div>
@@ -48,11 +40,11 @@
             </div>
             <div class="timetable" id="todayTimetable"></div>
         </div>
-     
-        <!-- 中考倒计时 -->
+
+        <!-- 高考倒计时 -->
         <div class="small-title">距离2028年高考仅剩</div>
         <div id="daysUntil" class="big-title"></div>
-     
+
         <!-- 时间轴 -->
         <div class="timeline-container">
             <div class="timeline-progress" id="timeline">
@@ -62,7 +54,7 @@
                 </div>
             </div>
         </div>
-     
+
         <!-- 金句 -->
         <div id="goldenPhrase"></div>
 
@@ -126,11 +118,6 @@
                             <input type="checkbox" id="animationSwitch" checked>
                             <span class="slider"></span>
                         </label>
-                        <!-- <label class="switch">
-                            <span class="switch-text">本地金句只展示原创</span>
-                            <input type="checkbox" id="originalSwitch">
-                            <span class="slider"></span>
-                        </label> -->
                         <label class="switch">
                             <span class="switch-text">自动刷新页面</span>
                             <input type="checkbox" id="autoRefreshSwitch">
@@ -167,24 +154,7 @@
                     <h3 style="font-size: 1.2em;">公告</h3>
                     <span class="close-btn" id="closeAnnouncement">&times;</span>
                 </div>
-                <div class="announcement-content">
-                    <!-- <div class="announcement-card">
-                        <div class="announcement-title">📢 倒计时网站征稿活动开始啦！</div>
-                        <div class="announcement-time">2025.3.1</div>
-                        <div class="announcement-body">
-                            C2201倒计时网站底部金句轮播内容<strong>开始征稿了</strong>！选上的作品可以放在网站上<strong>轮播展示</strong>！
-                            <ul>
-                                <li><strong>参与条件：</strong>是个人都能参加</li>
-                                <li><strong>时间：</strong>即日起至2025年5月31日（活动已结束）</li>
-                                <li><strong>征稿内容：</strong><strong>励志文字</strong>、优美<strong>作文素材</strong>、<strong>诗歌（含现代诗）</strong>或<strong>整活</strong>（<strong>不能八卦</strong>）等（特别地，既可以原创，也可以投你在其他地方看到的很好的句子上来，但是要<strong>标明出处</strong>；若是原创句子可选择展示时是否显示署名）（一个句子展示的概率：励志文字 = 优美作文素材 > 整活，可根据具体情况调整，特别地，若原创句子写的<strong>过于精妙</strong>，可以<strong>提高展示概率</strong>）</li>
-                                <li><strong>字数要求：</strong>1~80字（包含标点）</li>
-                                <li><strong>提交格式：</strong>你的名字+句子内容+是否原创（+若非原创，标明出处）</li>
-                                <li><strong>提交方式：</strong>写在便利贴上交给TQC</li>
-                            </ul>
-                            <p class="announcement-footnote">最终解释权归TQC所有</p>
-                        </div>
-                    </div> -->
-                </div>
+                <div class="announcement-content"></div>
             </div>
         </div>
 
@@ -227,11 +197,11 @@
                         padding: 0;
                         line-height: 1.2;
                     ">寻物</div>
-                    
+
                     <div class="announcement-content" id="lostAndFoundList" style="flex: 1; overflow-y: auto; padding: 10px;">
                         <div class="add-button">+</div>
                     </div>
-                    
+
                     <div class="notification-footer" style="position: sticky; bottom: 0; background: white; z-index: 10; padding: 10px 15px; border-top: 1px solid #eee;">
                         <div class="font-size-control">
                             <span class="font-size-label">字体大小:</span>
@@ -272,19 +242,17 @@
         </div>
     </div>
 
-    <!-- <div id="warningMessage">按下&nbsp;Alt&nbsp;+&nbsp;Shift&nbsp;+&nbsp;G&nbsp;解锁彩蛋</div> -->
-    
-    <!-- 1. 引入基础数据 -->
+    <!-- 1. 基础数据 -->
     <script src="js/data/solarterms.js"></script>
     <script src="js/data/timetable.js"></script>
     <script src="js/data/schedule.js"></script>
     <script src="js/data/phrases.js"></script>
 
-    <!-- 2. 引入状态与工具 (必须优先加载) -->
+    <!-- 2. 状态与工具 -->
     <script src="js/features/00_state.js"></script>
     <script src="js/features/01_utils.js"></script>
 
-    <!-- 3. 引入独立功能模块 (一个文件只做一件事) -->
+    <!-- 3. 独立功能模块 -->
     <script src="js/features/clock.js"></script>
     <script src="js/features/weather.js"></script>
     <script src="js/features/daily_image.js"></script>
@@ -293,9 +261,8 @@
     <script src="js/features/school_schedule.js"></script>
     <script src="js/features/golden_phrase.js"></script>
     <script src="js/features/auto_refresh.js"></script>
-    <!-- <script src="js/features/graduation.js"></script> -->
 
-    <!-- 4. 引入各类弹窗交互模块 -->
+    <!-- 4. 弹窗交互模块 -->
     <script src="js/features/modal_core.js"></script>
     <script src="js/features/modal_settings.js"></script>
     <script src="js/features/modal_lost_found.js"></script>
@@ -303,31 +270,26 @@
     <script src="js/features/modal_phrase.js"></script>
 
     <script>
-        (function() {
+        (function () {
             const targetWidth = 1920;
             function resize() {
                 const currentWidth = document.documentElement.clientWidth || document.body.clientWidth;
                 const scale = currentWidth / targetWidth;
                 const pageContent = document.getElementById('pageContent');
-                if (pageContent) {
-                    pageContent.style.zoom = scale;
-                    pageContent.style.width = targetWidth + 'px';
-                    
-                    // ★新增：强制设定高度为 1080px (假设这是你的设计基准)
-                    // 这样 absolute top:50% 才会基于 1080px 计算，而不是基于内容高度
-                    pageContent.style.height = '1080px'; 
-                    pageContent.style.position = 'relative'; // 确保子元素的 absolute 也就是相对于它
-                    pageContent.style.overflow = 'hidden';   // 防止内容溢出
-                    
-                    document.body.style.overflowX = 'hidden';
-                }
+                if (!pageContent) return;
+                pageContent.style.zoom = scale;
+                pageContent.style.width = targetWidth + 'px';
+                pageContent.style.height = '1080px';
+                pageContent.style.position = 'relative';
+                pageContent.style.overflow = 'hidden';
+                document.body.style.overflowX = 'hidden';
             }
             resize();
             window.addEventListener('resize', resize);
         })();
     </script>
 
-    <!-- 5. 引入主入口启动程序 (必须最后加载) -->
+    <!-- 5. 主入口 -->
     <script src="js/features/main.js"></script>
 </body>
 </html>

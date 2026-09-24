@@ -1,30 +1,16 @@
 window.App.ModalSettings = {
     init() {
-        this.bindSettingsRanges();
-        this.bindOtherSettings();
-        this.bindAllRangeControls();
+        this.bindProbability();
+        this.bindInterval();
+        this.bindSwitches();
 
-        /*
-         * 让外部 HTML 的 onclick="resetProbability()"
-         * 和 onclick="resetInterval()" 可以正常调用。
-         */
-        window.resetProbability = () => {
-            this.setProbability(50);
-        };
-
-        window.resetInterval = () => {
-            this.setIntervalDuration(15);
-        };
+        window.resetProbability = () => this.setProbability(50);
+        window.resetInterval = () => this.setIntervalDuration(15);
     },
 
     clamp(value, min, max, fallback) {
         const number = Number(value);
-
-        if (!Number.isFinite(number)) {
-            return fallback;
-        }
-
-        return Math.min(max, Math.max(min, number));
+        return Number.isFinite(number) ? Math.min(max, Math.max(min, number)) : fallback;
     },
 
     setProbability(value) {
@@ -32,18 +18,9 @@ window.App.ModalSettings = {
 
         const slider = document.getElementById('apiProbability');
         const number = document.getElementById('apiProbabilityValue');
-
-        if (slider) {
-            slider.value = finalValue;
-        }
-
-        if (number) {
-            number.value = finalValue;
-        }
-
-        if (window.App.State) {
-            window.App.State.apiProbability = finalValue;
-        }
+        if (slider) slider.value = finalValue;
+        if (number) number.value = finalValue;
+        if (window.App.State) window.App.State.apiProbability = finalValue;
     },
 
     setIntervalDuration(value) {
@@ -51,277 +28,86 @@ window.App.ModalSettings = {
 
         const slider = document.getElementById('intervalSlider');
         const number = document.getElementById('intervalValue');
+        if (slider) slider.value = finalValue;
+        if (number) number.value = finalValue;
+        if (window.App.State) window.App.State.intervalDuration = finalValue * 1000;
 
-        if (slider) {
-            slider.value = finalValue;
-        }
-
-        if (number) {
-            number.value = finalValue;
-        }
-
-        if (window.App.State) {
-            window.App.State.intervalDuration =
-                finalValue * 1000;
-        }
-
-        const goldenSwitch =
-            document.getElementById('goldenSwitch');
-
-        if (
-            goldenSwitch &&
-            goldenSwitch.checked &&
-            window.App.GoldenPhrase
-        ) {
-            window.App.GoldenPhrase.startTimer();
+        if (document.getElementById('goldenSwitch')?.checked) {
+            window.App.GoldenPhrase?.startTimer();
         }
     },
 
-    bindSettingsRanges() {
-        const probabilitySlider =
-            document.getElementById('apiProbability');
-
-        const probabilityValue =
-            document.getElementById('apiProbabilityValue');
-
-        if (probabilitySlider) {
-            probabilitySlider.addEventListener('input', event => {
-                this.setProbability(event.target.value);
-            });
-        }
-
-        if (probabilityValue) {
-            probabilityValue.addEventListener('input', event => {
-                this.setProbability(event.target.value);
-            });
-
-            probabilityValue.addEventListener('change', event => {
-                this.setProbability(event.target.value);
-            });
-        }
-
-        const intervalSlider =
-            document.getElementById('intervalSlider');
-
-        const intervalValue =
-            document.getElementById('intervalValue');
-
-        if (intervalSlider) {
-            intervalSlider.addEventListener('input', event => {
-                this.setIntervalDuration(event.target.value);
-            });
-        }
-
-        if (intervalValue) {
-            intervalValue.addEventListener('input', event => {
-                this.setIntervalDuration(event.target.value);
-            });
-
-            intervalValue.addEventListener('change', event => {
-                this.setIntervalDuration(event.target.value);
-            });
-        }
-
-        /*
-         * 根据 HTML 中的初始值初始化 State。
-         */
-        this.setProbability(
-            probabilitySlider
-                ? probabilitySlider.value
-                : 50
-        );
-
-        this.setIntervalDuration(
-            intervalSlider
-                ? intervalSlider.value
-                : 15
-        );
-    },
-
-    bindOtherSettings() {
-        const goldenSwitch =
-            document.getElementById('goldenSwitch');
-
-        if (goldenSwitch) {
-            goldenSwitch.addEventListener('change', event => {
-                if (!window.App.GoldenPhrase) return;
-
-                if (event.target.checked) {
-                    window.App.GoldenPhrase.startTimer();
-                } else {
-                    window.App.GoldenPhrase.stopTimer();
-                }
-            });
-        }
-
-        const imageSwitch =
-            document.getElementById('imageSwitch');
-
-        if (imageSwitch) {
-            imageSwitch.addEventListener('change', event => {
-                const image =
-                    document.getElementById('apiImage');
-
-                if (!image) return;
-
-                if (event.target.checked) {
-                    image.style.display = 'block';
-
-                    if (window.App.DailyImage) {
-                        window.App.DailyImage.init();
-                    }
-                } else {
-                    image.style.display = 'none';
-
-                    if (
-                        window.App.Timers &&
-                        window.App.Timers.image
-                    ) {
-                        clearInterval(window.App.Timers.image);
-                        window.App.Timers.image = null;
-                    }
-                }
-            });
-        }
-
-        const animationSwitch =
-            document.getElementById('animationSwitch');
-
-        if (animationSwitch) {
-            animationSwitch.addEventListener('change', event => {
-                const phrase =
-                    document.getElementById('goldenPhrase');
-
-                if (!phrase) return;
-
-                phrase.classList.toggle(
-                    'no-animation',
-                    !event.target.checked
-                );
-            });
-        }
-    },
-
-    bindRangePair(rangeId, numberId, options = {}) {
+    // 把一个 range 和一个 number 输入框双向绑定
+    bindPair(rangeId, numberId, { min, max, fallback, onInput }) {
         const range = document.getElementById(rangeId);
         const number = document.getElementById(numberId);
-
         if (!range && !number) return;
 
-        const min = Number(
-            options.min ??
-            range?.min ??
-            number?.min ??
-            0
-        );
-
-        const max = Number(
-            options.max ??
-            range?.max ??
-            number?.max ??
-            100
-        );
-
-        const fallback = Number(
-            options.fallback ??
-            range?.value ??
-            number?.value ??
-            min
-        );
-
         const apply = value => {
-            const result = this.clamp(
-                value,
-                min,
-                max,
-                fallback
-            );
-
-            if (range && range.value !== String(result)) {
-                range.value = result;
-            }
-
-            if (number && number.value !== String(result)) {
-                number.value = result;
-            }
-
-            if (typeof options.onInput === 'function') {
-                options.onInput(result);
-            }
+            const result = this.clamp(value, min, max, fallback);
+            if (range && range.value !== String(result)) range.value = result;
+            if (number && number.value !== String(result)) number.value = result;
+            onInput?.(result);
         };
 
-        if (range) {
-            range.addEventListener('input', event => {
-                apply(event.target.value);
-            });
+        [range, number].forEach(el => {
+            if (!el) return;
+            el.addEventListener('input', e => apply(e.target.value));
+            el.addEventListener('change', e => apply(e.target.value));
+        });
 
-            range.addEventListener('change', event => {
-                apply(event.target.value);
-            });
-        }
-
-        if (number) {
-            number.addEventListener('input', event => {
-                apply(event.target.value);
-            });
-
-            number.addEventListener('change', event => {
-                apply(event.target.value);
-            });
-        }
-
-        apply(
-            range?.value ??
-            number?.value ??
-            fallback
-        );
+        apply(range?.value ?? number?.value ?? fallback);
     },
 
-    bindAllRangeControls() {
-        /*
-         * 通知字体大小滑块。
-         */
-        this.bindRangePair(
-            'fontSizeSlider',
-            'fontSizeValue',
-            {
-                min: 12,
-                max: 120,
-                fallback: 16,
-                onInput: value => {
-                    const content =
-                        document.getElementById(
-                            'notificationContent'
-                        );
+    bindProbability() {
+        this.bindPair('apiProbability', 'apiProbabilityValue', {
+            min: 0,
+            max: 100,
+            fallback: 50,
+            onInput: value => {
+                if (window.App.State) window.App.State.apiProbability = value;
+            }
+        });
+    },
 
-                    if (content) {
-                        content.style.fontSize = `${value}px`;
-                    }
+    bindInterval() {
+        this.bindPair('intervalSlider', 'intervalValue', {
+            min: 1,
+            max: 60,
+            fallback: 15,
+            onInput: value => {
+                if (window.App.State) window.App.State.intervalDuration = value * 1000;
+                if (document.getElementById('goldenSwitch')?.checked) {
+                    window.App.GoldenPhrase?.startTimer();
                 }
             }
-        );
+        });
+    },
 
-        /*
-         * 寻物字体大小滑块。
-         */
-        this.bindRangePair(
-            'lostAndFoundFontSizeSlider',
-            'lostAndFoundFontSizeValue',
-            {
-                min: 12,
-                max: 120,
-                fallback: 28,
-                onInput: value => {
-                    const list =
-                        document.getElementById(
-                            'lostAndFoundList'
-                        );
+    bindSwitches() {
+        document.getElementById('goldenSwitch')?.addEventListener('change', e => {
+            if (!window.App.GoldenPhrase) return;
+            e.target.checked ? window.App.GoldenPhrase.startTimer() : window.App.GoldenPhrase.stopTimer();
+        });
 
-                    if (list) {
-                        list.style.fontSize = `${value}px`;
-                    }
+        document.getElementById('imageSwitch')?.addEventListener('change', e => {
+            const image = document.getElementById('apiImage');
+            if (!image) return;
+
+            if (e.target.checked) {
+                image.style.display = 'block';
+                window.App.DailyImage?.init();
+            } else {
+                image.style.display = 'none';
+                if (window.App.Timers.image) {
+                    clearInterval(window.App.Timers.image);
+                    window.App.Timers.image = null;
                 }
             }
-        );
+        });
+
+        document.getElementById('animationSwitch')?.addEventListener('change', e => {
+            document.getElementById('goldenPhrase')?.classList.toggle('no-animation', !e.target.checked);
+        });
     }
 };

@@ -17,22 +17,9 @@ window.App.GoldenPhrase = {
             maxRetry: 3,
             handler(data) {
                 if (!data.data) return null;
-
-                let title = data.data.title || '';
-                title = title.replace(/\s*·\s*/g, '·');
-
-                const hasBookMarks =
-                    /^《(.+)》$/.test(title);
-
-                const formattedTitle = hasBookMarks
-                    ? title
-                    : `《${title}》`;
-
-                return (
-                    `${data.data.quotes || ''}` +
-                    `——${data.data.author || ''}` +
-                    `${formattedTitle}`
-                );
+                const title = (data.data.title || '').replace(/\s*·\s*/g, '·');
+                const formatted = /^《(.+)》$/.test(title) ? title : `《${title}》`;
+                return `${data.data.quotes || ''}——${data.data.author || ''}${formatted}`;
             }
         },
         {
@@ -61,459 +48,157 @@ window.App.GoldenPhrase = {
             weight: 20,
             maxRetry: 5,
             handler(data) {
-                const chineseLength = data.cn?.length || 0;
-                const englishLength = data.en?.length || 0;
-
-                if (chineseLength > 100) {
-                    return null;
-                }
-
-                const totalLength =
-                    englishLength * 0.5 + chineseLength;
-
-                if (totalLength <= 100) {
-                    return `${data.en}（${data.cn}）——泰戈尔`;
-                }
-
+                const cnLength = data.cn?.length || 0;
+                const enLength = data.en?.length || 0;
+                if (cnLength > 100) return null;
+                if (enLength * 0.5 + cnLength <= 100) return `${data.en}（${data.cn}）——泰戈尔`;
                 return `${data.cn}——泰戈尔`;
             }
         }
     ],
 
     init() {
-        this.updateClassInformation();
-        this.bindPhraseSelector();
         this.fetch();
         this.startTimer();
         this.bindClickRefresh();
     },
 
     startTimer() {
-        if (
-            window.App.Timers &&
-            window.App.Timers.phrase
-        ) {
-            clearInterval(window.App.Timers.phrase);
-        }
-
-        const interval =
-            Number(window.App.State?.intervalDuration) ||
-            15000;
-
-        window.App.Timers.phrase = setInterval(() => {
-            this.fetch();
-        }, interval);
+        this.stopTimer();
+        const interval = Number(window.App.State?.intervalDuration) || 15000;
+        window.App.Timers.phrase = setInterval(() => this.fetch(), interval);
     },
 
     stopTimer() {
-        if (
-            window.App.Timers &&
-            window.App.Timers.phrase
-        ) {
+        if (window.App.Timers.phrase) {
             clearInterval(window.App.Timers.phrase);
             window.App.Timers.phrase = null;
         }
     },
 
-    async fetchWithRetry(apiConfig, retryCount = 0) {
+    async fetchWithRetry(api, retry = 0) {
         try {
-            const response = await fetch(apiConfig.url, {
-                method: apiConfig.method || 'GET'
-            });
+            const res = await fetch(api.url, { method: api.method || 'GET' });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}`);
-            }
+            const text = api.handler(await res.json());
+            if (text !== null && text !== '') return text;
 
-            const data = await response.json();
-            const processed = apiConfig.handler(data);
-
-            if (processed !== null && processed !== '') {
-                return processed;
-            }
-
-            if (retryCount < apiConfig.maxRetry) {
-                return this.fetchWithRetry(
-                    apiConfig,
-                    retryCount + 1
-                );
-            }
-
+            if (retry < api.maxRetry) return this.fetchWithRetry(api, retry + 1);
             throw new Error('超过最大重试次数');
-        } catch (error) {
-            if (retryCount < apiConfig.maxRetry) {
-                return this.fetchWithRetry(
-                    apiConfig,
-                    retryCount + 1
-                );
-            }
-
-            throw error;
+        } catch (err) {
+            if (retry < api.maxRetry) return this.fetchWithRetry(api, retry + 1);
+            throw err;
         }
     },
 
     selectRandomAPI() {
-        const totalWeight = this.apiConfigs.reduce(
-            (sum, api) => sum + api.weight,
-            0
-        );
-
-        let random = Math.random() * totalWeight;
+        const total = this.apiConfigs.reduce((sum, api) => sum + api.weight, 0);
+        let random = Math.random() * total;
 
         for (const api of this.apiConfigs) {
-            if (random < api.weight) {
-                return api;
-            }
-
+            if (random < api.weight) return api;
             random -= api.weight;
         }
-
         return this.apiConfigs[0];
     },
 
     async fetch() {
-        const probability = Number(
-            window.App.State?.apiProbability ?? 50
-        );
-
-        const shouldUseAPI =
-            Math.random() < probability / 100;
-
-        if (!shouldUseAPI) {
-            this.showLocal();
-            return;
-        }
+        const probability = Number(window.App.State?.apiProbability ?? 50);
+        if (Math.random() >= probability / 100) return this.showLocal();
 
         try {
-            const api = this.selectRandomAPI();
-            const text = await this.fetchWithRetry(api);
+            const text = await this.fetchWithRetry(this.selectRandomAPI());
             this.updateDisplay(text);
-        } catch (error) {
-            console.warn(
-                '联网金句获取失败，改用本地金句：',
-                error
-            );
-
+        } catch (err) {
+            console.warn('联网金句获取失败，改用本地金句：', err);
             this.showLocal();
         }
     },
 
     updateDisplay(text) {
-        const container =
-            document.getElementById('goldenPhrase');
-
+        const container = document.getElementById('goldenPhrase');
         if (!container) return;
 
-        const finalText =
-            text === undefined || text === null
-                ? ''
-                : String(text);
+        const finalText = text === undefined || text === null ? '' : String(text);
+        const animationEnabled = document.getElementById('animationSwitch')?.checked !== false;
+        const formatted = this.escapeHTML(finalText).replace(/\n/g, '<br>');
 
-        const animationSwitch =
-            document.getElementById('animationSwitch');
-
-        const animationEnabled =
-            !animationSwitch ||
-            animationSwitch.checked;
-
-        const formatted =
-            this.escapeHTML(finalText)
-                .replace(/\n/g, '<br>');
-
-        const updateContent = () => {
+        const apply = () => {
             container.innerHTML = `「 ${formatted} 」`;
             container.style.opacity = '1';
         };
 
         if (animationEnabled) {
             container.style.opacity = '0';
-
-            setTimeout(() => {
-                updateContent();
-            }, 500);
+            setTimeout(apply, 500);
         } else {
-            updateContent();
+            apply();
         }
     },
 
     showLocal() {
-        /*
-         * 不能直接使用未定义的 localPhrases，
-         * 也不能直接读取不存在的 originalSwitch。
-         */
-        const localData =
-            window.localPhrases || {
-                high: [],
-                medium: [],
-                low: []
-            };
+        const data = window.localPhrases || { high: [], medium: [], low: [] };
+        const toArray = value => (Array.isArray(value) ? value : []);
+        const onlyOriginal = document.getElementById('originalSwitch')?.checked || false;
+        const filter = list => (onlyOriginal ? list.filter(p => String(p).trim().endsWith('🌟')) : list);
 
-        const high = Array.isArray(localData.high)
-            ? localData.high
-            : [];
+        const high = filter(toArray(data.high));
+        const medium = filter(toArray(data.medium));
+        const low = filter(toArray(data.low));
+        const all = [...high, ...medium, ...low];
 
-        const medium = Array.isArray(localData.medium)
-            ? localData.medium
-            : [];
+        if (!all.length) return this.updateDisplay('🎯 没有找到金句');
 
-        const low = Array.isArray(localData.low)
-            ? localData.low
-            : [];
-
-        const originalSwitch =
-            document.getElementById('originalSwitch');
-
-        const onlyOriginal =
-            originalSwitch?.checked || false;
-
-        const filterOriginal = list => {
-            if (!onlyOriginal) {
-                return list;
-            }
-
-            return list.filter(phrase => {
-                return String(phrase)
-                    .trim()
-                    .endsWith('🌟');
-            });
+        const last = window.App.State.lastPhrase;
+        const pick = list => {
+            const candidates = list.filter(p => p !== last);
+            const pool = candidates.length ? candidates : list;
+            return pool[Math.floor(Math.random() * pool.length)];
         };
 
-        const filteredHigh = filterOriginal(high);
-        const filteredMedium = filterOriginal(medium);
-        const filteredLow = filterOriginal(low);
+        let selected;
 
-        const allPhrases = [
-            ...filteredHigh,
-            ...filteredMedium,
-            ...filteredLow
-        ];
-
-        if (!allPhrases.length) {
-            this.updateDisplay('🎯 没有找到金句');
-            return;
-        }
-
-        let candidates = allPhrases.filter(phrase => {
-            return phrase !== window.App.State.lastPhrase;
-        });
-
-        if (!candidates.length) {
-            candidates = allPhrases;
-        }
-
-        let selectedPhrase;
-
-        /*
-         * 按照 high 45%、medium 35%、low 20%
-         * 的比例选择本地金句。
-         */
+        // high 45% / medium 35% / low 20%
         if (!onlyOriginal) {
             const pools = [];
+            if (high.length) pools.push({ list: high, weight: 45 });
+            if (medium.length) pools.push({ list: medium, weight: 35 });
+            if (low.length) pools.push({ list: low, weight: 20 });
 
-            if (filteredHigh.length) {
-                pools.push({
-                    list: filteredHigh,
-                    weight: 45
-                });
-            }
-
-            if (filteredMedium.length) {
-                pools.push({
-                    list: filteredMedium,
-                    weight: 35
-                });
-            }
-
-            if (filteredLow.length) {
-                pools.push({
-                    list: filteredLow,
-                    weight: 20
-                });
-            }
-
-            const totalWeight = pools.reduce(
-                (sum, item) => sum + item.weight,
-                0
-            );
-
-            let random = Math.random() * totalWeight;
+            const total = pools.reduce((sum, pool) => sum + pool.weight, 0);
+            let random = Math.random() * total;
 
             for (const pool of pools) {
                 if (random < pool.weight) {
-                    const poolCandidates =
-                        pool.list.filter(phrase => {
-                            return (
-                                phrase !==
-                                window.App.State.lastPhrase
-                            );
-                        });
-
-                    const finalList =
-                        poolCandidates.length
-                            ? poolCandidates
-                            : pool.list;
-
-                    selectedPhrase =
-                        finalList[
-                            Math.floor(
-                                Math.random() *
-                                finalList.length
-                            )
-                        ];
-
+                    selected = pick(pool.list);
                     break;
                 }
-
                 random -= pool.weight;
             }
         }
 
-        /*
-         * 当只有原创模式，或者权重池没有成功选出内容时，
-         * 从候选列表中随机选择。
-         */
-        if (!selectedPhrase) {
-            selectedPhrase =
-                candidates[
-                    Math.floor(
-                        Math.random() * candidates.length
-                    )
-                ];
+        if (!selected) {
+            const candidates = all.filter(p => p !== last);
+            const pool = candidates.length ? candidates : all;
+            selected = pool[Math.floor(Math.random() * pool.length)];
         }
 
-        window.App.State.lastPhrase = selectedPhrase;
-        this.updateDisplay(selectedPhrase);
-    },
-
-    bindPhraseSelector() {
-        const openButton =
-            document.getElementById('phraseSelectButton');
-
-        const modal =
-            document.getElementById('phraseModal');
-
-        const closeButton =
-            document.getElementById('closePhrase');
-
-        if (!openButton || !modal) {
-            return;
-        }
-
-        openButton.addEventListener('click', () => {
-            this.populatePhraseList();
-            modal.classList.add('active');
-        });
-
-        if (closeButton) {
-            closeButton.addEventListener('click', () => {
-                modal.classList.remove('active');
-            });
-        }
-
-        modal.addEventListener('click', event => {
-            if (event.target === modal) {
-                modal.classList.remove('active');
-            }
-        });
-    },
-
-    populatePhraseList() {
-        const container =
-            document.getElementById('phraseList');
-
-        if (!container) return;
-
-        const localData =
-            window.localPhrases || {
-                high: [],
-                medium: [],
-                low: []
-            };
-
-        const allPhrases = [
-            ...(Array.isArray(localData.high)
-                ? localData.high
-                : []),
-            ...(Array.isArray(localData.medium)
-                ? localData.medium
-                : []),
-            ...(Array.isArray(localData.low)
-                ? localData.low
-                : [])
-        ];
-
-        container.innerHTML = '';
-
-        if (!allPhrases.length) {
-            container.textContent = '暂无本地金句';
-            return;
-        }
-
-        const fragment =
-            document.createDocumentFragment();
-
-        allPhrases.forEach(phrase => {
-            const item = document.createElement('div');
-
-            item.className = 'phrase-item';
-            item.innerHTML = this.escapeHTML(
-                String(phrase)
-            ).replace(/\n/g, '<br>');
-
-            item.addEventListener('click', () => {
-                this.updateDisplay(phrase);
-
-                const modal =
-                    document.getElementById('phraseModal');
-
-                if (modal) {
-                    modal.classList.remove('active');
-                }
-
-                window.App.State.lastPhrase = phrase;
-
-                const goldenSwitch =
-                    document.getElementById('goldenSwitch');
-
-                if (
-                    goldenSwitch?.checked
-                ) {
-                    this.startTimer();
-                }
-            });
-
-            fragment.appendChild(item);
-        });
-
-        container.appendChild(fragment);
+        window.App.State.lastPhrase = selected;
+        this.updateDisplay(selected);
     },
 
     bindClickRefresh() {
-        const container =
-            document.getElementById('goldenPhrase');
-
+        const container = document.getElementById('goldenPhrase');
         if (!container) return;
 
         container.addEventListener('click', () => {
-            const clickSwitch =
-                document.getElementById(
-                    'clickRefreshSwitch'
-                );
+            if (!document.getElementById('clickRefreshSwitch')?.checked) return;
 
-            if (!clickSwitch?.checked) {
-                return;
-            }
-
-            const animationSwitch =
-                document.getElementById('animationSwitch');
-
-            const animationEnabled =
-                !animationSwitch ||
-                animationSwitch.checked;
+            const animationEnabled = document.getElementById('animationSwitch')?.checked !== false;
 
             if (animationEnabled) {
                 container.style.transform = 'scale(0.98)';
-
                 setTimeout(() => {
                     container.style.transform = 'scale(1)';
                     this.fetch();
@@ -522,12 +207,7 @@ window.App.GoldenPhrase = {
                 this.fetch();
             }
 
-            const goldenSwitch =
-                document.getElementById('goldenSwitch');
-
-            if (goldenSwitch?.checked) {
-                this.startTimer();
-            }
+            if (document.getElementById('goldenSwitch')?.checked) this.startTimer();
         });
     },
 

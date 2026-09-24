@@ -1,9 +1,8 @@
 window.App.SchoolSchedule = {
-    init() {
-        if (window.App.Timers.schoolSchedule) {
-            clearInterval(window.App.Timers.schoolSchedule);
-        }
+    DAYS: ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'],
 
+    init() {
+        clearInterval(window.App.Timers.schoolSchedule);
         window.App.Timers.schoolSchedule = setInterval(() => {
             this.updateDisplay();
             this.updateCountdownDisplay();
@@ -14,155 +13,64 @@ window.App.SchoolSchedule = {
     },
 
     getScheduleData() {
-        return typeof schedule !== 'undefined'
-            ? schedule
-            : window.schedule || {};
+        return typeof schedule !== 'undefined' ? schedule : window.schedule || {};
     },
 
     getTimetableData() {
-        return typeof timetable !== 'undefined'
-            ? timetable
-            : window.timetable || {};
+        return typeof timetable !== 'undefined' ? timetable : window.timetable || {};
+    },
+
+    getTodaySchedule(day) {
+        const data = this.getScheduleData();
+        if (day === 5) return data.friday;
+        if (day === 0) return data.sunday;
+        return data.weekday;
     },
 
     getCourseName(day, lessonIndex) {
-        const days = [
-            'sunday',
-            'monday',
-            'tuesday',
-            'wednesday',
-            'thursday',
-            'friday',
-            'saturday'
-        ];
-
-        const timetableData = this.getTimetableData();
-        const dayName = days[day];
-        const courses = timetableData[dayName] || [];
-
-        /*
-         * 周日课表只有晚自习，课表下标从 0 开始。
-         */
-        if (day === 0) {
-            return courses[lessonIndex] || '';
-        }
-
-        /*
-         * 周一至周五的课表结构：
-         *
-         * timetable:
-         * 0     早自习
-         * 1-8   第一节至第八节课
-         * 9-12  晚自习
-         *
-         * schedule 中的 lessonIndex 只统计：
-         * 第一节课、第二节课……晚自习
-         *
-         * 因此需要整体加 1。
-         */
-        const timetableIndex = lessonIndex + 1;
-
-        return courses[timetableIndex] || '';
+        const courses = this.getTimetableData()[this.DAYS[day]] || [];
+        // 周日只有晚自习；周一至周五需整体 +1（第 0 项是早自习）
+        return courses[day === 0 ? lessonIndex : lessonIndex + 1] || '';
     },
 
     isCourseSchedule(name) {
         if (!name) return false;
-
-        return (
-            name.includes('节课') ||
-            name.includes('晚自习') ||
-            name.endsWith('考试')
-        );
+        return name.includes('节课') || name.includes('晚自习') || name.endsWith('考试');
     },
 
     getLessonItems(todaySchedule) {
-        if (!Array.isArray(todaySchedule)) {
-            return [];
-        }
-
-        return todaySchedule.filter(item => {
-            const name = item[1];
-            return this.isCourseSchedule(name);
-        });
+        if (!Array.isArray(todaySchedule)) return [];
+        return todaySchedule.filter(item => this.isCourseSchedule(item[1]));
     },
 
     getNextSchoolDayTime(now) {
         const target = new Date(now);
         const day = target.getDay();
-
-        let daysUntilSunday = 0;
-
-        if (day === 5) {
-            daysUntilSunday = 2;
-        } else if (day === 6) {
-            daysUntilSunday = 1;
-        } else if (day === 0) {
-            daysUntilSunday = 0;
-        }
+        const daysUntilSunday = day === 5 ? 2 : day === 6 ? 1 : 0;
 
         target.setDate(target.getDate() + daysUntilSunday);
         target.setHours(17, 30, 0, 0);
 
-        return {
-            endTime: target,
-            label: '周日返校'
-        };
+        return { endTime: target, label: '周日返校' };
     },
 
     getCurrentSchedule() {
         const now = new Date();
         const day = now.getDay();
-        const currentMinutes =
-            now.getHours() * 60 + now.getMinutes();
-
+        const currentMinutes = now.getHours() * 60 + now.getMinutes();
         const utils = window.App.Utils;
-        const scheduleData = this.getScheduleData();
 
-        if (day === 6) {
-            return {
-                current: '周末',
-                nextLesson: ''
-            };
+        if (day === 6) return { current: '周末', nextLesson: '' };
+
+        if (day === 0 && currentMinutes < utils.timeToMinutes('17:30')) {
+            return { current: '周末', nextLesson: '第一节晚自习' };
         }
 
-        if (
-            day === 0 &&
-            currentMinutes < utils.timeToMinutes('17:30')
-        ) {
-            return {
-                current: '周末',
-                nextLesson: '第一节晚自习'
-            };
-        }
+        const todaySchedule = this.getTodaySchedule(day);
+        if (!todaySchedule) return { current: '加载中...', nextLesson: '' };
 
-        let todaySchedule;
-
-        if (day === 5) {
-            todaySchedule = scheduleData.friday;
-        } else if (day === 0) {
-            todaySchedule = scheduleData.sunday;
-        } else {
-            todaySchedule = scheduleData.weekday;
-        }
-
-        if (!todaySchedule) {
-            return {
-                current: '加载中...',
-                nextLesson: ''
-            };
-        }
-
-        /*
-         * 特别处理跨天睡觉时间。
-         */
-        if (
-            currentMinutes >= utils.timeToMinutes('21:30') ||
-            currentMinutes < utils.timeToMinutes('6:30')
-        ) {
-            return {
-                current: '睡觉',
-                nextLesson: '无'
-            };
+        if (currentMinutes >= utils.timeToMinutes('21:30') || currentMinutes < utils.timeToMinutes('6:30')) {
+            return { current: '睡觉', nextLesson: '无' };
         }
 
         let current = '';
@@ -171,21 +79,12 @@ window.App.SchoolSchedule = {
         for (let i = 0; i < todaySchedule.length; i++) {
             const [timeRange, name] = todaySchedule[i];
             const [start, end] = timeRange.split('-');
-
             const startMinutes = utils.timeToMinutes(start);
             const endMinutes = utils.timeToMinutes(end);
 
-            let isInRange = false;
-
-            if (endMinutes < startMinutes) {
-                isInRange =
-                    currentMinutes >= startMinutes ||
-                    currentMinutes < endMinutes;
-            } else {
-                isInRange =
-                    currentMinutes >= startMinutes &&
-                    currentMinutes < endMinutes;
-            }
+            const isInRange = endMinutes < startMinutes
+                ? currentMinutes >= startMinutes || currentMinutes < endMinutes
+                : currentMinutes >= startMinutes && currentMinutes < endMinutes;
 
             if (isInRange) {
                 current = name;
@@ -195,23 +94,9 @@ window.App.SchoolSchedule = {
         }
 
         let nextLesson = '';
-
-        /*
-         * 这里不能简单地把当前项目的下一项作为“下一节课”，
-         * 因为早读、课间、大课间等都不是课程。
-         *
-         * 例如：
-         * 早读 -> 第一节课
-         * 第一节课 -> 第二节课
-         */
         if (currentIndex >= 0) {
-            for (
-                let i = currentIndex + 1;
-                i < todaySchedule.length;
-                i++
-            ) {
+            for (let i = currentIndex + 1; i < todaySchedule.length; i++) {
                 const name = todaySchedule[i][1];
-
                 if (this.isCourseSchedule(name)) {
                     nextLesson = name;
                     break;
@@ -219,114 +104,52 @@ window.App.SchoolSchedule = {
             }
         }
 
-        if (!current && day === 5) {
-            return {
-                current: '放学',
-                nextLesson: '无'
-            };
-        }
+        if (!current && day === 5) return { current: '放学', nextLesson: '无' };
 
-        return {
-            current: current || '休息',
-            nextLesson: nextLesson || '无'
-        };
+        return { current: current || '休息', nextLesson: nextLesson || '无' };
     },
 
     getCourseDisplayName(day, scheduleName) {
-        if (!this.isCourseSchedule(scheduleName)) {
-            return scheduleName;
-        }
+        if (!this.isCourseSchedule(scheduleName)) return scheduleName;
 
-        const scheduleData = this.getScheduleData();
+        const lessonItems = this.getLessonItems(this.getTodaySchedule(day));
+        const lessonIndex = lessonItems.findIndex(item => item[1] === scheduleName);
 
-        let todaySchedule;
-
-        if (day === 5) {
-            todaySchedule = scheduleData.friday;
-        } else if (day === 0) {
-            todaySchedule = scheduleData.sunday;
-        } else {
-            todaySchedule = scheduleData.weekday;
-        }
-
-        const lessonItems = this.getLessonItems(todaySchedule);
-        const lessonIndex = lessonItems.findIndex(item => {
-            return item[1] === scheduleName;
-        });
-
-        if (lessonIndex < 0) {
-            return scheduleName;
-        }
-
-        return this.getCourseName(day, lessonIndex) || scheduleName;
+        return lessonIndex < 0 ? scheduleName : (this.getCourseName(day, lessonIndex) || scheduleName);
     },
 
     updateDisplay() {
         const day = new Date().getDay();
         const result = this.getCurrentSchedule();
 
-        const currentElement =
-            document.getElementById('currentSchedule');
+        const currentElement = document.getElementById('currentSchedule');
+        const nextElement = document.getElementById('nextSchedule');
 
-        const nextElement =
-            document.getElementById('nextSchedule');
-
-        if (currentElement) {
-            currentElement.textContent = this.getCourseDisplayName(
-                day,
-                result.current
-            );
-        }
-
+        if (currentElement) currentElement.textContent = this.getCourseDisplayName(day, result.current);
         if (nextElement) {
-            nextElement.textContent =
-                result.nextLesson === '无'
-                    ? '无'
-                    : this.getCourseDisplayName(
-                        day,
-                        result.nextLesson
-                    );
+            nextElement.textContent = result.nextLesson === '无'
+                ? '无'
+                : this.getCourseDisplayName(day, result.nextLesson);
         }
 
         this.renderTimetable(day);
     },
 
     renderTimetable(day) {
-        const container =
-            document.getElementById('todayTimetable');
-
+        const container = document.getElementById('todayTimetable');
         if (!container) return;
 
-        if (day === 6) {
-            container.innerHTML =
-                '<div class="timetable-item" ' +
-                'style="font-family: STZhongSong, cursive; ' +
-                'font-size:24px; text-align:center;">' +
-                '周末无课表</div>';
+        const centered = (text) =>
+            `<div class="timetable-item" style="font-family: STZhongSong, cursive; font-size:24px; text-align:center;">${text}</div>`;
 
+        if (day === 6) {
+            container.innerHTML = centered('周末无课表');
             return;
         }
 
-        const days = [
-            'sunday',
-            'monday',
-            'tuesday',
-            'wednesday',
-            'thursday',
-            'friday',
-            'saturday'
-        ];
-
-        const timetableData = this.getTimetableData();
-        const courses = timetableData[days[day]] || [];
-
+        const courses = this.getTimetableData()[this.DAYS[day]] || [];
         if (!courses.length) {
-            container.innerHTML =
-                '<div class="timetable-item" ' +
-                'style="font-family: STZhongSong, cursive; ' +
-                'font-size:24px; text-align:center;">' +
-                '暂无数据</div>';
-
+            container.innerHTML = centered('暂无数据');
             return;
         }
 
@@ -336,54 +159,30 @@ window.App.SchoolSchedule = {
 
             if (day === 0) {
                 label = `晚${index + 1}`;
+            } else if (index === 0) {
+                label = '早';
+                showDivider = true;
+            } else if (index <= 8) {
+                label = String(index);
+                if (index === 4 || index === 8) showDivider = true;
             } else {
-                if (index === 0) {
-                    label = '早';
-                    showDivider = true;
-                } else if (index <= 8) {
-                    label = String(index);
-
-                    if (index === 4 || index === 8) {
-                        showDivider = true;
-                    }
-                } else {
-                    label = `晚${index - 8}`;
-                }
+                label = `晚${index - 8}`;
             }
 
             let itemStyle =
-                'display:flex;' +
-                'align-items:center;' +
-                'font-family:STZhongSong,cursive;' +
-                'font-size:24px;' +
-                'line-height:1;' +
-                'padding:2px 0;';
+                'display:flex;align-items:center;font-family:STZhongSong,cursive;' +
+                'font-size:24px;line-height:1;padding:2px 0;';
 
             if (showDivider) {
-                itemStyle +=
-                    'border-bottom:2px dashed #ddd;' +
-                    'margin-bottom:6px;' +
-                    'padding-bottom:6px;';
+                itemStyle += 'border-bottom:2px dashed #ddd;margin-bottom:6px;padding-bottom:6px;';
             }
 
             return `
                 <div style="${itemStyle}">
-                    <div style="
-                        width:42%;
-                        text-align:right;
-                        padding-right:15px;
-                        color:#8bc34a;
-                        font-weight:bold;
-                    ">
+                    <div style="width:42%;text-align:right;padding-right:15px;color:#8bc34a;font-weight:bold;">
                         ${label}
                     </div>
-
-                    <div style="
-                        width:58%;
-                        text-align:left;
-                        padding-left:5px;
-                        color:#333;
-                    ">
+                    <div style="width:58%;text-align:left;padding-left:5px;color:#333;">
                         ${course}
                     </div>
                 </div>
@@ -394,85 +193,44 @@ window.App.SchoolSchedule = {
     getNextScheduleInfo() {
         const now = new Date();
         const day = now.getDay();
-        const currentMinutes =
-            now.getHours() * 60 + now.getMinutes();
-
+        const currentMinutes = now.getHours() * 60 + now.getMinutes();
         const utils = window.App.Utils;
-        const scheduleData = this.getScheduleData();
 
-        let todaySchedule;
+        const todaySchedule = this.getTodaySchedule(day);
+        if (!todaySchedule) return { endTime: '23:59', label: '加载中' };
 
-        if (day === 5) {
-            todaySchedule = scheduleData.friday;
-        } else if (day === 0) {
-            todaySchedule = scheduleData.sunday;
-        } else {
-            todaySchedule = scheduleData.weekday;
-        }
+        const current = this.getCurrentSchedule().current;
 
-        if (!todaySchedule) {
-            return {
-                endTime: '23:59',
-                label: '加载中'
-            };
-        }
-
-        const currentResult = this.getCurrentSchedule();
-        const current = currentResult.current;
-
-        if (
-            current === '放学' ||
-            day === 6 ||
-            (day === 0 && current === '周末')
-        ) {
+        if (current === '放学' || day === 6 || (day === 0 && current === '周末')) {
             return this.getNextSchoolDayTime(now);
         }
 
         if (current === '午休') {
-            const firstPart =
-                currentMinutes < utils.timeToMinutes('13:10');
-
+            const firstPart = currentMinutes < utils.timeToMinutes('13:10');
             return {
                 endTime: firstPart ? '13:10' : '13:40',
                 label: firstPart ? '熄灯' : '起床'
             };
         }
 
-        let currentIndex = todaySchedule.findIndex(([timeRange]) => {
+        const currentIndex = todaySchedule.findIndex(([timeRange]) => {
             const [start, end] = timeRange.split('-');
-
             const startMinutes = utils.timeToMinutes(start);
             const endMinutes = utils.timeToMinutes(end);
 
-            if (endMinutes < startMinutes) {
-                return (
-                    currentMinutes >= startMinutes ||
-                    currentMinutes < endMinutes
-                );
-            }
-
-            return (
-                currentMinutes >= startMinutes &&
-                currentMinutes < endMinutes
-            );
+            return endMinutes < startMinutes
+                ? currentMinutes >= startMinutes || currentMinutes < endMinutes
+                : currentMinutes >= startMinutes && currentMinutes < endMinutes;
         });
 
-        if (currentIndex === -1) {
-            return {
-                endTime: '23:59',
-                label: '新的一天'
-            };
-        }
+        if (currentIndex === -1) return { endTime: '23:59', label: '新的一天' };
 
         const currentItem = todaySchedule[currentIndex];
         const currentRange = currentItem[0];
         const currentName = currentItem[1];
 
         if (currentName.includes('课间')) {
-            return {
-                endTime: currentRange.split('-')[1],
-                label: '上课'
-            };
+            return { endTime: currentRange.split('-')[1], label: '上课' };
         }
 
         if (
@@ -481,14 +239,10 @@ window.App.SchoolSchedule = {
             currentName.includes('早读') ||
             currentName.endsWith('考试')
         ) {
-            return {
-                endTime: currentRange.split('-')[1],
-                label: '下课'
-            };
+            return { endTime: currentRange.split('-')[1], label: '下课' };
         }
 
         const nextIndex = currentIndex + 1;
-
         if (nextIndex < todaySchedule.length) {
             return {
                 endTime: todaySchedule[nextIndex][0].split('-')[0],
@@ -496,10 +250,7 @@ window.App.SchoolSchedule = {
             };
         }
 
-        return {
-            endTime: '23:59',
-            label: '新的一天'
-        };
+        return { endTime: '23:59', label: '新的一天' };
     },
 
     updateCountdownDisplay() {
@@ -507,56 +258,31 @@ window.App.SchoolSchedule = {
         const now = new Date();
 
         let target;
-        let label = result.label;
-
         if (result.endTime instanceof Date) {
             target = result.endTime;
         } else {
-            const [hour, minute] =
-                result.endTime.split(':').map(Number);
-
+            const [hour, minute] = result.endTime.split(':').map(Number);
             target = new Date(now);
             target.setHours(hour, minute, 0, 0);
-
-            if (target < now) {
-                target.setDate(target.getDate() + 1);
-            }
+            if (target < now) target.setDate(target.getDate() + 1);
         }
 
-        let difference = target - now;
-
-        if (difference < 0) {
-            difference = 0;
-        }
-
+        const difference = Math.max(0, target - now);
         const totalSeconds = Math.floor(difference / 1000);
         const hours = Math.floor(totalSeconds / 3600);
-        const minutes = Math.floor(
-            (totalSeconds % 3600) / 60
-        );
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
         const seconds = totalSeconds % 60;
+        const pad = n => String(n).padStart(2, '0');
 
-        const timerElement =
-            document.getElementById('countdownTimer');
+        const timerElement = document.getElementById('countdownTimer');
+        const labelElement = document.getElementById('countdownName');
 
-        const labelElement =
-            document.getElementById('countdownName');
-
-        if (labelElement) {
-            labelElement.textContent = `距离${label}还有：`;
-        }
+        if (labelElement) labelElement.textContent = `距离${result.label}还有：`;
 
         if (timerElement) {
-            if (hours > 0) {
-                timerElement.textContent =
-                    `${String(hours).padStart(2, '0')}:` +
-                    `${String(minutes).padStart(2, '0')}:` +
-                    `${String(seconds).padStart(2, '0')}`;
-            } else {
-                timerElement.textContent =
-                    `${String(minutes).padStart(2, '0')}:` +
-                    `${String(seconds).padStart(2, '0')}`;
-            }
+            timerElement.textContent = hours > 0
+                ? `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`
+                : `${pad(minutes)}:${pad(seconds)}`;
         }
     }
 };
