@@ -88,18 +88,6 @@ window.App.GoldenPhrase = {
         this.bindClickRefresh();
     },
 
-    updateClassInformation() {
-        document.title =
-            '高考倒计时 - 高二（22）班 | 高考必胜';
-
-        const brand = document.querySelector('.brand');
-
-        if (brand) {
-            brand.textContent =
-                '杨村一中　高二（22）班（2522班）';
-        }
-    },
-
     startTimer() {
         if (
             window.App.Timers &&
