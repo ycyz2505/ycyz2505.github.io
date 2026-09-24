@@ -22,28 +22,6 @@ window.App.SchoolSchedule = {
         return (typeof timetable !== 'undefined') ? timetable : {};
     },
 
-    todayKey() {
-        const d = new Date();
-        const pad = n => String(n).padStart(2, '0');
-        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-    },
-
-    // 原始课表（不受临时编辑影响）
-    getBaseCourses(day) {
-        return this.getTimetableData()[this.DAYS[day]] || [];
-    },
-
-    // 今日实际使用的课表：优先返回临时课表，否则返回原始课表
-    getTodayCourses(day) {
-        const base = this.getBaseCourses(day);
-        const temp = window.App.Store?.get('tempTimetable');
-
-        if (temp && Array.isArray(temp.courses) && temp.date === this.todayKey()) {
-            return temp.courses;
-        }
-        return base;
-    },
-
     getTodaySchedule(day) {
         const data = this.getScheduleData();
         if (day === 5) return data.friday;
@@ -52,7 +30,7 @@ window.App.SchoolSchedule = {
     },
 
     getCourseName(day, lessonIndex) {
-        const courses = this.getTodayCourses(day);
+        const courses = this.getTimetableData()[this.DAYS[day]] || [];
         return courses[day === 0 ? lessonIndex : lessonIndex + 1] || '';
     },
 
@@ -158,7 +136,7 @@ window.App.SchoolSchedule = {
 
         if (day === 6) { container.innerHTML = centered('周末无课表'); return; }
 
-        const courses = this.getTodayCourses(day);
+        const courses = this.getTimetableData()[this.DAYS[day]] || [];
         if (!courses.length) { container.innerHTML = centered('暂无数据'); return; }
 
         container.innerHTML = courses.map((course, index) => {

@@ -136,17 +136,6 @@
                             <span class="slider"></span>
                         </label>
                     </div>
-                    <div style="margin-top: 24px; padding-top: 20px; border-top: 1px solid #eee;">
-                        <button id="editTempTimetableBtn" style="
-                            width: 100%; padding: 12px 20px; border: none; cursor: pointer;
-                            background: #8bc34a; color: #fff; border-radius: 8px;
-                            font-size: 15px; font-family: STZhongsong, serif;
-                            transition: all .3s; box-shadow: 0 2px 8px rgba(139,195,74,.3);
-                        ">📝 临时编辑今日课表</button>
-                        <div style="font-size: 12px; color: #999; margin-top: 8px; text-align: center;">
-                            仅影响今日显示，第二天自动恢复原始课表
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
@@ -163,7 +152,7 @@
 
                     待添加的新功能：自定义倒计时（不只是高考倒计时，如一月考倒计时、期末倒计时等）、智能的座位表（支持快捷搜索等）、老虎机（随机抽人）、方便地统计需要讲的题目（课前统计好，课上老师直接讲）、数据本地存储（目的是增加普适性，让所有班级都能用上这个网站，而不是仅 22 班）等。欢迎提建议。
 
-                    2026.9.26
+                    2026.9.24
                     1. 修复天气无法获取的 bug；
                     2. 更新课表与作息表；
                     3. 实现数据本地存储，新增运行在本地的 LocalDataServer.exe 用于启动本地 http 服务以实现网页直接读写本地磁盘；
@@ -186,17 +175,17 @@
                 </div>
                 <div class="announcement-content">
                     <div class="announcement-card">
-                        <div class="announcement-title">📢 倒计时网站金句征稿</div>
-                        <div class="announcement-time">2026.9.26</div>
+                        <div class="announcement-title">📢 倒计时网站征稿活动开始啦！</div>
+                        <div class="announcement-time">2025.3.1</div>
                         <div class="announcement-body">
-                            高二（22）班电子班牌底部金句轮播内容开始征稿，投稿的作品可以放在网站上轮播展示。
+                            C2201倒计时网站底部金句轮播内容<strong>开始征稿了</strong>！选上的作品可以放在网站上<strong>轮播展示</strong>！
                             <ul>
-                                <li><strong>参与条件：</strong>拥有一个鼻子两只眼睛一个嘴巴</li>
-                                <li><strong>时间：</strong>即日起至野生狗奶过期</li>
-                                <li><strong>征稿内容：</strong>励志文字、优美作文素材、诗歌（含现代诗）或适当整活等，既可以原创，也可以投现有的（但是最好要标明出处），若是原创句子可选择展示时是否署名</li>
-                                <li><strong>展示概率：</strong>励志文字 ≈ 优美作文素材 ≈ 诗歌 > 整活，可根据具体情况调整，特别地，若原创句子写的过于精妙，可以提高展示概率</li>
-                                <li><strong>字数要求：</strong>1~80字（含标点）</li>
-                                <li><strong>提交方式：</strong>写纸上交给tqc，</li>
+                                <li><strong>参与条件：</strong>是个人都能参加</li>
+                                <li><strong>时间：</strong>即日起至2025年5月31日（活动已结束）</li>
+                                <li><strong>征稿内容：</strong><strong>励志文字</strong>、优美<strong>作文素材</strong>、<strong>诗歌（含现代诗）</strong>或<strong>整活</strong>（<strong>不能八卦</strong>）等（特别地，既可以原创，也可以投你在其他地方看到的很好的句子上来，但是要<strong>标明出处</strong>；若是原创句子可选择展示时是否显示署名）（一个句子展示的概率：励志文字 = 优美作文素材 > 整活，可根据具体情况调整，特别地，若原创句子写的<strong>过于精妙</strong>，可以<strong>提高展示概率</strong>）</li>
+                                <li><strong>字数要求：</strong>1~80字（包含标点）</li>
+                                <li><strong>提交格式：</strong>你的名字+句子内容+是否原创（+若非原创，标明出处）</li>
+                                <li><strong>提交方式：</strong>写在便利贴上交给TQC</li>
                             </ul>
                             <p class="announcement-footnote">最终解释权归TQC所有</p>
                         </div>
@@ -292,32 +281,6 @@
         </div>
     </div>
 
-    <!-- 临时编辑今日课表模态框 -->
-    <div class="settings-modal" id="tempTimetableModal">
-        <div class="settings-content" style="max-width: 720px;">
-            <div class="settings-header">
-                <h3>临时编辑今日课表</h3>
-                <span class="close-btn" id="closeTempTimetable">&times;</span>
-            </div>
-            <div class="settings-body" style="height: calc(100% - 60px);">
-                <div id="tempTimetableHint" style="
-                    font-size: 13px; color: #666; padding: 8px 4px; line-height: 1.5;"></div>
-
-                <div id="tempTimetableList" style="
-                    flex: 1; overflow-y: auto; padding: 4px; min-height: 200px;"></div>
-
-                <div style="
-                    display: flex; gap: 10px; align-items: center;
-                    margin-top: 12px; padding-top: 12px; border-top: 1px solid #eee;">
-                    <button id="addTempCourseBtn" class="add-notification-btn">+ 添加一节课</button>
-                    <button id="resetTempTimetableBtn" class="reset-btn" style="min-width: 110px;">恢复原始课表</button>
-                    <button id="saveTempTimetableBtn" class="add-notification-btn" style="
-                        margin-left: auto; background: #4CAF50;">💾 保存</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- 1. 基础数据 -->
     <script src="js/data/solarterms.js"></script>
     <script src="js/data/timetable.js"></script>
@@ -347,7 +310,6 @@
     <script src="js/features/modal_lost_found.js"></script>
     <script src="js/features/modal_notification.js"></script>
     <script src="js/features/modal_phrase.js"></script>
-     <script src="js/features/modal_temp_timetable.js"></script>
 
     <script>
         (function () {
