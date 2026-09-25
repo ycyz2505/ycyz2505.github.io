@@ -70,6 +70,7 @@
             <button id="phraseSelectButton" class="action-button">📜 选择金句</button>
             <button id="lostAndFoundButton" class="action-button">🔍 寻物</button>
             <button id="notificationButton" class="action-button">🔔 通知</button>
+            <button id="seatMapButton" class="action-button">🪑 座位表</button>
         </div>
 
         <!-- 设置模态框 -->
@@ -131,7 +132,6 @@
                         </label>
                     </div>
 
-                    <!-- 今日课表临时编辑 -->
                     <section class="timetable-editor" id="temporaryTimetablePanel">
                         <div class="timetable-editor-header">
                             <h4 class="timetable-editor-title">今日课表临时编辑</h4>
@@ -180,6 +180,7 @@
                     5. 修复每次打开网页默认显示每日 60s 的 bug；
                     6. 修复周六课表无课时“下节课”不显示“无”的 bug；
                     7. 新增课表临时修改功能；
+                    8. 新增座位表展示、编辑、CSV 导入导出、人名搜索和随机抽人功能。
                 </div>
             </div>
         </div>
@@ -239,23 +240,9 @@
                 </div>
 
                 <div class="notification-container" style="display:flex;flex-direction:column;height:100%;">
-                    <div class="big-title" style="
-                        background:linear-gradient(135deg,#FF0000 0%,#FF6B00 25%,#FFD700 50%,#FF6B00 75%,#FF0000 100%);
-                        -webkit-background-clip:text;
-                        background-clip:text;
-                        -webkit-text-fill-color:transparent;
-                        background-size:200% 200%;
-                        animation:gradient-pulse 4s ease infinite;
-                        text-shadow:2px 2px 4px rgba(0,0,0,.3),0 0 10px rgba(255,107,0,.5);
-                        font-size:120px;
-                        font-family:STXingkai,cursive;
-                        letter-spacing:4px;
-                        width:100%;
-                        text-align:center;
-                        margin:-8px 0 0;
-                        padding:0;
-                        line-height:1.2;
-                    ">寻物</div>
+                    <div class="big-title lost-found-title">
+                        寻物
+                    </div>
 
                     <div style="position:relative;flex:1;overflow:hidden;">
                         <div class="announcement-content" id="lostAndFoundList" style="
@@ -309,6 +296,123 @@
                 </div>
             </div>
         </div>
+
+        <!-- 座位表模态框 -->
+        <div class="settings-modal" id="seatMapModal">
+            <div class="settings-content seat-map-modal-content">
+                <div class="settings-header seat-map-header">
+                    <div>
+                        <h3>座位表</h3>
+                        <span class="seat-map-subtitle">上方为教室前侧，下方为教室后侧</span>
+                    </div>
+
+                    <div class="seat-map-header-actions">
+                        <span class="maximize-btn" id="maximizeSeatMap">⛶</span>
+                        <span class="close-btn" id="closeSeatMap">&times;</span>
+                    </div>
+                </div>
+
+                <div class="seat-map-toolbar">
+                    <div class="seat-map-toolbar-group">
+                        <button class="seat-tool-btn primary" id="toggleSeatEdit">编辑模式</button>
+                        <button class="seat-tool-btn" id="addSeatPerson">+ 人名块</button>
+                        <button class="seat-tool-btn" id="addSeatAisle">+ 过道块</button>
+                        <button class="seat-tool-btn" id="addSeatPodium">+ 讲台块</button>
+                        <button class="seat-tool-btn danger" id="deleteSelectedSeat">删除选中</button>
+                    </div>
+
+                    <div class="seat-map-toolbar-group">
+                        <label class="seat-size-control">
+                            行
+                            <input type="number" id="seatMapRows" min="2" max="20" value="8">
+                        </label>
+                        <label class="seat-size-control">
+                            列
+                            <input type="number" id="seatMapCols" min="4" max="24" value="12">
+                        </label>
+                        <button class="seat-tool-btn" id="applySeatMapSize">应用尺寸</button>
+                    </div>
+
+                    <div class="seat-map-toolbar-group">
+                        <button class="seat-tool-btn" id="importSeatCsv">导入 CSV</button>
+                        <button class="seat-tool-btn" id="exportSeatCsv">导出 CSV</button>
+                        <input type="file" id="seatCsvFile" accept=".csv,text/csv" hidden>
+                    </div>
+                </div>
+
+                <div class="seat-map-layout">
+                    <section class="seat-map-main">
+                        <div class="seat-map-front-label">教室前侧 · 黑板 / 讲台</div>
+
+                        <div class="seat-board-wrap">
+                            <div class="seat-board" id="seatBoard" aria-label="座位表"></div>
+                        </div>
+
+                        <div class="seat-map-back-label">教室后侧</div>
+
+                        <div class="seat-map-status" id="seatMapStatus"></div>
+                    </section>
+
+                    <aside class="seat-map-side-panel">
+                        <section class="seat-panel-section">
+                            <h4>查找同学</h4>
+                            <input
+                                type="search"
+                                id="seatSearchInput"
+                                class="seat-search-input"
+                                placeholder="输入姓名或拼音首字母"
+                                autocomplete="off">
+                            <p class="seat-panel-hint">
+                                例如输入 <strong>cyn</strong> 可以找到“车一诺”。输入内容后，匹配的人名会立即高亮。
+                            </p>
+                        </section>
+
+                        <section class="seat-panel-section seat-selected-panel" id="seatSelectionPanel">
+                            <h4>当前选中</h4>
+                            <div class="seat-empty-selection">编辑模式下点击一个块进行编辑</div>
+                        </section>
+
+                        <section class="seat-panel-section">
+                            <h4>随机抽人</h4>
+                            <p class="seat-panel-hint">
+                                抽取过程约 6 秒，最后高亮的人名为抽取结果。
+                            </p>
+                            <button class="seat-draw-btn" id="drawSeatPerson">随机抽取一人</button>
+                        </section>
+
+                        <details class="seat-csv-help">
+                            <summary>CSV 编写说明</summary>
+                            <div class="seat-csv-help-body">
+                                <p>第一行为表头，字段顺序如下：</p>
+                                <pre>type,row,col,name,pinyin</pre>
+                                <p>
+                                    <code>type</code> 可填写
+                                    <code>person</code>、<code>aisle</code> 或
+                                    <code>podium</code>。
+                                    行号和列号从 1 开始。人名块和讲台块固定占 2 列，过道块占 1 列。
+                                </p>
+                                <p>
+                                    <code>pinyin</code> 建议写成带空格的完整拼音，例如：
+                                </p>
+                                <pre>person,3,1,车一诺,che yi nuo</pre>
+                                <p>
+                                    拼音字段可以为空，常用汉字会自动尝试识别首字母；对于生僻字，填写拼音可以保证搜索准确。
+                                </p>
+                                <p>导出的 CSV 可以直接修改后再次导入。</p>
+                            </div>
+                        </details>
+                    </aside>
+                </div>
+
+                <div class="seat-result-overlay" id="seatResultOverlay">
+                    <div class="seat-result-dialog">
+                        <div class="seat-result-caption">本次抽到</div>
+                        <div class="seat-result-name" id="seatResultName"></div>
+                        <button class="seat-result-close" id="closeSeatResult">知道了</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="js/data/solarterms.js"></script>
@@ -335,6 +439,7 @@
     <script src="js/features/modal_lost_found.js"></script>
     <script src="js/features/modal_notification.js"></script>
     <script src="js/features/modal_phrase.js"></script>
+    <script src="js/features/modal_seat_map.js"></script>
 
     <script>
         (function () {

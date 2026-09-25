@@ -1,6 +1,7 @@
 window.App.ModalCore = {
     initialized: false,
     timers: new WeakMap(),
+    closingModals: new WeakSet(),
     modalObserver: null,
 
     init() {
@@ -9,13 +10,33 @@ window.App.ModalCore = {
 
         this.injectAutoCloseStyles();
 
-        // 注意：金句选择弹窗由 ModalPhrase 独立处理
+        // 金句选择弹窗由 ModalPhrase 独立处理
         const modals = [
-            { btn: 'settingsButton', modal: 'settingsModal', close: 'closeSettings' },
-            { btn: 'changelogButton', modal: 'changelogModal', close: 'closeChangelog' },
-            { btn: 'announcementButton', modal: 'announcementModal', close: 'closeAnnouncement' },
-            { btn: 'lostAndFoundButton', modal: 'lostAndFoundModal', close: 'closeLostAndFound' },
-            { btn: 'notificationButton', modal: 'notificationModal', close: 'closeNotification' }
+            {
+                btn: 'settingsButton',
+                modal: 'settingsModal',
+                close: 'closeSettings'
+            },
+            {
+                btn: 'changelogButton',
+                modal: 'changelogModal',
+                close: 'closeChangelog'
+            },
+            {
+                btn: 'announcementButton',
+                modal: 'announcementModal',
+                close: 'closeAnnouncement'
+            },
+            {
+                btn: 'lostAndFoundButton',
+                modal: 'lostAndFoundModal',
+                close: 'closeLostAndFound'
+            },
+            {
+                btn: 'notificationButton',
+                modal: 'notificationModal',
+                close: 'closeNotification'
+            }
         ];
 
         modals.forEach(({ btn, modal, close }) => {
@@ -51,7 +72,6 @@ window.App.ModalCore = {
             });
         });
 
-        // 为当前页面中所有符合条件的模态框添加自动关闭控件
         document.querySelectorAll('.settings-modal').forEach(modal => {
             this.setupAutoClose(modal);
         });
@@ -61,15 +81,12 @@ window.App.ModalCore = {
     },
 
     /**
-     * 判断模态框是否需要显示自动关闭功能。
-     *
      * 默认排除：
      * 1. 设置模态框
      * 2. 金句选择模态框
      *
      * 后续新增的 .settings-modal 会自动启用。
-     * 如果某个新模态框不需要此功能，可添加：
-     * data-auto-close="false"
+     * 如需排除，可添加 data-auto-close="false"。
      */
     shouldEnableAutoClose(modal) {
         if (!modal) return false;
@@ -106,8 +123,13 @@ window.App.ModalCore = {
                 <span class="modal-auto-close-text">自动关闭</span>
             </button>
 
-            <div class="modal-auto-close-panel" role="dialog" aria-label="自动关闭设置">
+            <div
+                class="modal-auto-close-panel"
+                role="dialog"
+                aria-label="自动关闭设置"
+            >
                 <div class="modal-auto-close-panel-title">自动关闭</div>
+
                 <div class="modal-auto-close-panel-description">
                     设置倒计时，时间结束后自动关闭此窗口
                 </div>
@@ -156,7 +178,6 @@ window.App.ModalCore = {
             </div>
         `;
 
-        // 放在标题和关闭/最大化按钮之间
         const lastHeaderItem = header.lastElementChild;
 
         if (lastHeaderItem) {
@@ -165,17 +186,30 @@ window.App.ModalCore = {
             header.appendChild(control);
         }
 
-        const trigger = control.querySelector('.modal-auto-close-trigger');
-        const panel = control.querySelector('.modal-auto-close-panel');
-        const input = control.querySelector('.modal-auto-close-input');
-        const unit = control.querySelector('.modal-auto-close-unit');
-        const startButton = control.querySelector('.modal-auto-close-start');
-        const cancelButton = control.querySelector('.modal-auto-close-cancel');
+        const trigger = control.querySelector(
+            '.modal-auto-close-trigger'
+        );
+        const panel = control.querySelector(
+            '.modal-auto-close-panel'
+        );
+        const input = control.querySelector(
+            '.modal-auto-close-input'
+        );
+        const unit = control.querySelector(
+            '.modal-auto-close-unit'
+        );
+        const startButton = control.querySelector(
+            '.modal-auto-close-start'
+        );
+        const cancelButton = control.querySelector(
+            '.modal-auto-close-cancel'
+        );
 
         trigger.addEventListener('click', event => {
             event.stopPropagation();
 
             const willOpen = !panel.classList.contains('is-open');
+
             this.closeAllAutoClosePanels();
 
             if (willOpen) {
@@ -208,7 +242,8 @@ window.App.ModalCore = {
             input.classList.remove('has-error');
         });
 
-        control.querySelectorAll('.modal-auto-close-presets button')
+        control
+            .querySelectorAll('.modal-auto-close-presets button')
             .forEach(button => {
                 button.addEventListener('click', () => {
                     const seconds = Number(button.dataset.seconds);
@@ -232,8 +267,12 @@ window.App.ModalCore = {
         const control = modal.querySelector('.modal-auto-close');
         if (!control) return;
 
-        const input = control.querySelector('.modal-auto-close-input');
-        const unit = control.querySelector('.modal-auto-close-unit');
+        const input = control.querySelector(
+            '.modal-auto-close-input'
+        );
+        const unit = control.querySelector(
+            '.modal-auto-close-unit'
+        );
 
         const amount = Number(input.value);
         const multiplier = Number(unit.value);
@@ -248,6 +287,8 @@ window.App.ModalCore = {
             return;
         }
 
+        input.classList.remove('has-error');
+
         // 最长允许设置为 24 小时
         const seconds = Math.min(
             24 * 60 * 60,
@@ -258,18 +299,28 @@ window.App.ModalCore = {
     },
 
     startAutoClose(modal, seconds) {
-        if (!modal || seconds <= 0) return;
+        if (
+            !modal ||
+            !Number.isFinite(seconds) ||
+            seconds <= 0
+        ) {
+            return;
+        }
 
         this.stopAutoClose(modal);
 
-        const endTime = Date.now() + seconds * 1000;
-
         const state = {
-            endTime,
+            endTime: Date.now() + seconds * 1000,
             intervalId: null
         };
 
         const update = () => {
+            // 如果模态框已经被其他模块关闭，立即停止计时
+            if (!modal.classList.contains('active')) {
+                this.stopAutoClose(modal);
+                return;
+            }
+
             const remaining = Math.max(
                 0,
                 Math.ceil((state.endTime - Date.now()) / 1000)
@@ -287,7 +338,10 @@ window.App.ModalCore = {
         state.intervalId = window.setInterval(update, 250);
         this.timers.set(modal, state);
 
-        modal.classList.add('auto-close-running');
+        if (!modal.classList.contains('auto-close-running')) {
+            modal.classList.add('auto-close-running');
+        }
+
         this.closeAutoClosePanel(modal);
         update();
     },
@@ -297,12 +351,22 @@ window.App.ModalCore = {
 
         const state = this.timers.get(modal);
 
-        if (state?.intervalId) {
+        if (state?.intervalId !== null) {
             window.clearInterval(state.intervalId);
         }
 
-        this.timers.delete(modal);
-        modal.classList.remove('auto-close-running');
+        if (state) {
+            this.timers.delete(modal);
+        }
+
+        /*
+         * 必须先判断类名是否存在。
+         * 避免 MutationObserver 因重复写入 class 而无限触发。
+         */
+        if (modal.classList.contains('auto-close-running')) {
+            modal.classList.remove('auto-close-running');
+        }
+
         this.updateAutoCloseUI(modal);
     },
 
@@ -310,10 +374,18 @@ window.App.ModalCore = {
         const control = modal?.querySelector('.modal-auto-close');
         if (!control) return;
 
-        const trigger = control.querySelector('.modal-auto-close-trigger');
-        const text = control.querySelector('.modal-auto-close-text');
-        const startButton = control.querySelector('.modal-auto-close-start');
-        const cancelButton = control.querySelector('.modal-auto-close-cancel');
+        const trigger = control.querySelector(
+            '.modal-auto-close-trigger'
+        );
+        const text = control.querySelector(
+            '.modal-auto-close-text'
+        );
+        const startButton = control.querySelector(
+            '.modal-auto-close-start'
+        );
+        const cancelButton = control.querySelector(
+            '.modal-auto-close-cancel'
+        );
 
         const isRunning =
             this.timers.has(modal) &&
@@ -323,19 +395,31 @@ window.App.ModalCore = {
         cancelButton.classList.toggle('is-visible', isRunning);
 
         if (isRunning) {
-            text.textContent = this.formatDuration(remainingSeconds);
+            const duration = this.formatDuration(remainingSeconds);
+
+            text.textContent = duration;
             startButton.textContent = '重新计时';
-            trigger.title =
-                `将在 ${this.formatDuration(remainingSeconds)} 后自动关闭`;
+            trigger.title = `将在 ${duration} 后自动关闭`;
+            trigger.setAttribute(
+                'aria-label',
+                `将在 ${duration} 后自动关闭，点击修改`
+            );
         } else {
             text.textContent = '自动关闭';
             startButton.textContent = '开始计时';
             trigger.title = '设置自动关闭倒计时';
+            trigger.setAttribute(
+                'aria-label',
+                '设置自动关闭倒计时'
+            );
         }
     },
 
     formatDuration(totalSeconds) {
-        const seconds = Math.max(0, Math.floor(totalSeconds));
+        const seconds = Math.max(
+            0,
+            Math.floor(totalSeconds)
+        );
         const hours = Math.floor(seconds / 3600);
         const minutes = Math.floor((seconds % 3600) / 60);
         const remainder = seconds % 60;
@@ -355,27 +439,27 @@ window.App.ModalCore = {
     },
 
     requestAutomaticClose(modal) {
-        const autoCloseEvent = new CustomEvent('modal:auto-close', {
-            bubbles: true,
-            cancelable: true,
-            detail: {
-                modalId: modal.id || null
-            }
-        });
+        if (!modal) return;
 
-        // 允许后续模块通过 preventDefault() 阻止自动关闭
+        const autoCloseEvent = new CustomEvent(
+            'modal:auto-close',
+            {
+                bubbles: true,
+                cancelable: true,
+                detail: {
+                    modalId: modal.id || null
+                }
+            }
+        );
+
+        // 其他模块可以通过 preventDefault() 阻止自动关闭
         if (!modal.dispatchEvent(autoCloseEvent)) return;
 
-        const closeButton = modal.querySelector('.close-btn');
-
-        if (closeButton) {
-            closeButton.click();
-        }
-
-        // 新模态框即使没有绑定关闭按钮，也能正常关闭
-        if (modal.classList.contains('active')) {
-            this.closeModal(modal);
-        }
+        /*
+         * 直接关闭模态框。
+         * 不再调用 closeButton.click()，避免再次触发关闭事件。
+         */
+        this.closeModal(modal);
     },
 
     closeModal(modal) {
@@ -385,12 +469,24 @@ window.App.ModalCore = {
 
         if (!modal) return;
 
-        this.stopAutoClose(modal);
-        this.closeAutoClosePanel(modal);
-        modal.classList.remove('active');
+        // 防止其他事件处理器同步重复调用关闭逻辑
+        if (this.closingModals.has(modal)) return;
 
-        if (modal.id) {
-            this.resetFullscreen(modal.id);
+        this.closingModals.add(modal);
+
+        try {
+            this.stopAutoClose(modal);
+            this.closeAutoClosePanel(modal);
+
+            if (modal.classList.contains('active')) {
+                modal.classList.remove('active');
+            }
+
+            if (modal.id) {
+                this.resetFullscreen(modal.id);
+            }
+        } finally {
+            this.closingModals.delete(modal);
         }
     },
 
@@ -398,13 +494,18 @@ window.App.ModalCore = {
         const control = modal?.querySelector('.modal-auto-close');
         if (!control) return;
 
-        control
-            .querySelector('.modal-auto-close-panel')
-            ?.classList.remove('is-open');
+        const panel = control.querySelector(
+            '.modal-auto-close-panel'
+        );
+        const trigger = control.querySelector(
+            '.modal-auto-close-trigger'
+        );
 
-        control
-            .querySelector('.modal-auto-close-trigger')
-            ?.setAttribute('aria-expanded', 'false');
+        if (panel?.classList.contains('is-open')) {
+            panel.classList.remove('is-open');
+        }
+
+        trigger?.setAttribute('aria-expanded', 'false');
     },
 
     closeAllAutoClosePanels() {
@@ -447,21 +548,45 @@ window.App.ModalCore = {
                             this.setupAutoClose(node);
                         }
 
-                        node.querySelectorAll?.('.settings-modal')
+                        node
+                            .querySelectorAll?.('.settings-modal')
                             .forEach(modal => {
                                 this.setupAutoClose(modal);
                             });
                     });
+
+                    return;
                 }
 
                 if (
-                    mutation.type === 'attributes' &&
-                    mutation.target instanceof Element &&
-                    mutation.target.matches('.settings-modal') &&
-                    !mutation.target.classList.contains('active')
+                    mutation.type !== 'attributes' ||
+                    !(mutation.target instanceof Element) ||
+                    !mutation.target.matches('.settings-modal')
                 ) {
-                    this.stopAutoClose(mutation.target);
-                    this.closeAutoClosePanel(mutation.target);
+                    return;
+                }
+
+                const modal = mutation.target;
+                const oldClasses = mutation.oldValue || '';
+
+                const wasActive = oldClasses
+                    .split(/\s+/)
+                    .includes('active');
+
+                const isActive =
+                    modal.classList.contains('active');
+
+                /*
+                 * 只在 active 确实从“存在”变成“不存在”时处理。
+                 * auto-close-running 等其他类名变化不会触发关闭处理。
+                 */
+                if (wasActive && !isActive) {
+                    this.stopAutoClose(modal);
+                    this.closeAutoClosePanel(modal);
+
+                    if (modal.id) {
+                        this.resetFullscreen(modal.id);
+                    }
                 }
             });
         });
@@ -470,7 +595,8 @@ window.App.ModalCore = {
             childList: true,
             subtree: true,
             attributes: true,
-            attributeFilter: ['class']
+            attributeFilter: ['class'],
+            attributeOldValue: true
         });
     },
 
@@ -478,7 +604,9 @@ window.App.ModalCore = {
         const modal = document.getElementById(modalId);
         if (!modal) return;
 
-        modal.classList.remove('fullscreen');
+        if (modal.classList.contains('fullscreen')) {
+            modal.classList.remove('fullscreen');
+        }
 
         const maxButton = modal.querySelector('.maximize-btn');
 
@@ -537,7 +665,8 @@ window.App.ModalCore = {
                 color: #2878e8;
                 border-color: #9bc2f5;
                 background: #eef6ff;
-                box-shadow: 0 3px 10px rgba(40, 120, 232, .12);
+                box-shadow:
+                    0 3px 10px rgba(40, 120, 232, .12);
             }
 
             .modal-auto-close-trigger:active {
@@ -546,14 +675,17 @@ window.App.ModalCore = {
 
             .modal-auto-close-trigger:focus-visible {
                 border-color: #2878e8;
-                box-shadow: 0 0 0 3px rgba(40, 120, 232, .16);
+                box-shadow:
+                    0 0 0 3px rgba(40, 120, 232, .16);
             }
 
             .modal-auto-close-trigger.is-running {
                 color: #fff;
                 border-color: #2878e8;
-                background: linear-gradient(135deg, #438cf5, #216bd5);
-                box-shadow: 0 4px 12px rgba(40, 120, 232, .24);
+                background:
+                    linear-gradient(135deg, #438cf5, #216bd5);
+                box-shadow:
+                    0 4px 12px rgba(40, 120, 232, .24);
             }
 
             .modal-auto-close-icon {
@@ -563,8 +695,10 @@ window.App.ModalCore = {
                 font-size: 15px;
             }
 
-            .modal-auto-close-trigger.is-running .modal-auto-close-icon {
-                animation: modal-timer-pulse 1.4s ease-in-out infinite;
+            .modal-auto-close-trigger.is-running
+            .modal-auto-close-icon {
+                animation:
+                    modal-timer-pulse 1.4s ease-in-out infinite;
             }
 
             .modal-auto-close-text {
@@ -580,7 +714,8 @@ window.App.ModalCore = {
                 z-index: 100002;
                 width: 270px;
                 padding: 16px;
-                border: 1px solid rgba(24, 39, 58, .1);
+                border:
+                    1px solid rgba(24, 39, 58, .1);
                 border-radius: 13px;
                 background: rgba(255, 255, 255, .98);
                 box-shadow:
@@ -606,8 +741,10 @@ window.App.ModalCore = {
                 right: 25px;
                 width: 11px;
                 height: 11px;
-                border-top: 1px solid rgba(24, 39, 58, .1);
-                border-left: 1px solid rgba(24, 39, 58, .1);
+                border-top:
+                    1px solid rgba(24, 39, 58, .1);
+                border-left:
+                    1px solid rgba(24, 39, 58, .1);
                 background: #fff;
                 transform: rotate(45deg);
             }
@@ -638,7 +775,8 @@ window.App.ModalCore = {
 
             .modal-auto-close-input-row {
                 display: grid;
-                grid-template-columns: minmax(0, 1fr) 86px;
+                grid-template-columns:
+                    minmax(0, 1fr) 86px;
                 gap: 8px;
             }
 
@@ -663,12 +801,14 @@ window.App.ModalCore = {
             .modal-auto-close-input:focus,
             .modal-auto-close-unit:focus {
                 border-color: #438cf5;
-                box-shadow: 0 0 0 3px rgba(67, 140, 245, .14);
+                box-shadow:
+                    0 0 0 3px rgba(67, 140, 245, .14);
             }
 
             .modal-auto-close-input.has-error {
                 border-color: #ef5350;
-                box-shadow: 0 0 0 3px rgba(239, 83, 80, .13);
+                box-shadow:
+                    0 0 0 3px rgba(239, 83, 80, .13);
             }
 
             .modal-auto-close-unit {
@@ -745,18 +885,22 @@ window.App.ModalCore = {
 
             .modal-auto-close-start {
                 border: 1px solid #2878e8;
-                background: linear-gradient(135deg, #438cf5, #216bd5);
+                background:
+                    linear-gradient(135deg, #438cf5, #216bd5);
                 color: #fff;
-                box-shadow: 0 3px 8px rgba(40, 120, 232, .2);
+                box-shadow:
+                    0 3px 8px rgba(40, 120, 232, .2);
             }
 
             .modal-auto-close-start:hover {
                 border-color: #1f67c9;
-                background: linear-gradient(135deg, #3883ee, #195fc5);
+                background:
+                    linear-gradient(135deg, #3883ee, #195fc5);
             }
 
             @keyframes modal-timer-pulse {
-                0%, 100% {
+                0%,
+                100% {
                     opacity: 1;
                     transform: scale(1);
                 }
