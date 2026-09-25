@@ -9,16 +9,9 @@ window.App.Store = {
 
     defaults: {
         settings: {
-            goldenSwitch: true,
-            imageSwitch: true,
-            apiProbability: 50,
-            intervalDuration: 15000,
-            clickRefreshSwitch: false,
-            animationSwitch: true,
-            autoRefreshSwitch: false,
-            lostAndFoundFontSize: 28,
-            notificationFontSize: 16,
-            temporaryTimetable: null
+            autoRefresh: true,
+            showWeather: true,
+            showDailyImage: true
         },
         timetable: {},
         schedule: {},
@@ -28,8 +21,20 @@ window.App.Store = {
         notifications: [],
         seatmap: {
             columns: 12,
-            rows: 8,
-            blocks: []
+            rows: 6,
+            blocks: [
+                { id: 'seat-1', type: 'person', name: '张三' },
+                { id: 'seat-2', type: 'person', name: '李四' },
+                { id: 'aisle-1', type: 'aisle' },
+                { id: 'seat-3', type: 'person', name: '王五' },
+                { id: 'seat-4', type: 'person', name: '赵六' },
+                { id: 'seat-5', type: 'person', name: '陈同学' },
+                { id: 'seat-6', type: 'person', name: '刘同学' },
+                { id: 'aisle-2', type: 'aisle' },
+                { id: 'seat-7', type: 'person', name: '周同学' },
+                { id: 'seat-8', type: 'person', name: '吴同学' },
+                { id: 'podium-1', type: 'podium', name: '讲台' }
+            ]
         }
     },
 
@@ -66,12 +71,14 @@ window.App.Store = {
     async _detectPort() {
         for (let port = 17632; port <= 17641; port++) {
             const ok = await this._probe(port);
+
             if (ok) {
                 this.baseUrl = `http://127.0.0.1:${port}`;
                 this.available = true;
                 return;
             }
         }
+
         this.baseUrl = null;
         this.available = false;
     },
@@ -87,9 +94,19 @@ window.App.Store = {
             })
                 .then(res => {
                     clearTimeout(timer);
-                    if (!res.ok) { resolve(false); return; }
+
+                    if (!res.ok) {
+                        resolve(false);
+                        return;
+                    }
+
                     res.json()
-                        .then(data => resolve(data && data.service === 'class-local-data'))
+                        .then(data => {
+                            resolve(
+                                data &&
+                                data.service === 'class-local-data'
+                            );
+                        })
                         .catch(() => resolve(false));
                 })
                 .catch(() => {
@@ -112,7 +129,10 @@ window.App.Store = {
         ];
 
         for (const name of names) {
-            this.cache[name] = await this._load(name, this.defaults[name]);
+            this.cache[name] = await this._load(
+                name,
+                this.defaults[name]
+            );
         }
     },
 
@@ -122,12 +142,20 @@ window.App.Store = {
         if (!this.available) return safeDefault;
 
         try {
-            const res = await fetch(`${this.baseUrl}/api/data/${name}`, { cache: 'no-store' });
+            const res = await fetch(
+                `${this.baseUrl}/api/data/${name}`,
+                { cache: 'no-store' }
+            );
 
             if (res.ok) {
                 const data = await res.json();
 
-                if (name === 'settings' && data && typeof data === 'object' && !Array.isArray(data)) {
+                if (
+                    name === 'settings' &&
+                    data &&
+                    typeof data === 'object' &&
+                    !Array.isArray(data)
+                ) {
                     return Object.assign({}, safeDefault, data);
                 }
 
@@ -159,14 +187,19 @@ window.App.Store = {
     },
 
     getSetting(key) {
-        const settings = this.cache.settings || this.defaults.settings;
+        const settings =
+            this.cache.settings || this.defaults.settings;
+
         return settings[key];
     },
 
     setSetting(key, value) {
         if (!this.cache.settings) {
-            this.cache.settings = this._clone(this.defaults.settings);
+            this.cache.settings = this._clone(
+                this.defaults.settings
+            );
         }
+
         this.cache.settings[key] = value;
         this._scheduleWrite('settings');
     },
@@ -174,7 +207,9 @@ window.App.Store = {
     _scheduleWrite(name) {
         if (!this.available) return;
 
-        if (this.writeTimers[name]) clearTimeout(this.writeTimers[name]);
+        if (this.writeTimers[name]) {
+            clearTimeout(this.writeTimers[name]);
+        }
 
         this.writeTimers[name] = setTimeout(() => {
             this._writeNow(name, this.cache[name]);
@@ -187,7 +222,9 @@ window.App.Store = {
 
         return fetch(`${this.baseUrl}/api/data/${name}`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json'
+            },
             body: JSON.stringify(value)
         }).catch(err => {
             console.warn(`[Store] 保存 ${name} 失败:`, err);
@@ -207,8 +244,11 @@ window.App.Store = {
     },
 
     _clone(value) {
-        try { return JSON.parse(JSON.stringify(value)); }
-        catch (e) { return value; }
+        try {
+            return JSON.parse(JSON.stringify(value));
+        } catch (e) {
+            return value;
+        }
     },
 
     _updateBanner() {
@@ -221,7 +261,8 @@ window.App.Store = {
         }
 
         banner.style.display = 'block';
-        banner.textContent = '本地服务未启动（D 盘 LocalDataServer.exe），修改不会被保存';
+        banner.textContent =
+            '本地服务未启动（D 盘 LocalDataServer.exe），修改不会被保存';
 
         setTimeout(() => {
             banner.style.opacity = '0';
@@ -230,5 +271,10 @@ window.App.Store = {
     }
 };
 
-window.addEventListener('pagehide', () => window.App.Store.flush());
-window.addEventListener('beforeunload', () => window.App.Store.flush());
+window.addEventListener('pagehide', () => {
+    window.App.Store.flush();
+});
+
+window.addEventListener('beforeunload', () => {
+    window.App.Store.flush();
+});

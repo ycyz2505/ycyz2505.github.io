@@ -117,15 +117,18 @@ window.App.GoldenPhrase = {
     },
 
     showLocal() {
+        // ★ 从本地存储读取金句库
         const data = (window.App.Store && window.App.Store.get('phrases'))
                   || window.localPhrases
                   || { high: [], medium: [], low: [] };
 
         const toArray = value => (Array.isArray(value) ? value : []);
+        const onlyOriginal = document.getElementById('originalSwitch')?.checked || false;
+        const filter = list => (onlyOriginal ? list.filter(p => String(p).trim().endsWith('🌟')) : list);
 
-        const high = toArray(data.high);
-        const medium = toArray(data.medium);
-        const low = toArray(data.low);
+        const high = filter(toArray(data.high));
+        const medium = filter(toArray(data.medium));
+        const low = filter(toArray(data.low));
         const all = [...high, ...medium, ...low];
 
         if (!all.length) return this.updateDisplay('🎯 没有找到金句');
@@ -138,17 +141,20 @@ window.App.GoldenPhrase = {
         };
 
         let selected;
-        const pools = [];
-        if (high.length) pools.push({ list: high, weight: 45 });
-        if (medium.length) pools.push({ list: medium, weight: 35 });
-        if (low.length) pools.push({ list: low, weight: 20 });
 
-        const total = pools.reduce((sum, pool) => sum + pool.weight, 0);
-        let random = Math.random() * total;
+        if (!onlyOriginal) {
+            const pools = [];
+            if (high.length) pools.push({ list: high, weight: 45 });
+            if (medium.length) pools.push({ list: medium, weight: 35 });
+            if (low.length) pools.push({ list: low, weight: 20 });
 
-        for (const pool of pools) {
-            if (random < pool.weight) { selected = pick(pool.list); break; }
-            random -= pool.weight;
+            const total = pools.reduce((sum, pool) => sum + pool.weight, 0);
+            let random = Math.random() * total;
+
+            for (const pool of pools) {
+                if (random < pool.weight) { selected = pick(pool.list); break; }
+                random -= pool.weight;
+            }
         }
 
         if (!selected) {

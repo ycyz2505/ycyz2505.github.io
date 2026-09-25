@@ -6,18 +6,12 @@ window.App.AutoRefresh = {
         if (!switchBtn) return;
 
         switchBtn.addEventListener('change', e => {
-            if (window.App.Store) {
-                window.App.Store.setSetting('autoRefreshSwitch', e.target.checked);
-            }
+            if (window.App.Store) window.App.Store.setSetting('autoRefreshSwitch', e.target.checked);
             e.target.checked ? this.start() : this.stop();
         });
 
-        // 以 Store 为准：Store 已初始化，getSetting 返回磁盘上的值
-        const enabled = window.App.Store
-            ? window.App.Store.getSetting('autoRefreshSwitch') === true
-            : switchBtn.checked;
-
-        if (enabled) this.start();
+        // DOM 里的 checked 已在 modal_settings.applyFromStore 里被同步过
+        if (switchBtn.checked) this.start();
     },
 
     start() {
