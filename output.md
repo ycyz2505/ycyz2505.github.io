@@ -181,448 +181,7 @@ input:checked~.switch-text{color:#4CAF50}
 
 ```
 
-## 2 `index.html`
-```html
-<!DOCTYPE html>
-<html>
-<head>
-    <title>高二（22）班 | 高考必胜</title>
-    <meta charset="utf-8">
-    <link rel="stylesheet" href="css/style.css">
-</head>
-<body>
-    <div id="serviceBanner" style="
-        position:fixed;top:10px;right:10px;z-index:99999;display:none;
-        background:#ff9800;color:#fff;padding:6px 14px;border-radius:4px;
-        font-size:12px;box-shadow:0 2px 8px rgba(0,0,0,.2);">
-        本地服务未启动，数据将不会被保存
-    </div>
-
-    <div id="pageContent" style="display:none;">
-        <header>
-            <nav class="navbar">
-                <div class="brand">杨村一中&nbsp;高二（22）班</div>
-            </nav>
-        </header>
-
-        <div id="currentDateTime">
-            <div class="time-section"></div>
-            <div class="date-section"></div>
-        </div>
-
-        <div id="scheduleContainer" class="schedule-container">
-            <div class="schedule-item">
-                <span class="schedule-title">天气：</span>
-                <span class="schedule-value" id="weatherInfo">加载中...</span>
-            </div>
-            <div class="schedule-item">
-                <span class="schedule-title">当前：</span>
-                <span class="schedule-value" id="currentSchedule">加载中...</span>
-            </div>
-            <div class="schedule-item">
-                <span class="schedule-title">下节课：</span>
-                <span class="schedule-value" id="nextSchedule">加载中...</span>
-            </div>
-            <div class="schedule-item">
-                <span class="schedule-title" id="countdownName">倒计时：</span>
-                <span class="schedule-value" id="countdownTimer" style="font-size:28px;">--:--</span>
-            </div>
-            <div class="timetable" id="todayTimetable"></div>
-        </div>
-
-        <div class="small-title">距离2028年高考仅剩</div>
-        <div id="daysUntil" class="big-title"></div>
-
-        <div class="timeline-container">
-            <div class="timeline-progress" id="timeline">
-                <div class="end-marker">
-                    <div id="timelineEndTitle" style="white-space:nowrap;">高考日</div>
-                    <div id="timelineEndDate" style="font-size:.9em;margin-top:3px">6月7日</div>
-                </div>
-            </div>
-        </div>
-
-        <div id="goldenPhrase"></div>
-
-        <div class="right-image-container">
-            <img id="apiImage" src="" alt="每日60s">
-        </div>
-
-        <div class="action-buttons">
-            <button id="settingsButton" class="action-button">⚙️ 设置</button>
-            <button id="changelogButton" class="action-button">📝 更新日志</button>
-            <button id="announcementButton" class="action-button">📢 公告</button>
-            <button id="phraseSelectButton" class="action-button">📜 选择金句</button>
-            <button id="lostAndFoundButton" class="action-button">🔍 寻物</button>
-            <button id="notificationButton" class="action-button">🔔 通知</button>
-        </div>
-
-        <!-- 设置模态框 -->
-        <div class="settings-modal" id="settingsModal">
-            <div class="settings-content">
-                <div class="settings-header">
-                    <h3>设置</h3>
-                    <span class="close-btn" id="closeSettings">&times;</span>
-                </div>
-
-                <div class="settings-body">
-                    <div class="switch-container">
-                        <label class="switch">
-                            <span class="switch-text">金句自动轮播</span>
-                            <input type="checkbox" id="goldenSwitch" checked>
-                            <span class="slider"></span>
-                        </label>
-
-                        <label class="switch">
-                            <span class="switch-text">显示每日60s</span>
-                            <input type="checkbox" id="imageSwitch" checked>
-                            <span class="slider"></span>
-                        </label>
-
-                        <div class="probability-control">
-                            <span class="switch-text">联网获取金句的概率(%)</span>
-                            <div class="range-group">
-                                <input type="range" id="apiProbability" min="0" max="100" value="50">
-                                <input type="number" id="apiProbabilityValue" min="0" max="100" value="50">
-                                <button class="reset-btn" onclick="resetProbability()">重置</button>
-                            </div>
-                        </div>
-
-                        <div class="probability-control">
-                            <span class="switch-text">金句轮播时间间隔（秒）</span>
-                            <div class="range-group">
-                                <input type="range" id="intervalSlider" min="1" max="60" value="15">
-                                <input type="number" id="intervalValue" min="1" max="60" value="15">
-                                <button class="reset-btn" onclick="resetInterval()">重置</button>
-                            </div>
-                        </div>
-
-                        <label class="switch">
-                            <span class="switch-text">启用点击刷新金句</span>
-                            <input type="checkbox" id="clickRefreshSwitch">
-                            <span class="slider"></span>
-                        </label>
-
-                        <label class="switch">
-                            <span class="switch-text">开启金句动画效果</span>
-                            <input type="checkbox" id="animationSwitch" checked>
-                            <span class="slider"></span>
-                        </label>
-
-                        <label class="switch">
-                            <span class="switch-text">自动刷新页面</span>
-                            <input type="checkbox" id="autoRefreshSwitch">
-                            <span class="slider"></span>
-                        </label>
-                    </div>
-
-                    <!-- 今日课表临时编辑 -->
-                    <section class="timetable-editor" id="temporaryTimetablePanel">
-                        <div class="timetable-editor-header">
-                            <h4 class="timetable-editor-title">今日课表临时编辑</h4>
-                            <span class="timetable-editor-meta" id="temporaryTimetableDate">加载中...</span>
-                        </div>
-
-                        <p class="timetable-editor-note">
-                            修改只在今天生效，第二天会自动恢复原始课表。
-                        </p>
-
-                        <div class="timetable-editor-grid" id="temporaryTimetableEditor"></div>
-
-                        <div class="timetable-editor-actions">
-                            <div class="timetable-editor-buttons">
-                                <button type="button" class="timetable-save-btn" id="saveTemporaryTimetable">
-                                    保存今日课表
-                                </button>
-                                <button type="button" class="timetable-reset-btn" id="resetTemporaryTimetable">
-                                    恢复原始课表
-                                </button>
-                            </div>
-                            <span class="timetable-editor-status" id="temporaryTimetableStatus"></span>
-                        </div>
-                    </section>
-                </div>
-            </div>
-        </div>
-
-        <!-- 更新日志模态框 -->
-        <div class="settings-modal" id="changelogModal">
-            <div class="settings-content">
-                <div class="settings-header">
-                    <h3>更新日志</h3>
-                    <span class="close-btn" id="closeChangelog">&times;</span>
-                </div>
-                <div class="text-content" id="changelogContent">
-                    本网站是网站作者在初中时做的，稍微改了下就搬过来了。因为整体重构过，所以有一些 bug，且功能不完善的问题。
-
-                    待添加的新功能：自定义倒计时（不只是高考倒计时，如一月考倒计时、期末倒计时等）、智能的座位表（支持快捷搜索等）、老虎机（随机抽人）、方便地统计需要讲的题目（课前统计好，课上老师直接讲）、数据本地存储（目的是增加普适性，让所有班级都能用上这个网站，而不是仅 22 班）等。欢迎提建议。
-
-                    2026.9.24
-                    1. 修复天气无法获取的 bug；
-                    2. 更新课表与作息表；
-                    3. 实现数据本地存储，新增运行在本地的 LocalDataServer.exe 用于启动本地 http 服务以实现网页直接读写本地磁盘；
-                    4. 大幅精简现有代码，长度缩小 40%，提升运行效率；
-                    5. 修复每次打开网页默认显示每日 60s 的 bug；
-                    6. 修复周六课表无课时“下节课”不显示“无”的 bug；
-                    7. 新增课表临时修改功能；
-                </div>
-            </div>
-        </div>
-
-        <!-- 公告板模态框 -->
-        <div class="settings-modal" id="announcementModal">
-            <div class="settings-content">
-                <div class="settings-header" style="padding-bottom:8px;">
-                    <h3 style="font-size:1.2em;">公告</h3>
-                    <div style="display:flex;align-items:center;">
-                        <span class="maximize-btn" id="maximizeAnnouncement">⛶</span>
-                        <span class="close-btn" id="closeAnnouncement">&times;</span>
-                    </div>
-                </div>
-
-                <div class="announcement-content">
-                    <div class="announcement-card">
-                        <div class="announcement-title">📢 倒计时网站征稿活动</div>
-                        <div class="announcement-time">2026.9.26</div>
-                        <div class="announcement-body">
-                            22 班电子班牌底部金句轮播内容开始征稿了！投稿的作品可以放在网站上轮播展示。
-                            <ul>
-                                <li><strong>参与条件：</strong>拥有一个鼻子两只眼睛一个嘴巴</li>
-                                <li><strong>时间：</strong>即日起至野生狗奶过期</li>
-                                <li><strong>征稿内容：</strong>包括但不限于<strong>励志文字</strong>、<strong>优美作文素材</strong>、<strong>诗歌（含现代诗）</strong>或<strong>整活</strong>等，既可以原创，也可以投现有的，但是要<strong>标明出处</strong>，若是原创句子可选择展示时是否显示署名
-                                <li>展示概率：</li>励志文字 ≈ 优美作文素材 ≈ 诗歌 > 整活，可根据具体情况调整，特别地，若原创句子写的<strong>过于精妙</strong>，可以<strong>提高展示概率</strong>）</li>
-                                <li><strong>字数要求：</strong>1~80字（包含标点）</li>
-                                <li><strong>提交方式：</strong>找 tqc</li>
-                            </ul>
-                            <p class="announcement-footnote">只要句子不是违规内容一般来者不拒，最终解释权归 tqc 所有</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- 金句选择模态框 -->
-        <div class="settings-modal" id="phraseModal">
-            <div class="settings-content">
-                <div class="settings-header">
-                    <h3>选择金句</h3>
-                    <span class="close-btn" id="closePhrase">&times;</span>
-                </div>
-                <div class="text-content" id="phraseList"></div>
-            </div>
-        </div>
-
-        <!-- 寻物模态框 -->
-        <div class="settings-modal" id="lostAndFoundModal">
-            <div class="settings-content">
-                <div class="settings-header">
-                    <h3>寻物</h3>
-                    <div style="display:flex;align-items:center;">
-                        <span class="maximize-btn" id="maximizeLostAndFound">⛶</span>
-                        <span class="close-btn" id="closeLostAndFound">&times;</span>
-                    </div>
-                </div>
-
-                <div class="notification-container" style="display:flex;flex-direction:column;height:100%;">
-                    <div class="big-title" style="
-                        background:linear-gradient(135deg,#FF0000 0%,#FF6B00 25%,#FFD700 50%,#FF6B00 75%,#FF0000 100%);
-                        -webkit-background-clip:text;
-                        background-clip:text;
-                        -webkit-text-fill-color:transparent;
-                        background-size:200% 200%;
-                        animation:gradient-pulse 4s ease infinite;
-                        text-shadow:2px 2px 4px rgba(0,0,0,.3),0 0 10px rgba(255,107,0,.5);
-                        font-size:120px;
-                        font-family:STXingkai,cursive;
-                        letter-spacing:4px;
-                        width:100%;
-                        text-align:center;
-                        margin:-8px 0 0;
-                        padding:0;
-                        line-height:1.2;
-                    ">寻物</div>
-
-                    <div style="position:relative;flex:1;overflow:hidden;">
-                        <div class="announcement-content" id="lostAndFoundList" style="
-                            height:100%;overflow-y:auto;padding:10px;"></div>
-                        <div class="add-button" id="addLostFoundBtn">+</div>
-                    </div>
-
-                    <div class="notification-footer" style="
-                        position:sticky;
-                        bottom:0;
-                        background:white;
-                        z-index:10;
-                        padding:10px 15px;
-                        border-top:1px solid #eee;">
-                        <div class="font-size-control">
-                            <span class="font-size-label">字体大小:</span>
-                            <input type="range" id="lostAndFoundFontSizeSlider" min="12" max="120" value="28">
-                            <input type="number" id="lostAndFoundFontSizeValue" min="12" max="120" value="28">
-                            <span>px</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- 通知模态框 -->
-        <div class="settings-modal" id="notificationModal">
-            <div class="settings-content">
-                <div class="settings-header">
-                    <h3>通知</h3>
-                    <div style="display:flex;align-items:center;">
-                        <span class="maximize-btn" id="maximizeNotification">⛶</span>
-                        <span class="close-btn" id="closeNotification">&times;</span>
-                    </div>
-                </div>
-
-                <div class="notification-container">
-                    <div id="notificationContent">
-                        <div class="empty-notification">暂无通知，点击下方按钮添加</div>
-                    </div>
-
-                    <div class="notification-footer">
-                        <button class="add-notification-btn" id="addNotificationBtn">+ 添加通知</button>
-                        <div class="font-size-control">
-                            <span class="font-size-label">字体大小:</span>
-                            <input type="range" id="fontSizeSlider" min="12" max="120" value="16">
-                            <input type="number" id="fontSizeValue" min="12" max="120" value="16">
-                            <span>px</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script src="js/data/solarterms.js"></script>
-    <script src="js/data/timetable.js"></script>
-    <script src="js/data/schedule.js"></script>
-    <script src="js/data/phrases.js"></script>
-
-    <script src="js/features/00_state.js"></script>
-    <script src="js/features/01_utils.js"></script>
-    <script src="js/features/store.js"></script>
-
-    <script src="js/features/clock.js"></script>
-    <script src="js/features/weather.js"></script>
-    <script src="js/features/daily_image.js"></script>
-    <script src="js/features/timeline.js"></script>
-    <script src="js/features/exam_countdown.js"></script>
-    <script src="js/features/school_schedule.js"></script>
-    <script src="js/features/golden_phrase.js"></script>
-    <script src="js/features/auto_refresh.js"></script>
-
-    <script src="js/features/modal_core.js"></script>
-    <script src="js/features/modal_settings.js"></script>
-    <script src="js/features/modal_timetable.js"></script>
-    <script src="js/features/modal_lost_found.js"></script>
-    <script src="js/features/modal_notification.js"></script>
-    <script src="js/features/modal_phrase.js"></script>
-
-    <script>
-        (function () {
-            const targetWidth = 1920;
-
-            function resize() {
-                const currentWidth =
-                    document.documentElement.clientWidth ||
-                    document.body.clientWidth;
-
-                const scale = currentWidth / targetWidth;
-                const pageContent = document.getElementById('pageContent');
-
-                if (!pageContent) return;
-
-                pageContent.style.zoom = scale;
-                pageContent.style.width = targetWidth + 'px';
-                pageContent.style.height = '1080px';
-                pageContent.style.position = 'relative';
-                pageContent.style.overflow = 'hidden';
-                document.body.style.overflowX = 'hidden';
-            }
-
-            resize();
-            window.addEventListener('resize', resize);
-        })();
-    </script>
-
-    <script src="js/features/main.js"></script>
-</body>
-</html>
-
-```
-
-## 3 `js/features/00_state.js`
-```js
-window.App = window.App || {};
-
-window.App.State = {
-    // 仅内存，不需要持久化
-    lastPhrase: null,
-
-    // ---------- 设置项：通过 App.Store 持久化 ----------
-    get intervalDuration() {
-        if (window.App.Store) return window.App.Store.getSetting('intervalDuration');
-        return 15000;
-    },
-    set intervalDuration(v) {
-        if (window.App.Store) window.App.Store.setSetting('intervalDuration', v);
-    },
-
-    get apiProbability() {
-        if (window.App.Store) return window.App.Store.getSetting('apiProbability');
-        return 50;
-    },
-    set apiProbability(v) {
-        if (window.App.Store) window.App.Store.setSetting('apiProbability', v);
-    },
-
-    get lostAndFoundFontSize() {
-        if (window.App.Store) return window.App.Store.getSetting('lostAndFoundFontSize');
-        return 28;
-    },
-    set lostAndFoundFontSize(v) {
-        if (window.App.Store) window.App.Store.setSetting('lostAndFoundFontSize', v);
-    },
-
-    // ---------- 通知列表 ----------
-    get notifications() {
-        if (window.App.Store) return window.App.Store.get('notifications') || [];
-        return this._fallbackNotifications || (this._fallbackNotifications = []);
-    },
-    set notifications(v) {
-        if (window.App.Store) window.App.Store.set('notifications', v);
-        else this._fallbackNotifications = v;
-    }
-};
-
-window.App.Timers = {
-    phrase: null,
-    weather: null,
-    refresh: null,
-    image: null,
-    schoolSchedule: null
-};
-
-```
-
-## 4 `js/features/01_utils.js`
-```js
-window.App.Utils = {
-    timeToMinutes(time) {
-        if (time instanceof Date) return time.getHours() * 60 + time.getMinutes();
-        if (time === '23:59') return 1439;
-        const [h, m] = time.split(':').map(Number);
-        return h * 60 + m;
-    }
-};
-
-
-```
-
-## 5 `js/features/main.js`
+## 2 `js/features/main.js`
 ```js
 window.onload = async function () {
     try {
@@ -693,7 +252,7 @@ window.addEventListener('unload', () => {
 
 ```
 
-## 6 `js/features/modal_core.js`
+## 3 `js/features/modal_core.js`
 ```js
 window.App.ModalCore = {
     init() {
@@ -736,292 +295,298 @@ window.App.ModalCore = {
 
 ```
 
-## 7 `js/features/store.js`
+## 4 `js/features/modal_lost_found.js`
 ```js
-// ============================================================
-// js/features/store.js
-// 本地数据存储适配层
-// 与本地 LocalDataServer.exe（127.0.0.1:17632~17641）通信
-// ============================================================
-
-window.App = window.App || {};
-
-window.App.Store = {
-    baseUrl: null,
-    available: false,
-    cache: {},
-    writeTimers: {},
-    initPromise: null,
-
-    defaults: {
-        settings: {
-            goldenSwitch: true,
-            imageSwitch: true,
-            apiProbability: 50,
-            intervalDuration: 15000,
-            clickRefreshSwitch: false,
-            animationSwitch: true,
-            autoRefreshSwitch: false,
-            lostAndFoundFontSize: 28,
-            notificationFontSize: 16,
-
-            // 今日课表临时覆盖，不修改 timetable 原始数据
-            temporaryTimetable: null
-        },
-
-        timetable: {},
-        schedule: {},
-        phrases: {},
-        solarterms: [],
-        lostfound: [],
-        notifications: []
-    },
-
+window.App.ModalLostFound = {
     init() {
-        if (this.initPromise) return this.initPromise;
-
-        this.initPromise = this._doInit();
-        return this.initPromise;
+        this.bindEvents();
+        this.initFontSizeControl();
+        this.render();
     },
 
-    async _doInit() {
-        this.defaults.timetable =
-            typeof timetable !== 'undefined' ? timetable : {};
+    render() {
+        const container = document.getElementById('lostAndFoundList');
+        if (!container) return;
 
-        this.defaults.schedule =
-            typeof schedule !== 'undefined' ? schedule : {};
+        const list = (window.App.Store && window.App.Store.get('lostfound')) || [];
+        const esc = this.escapeHTML;
 
-        this.defaults.phrases =
-            typeof localPhrases !== 'undefined' ? localPhrases : {};
+        container.innerHTML = list.map((entry, idx) => `
+            <div class="announcement-card">
+                <div class="announcement-body" style="position:relative; text-align: center; font-family: STZhongsong, serif;">
+                    <span class="editable" data-type="name" data-index="${idx}" style="color: #1E90FF;">${esc(entry.name || '')}</span>
+                    <span class="static-text">的</span>
+                    <span class="editable" data-type="item" data-index="${idx}" style="color: #1E90FF;">${esc(entry.item || '')}</span>
+                    <button class="delete-btn" data-index="${idx}">删除</button>
+                </div>
+            </div>
+        `).join('');
 
-        this.defaults.solarterms =
-            typeof solarTerms !== 'undefined' ? solarTerms : [];
-
-        await this._detectPort();
-        await this._loadAll();
-        this._updateBanner();
-
-        console.info(
-            this.available
-                ? `[Store] 本地服务已连接：${this.baseUrl}`
-                : '[Store] 本地服务未启动，运行在内存模式（修改不会被保存）'
-        );
+        // 应用当前字号
+        const size = window.App.State.lostAndFoundFontSize || 28;
+        container.style.setProperty('--laf-font-size', size + 'px');
     },
 
-    async _detectPort() {
-        for (let port = 17632; port <= 17641; port++) {
-            const ok = await this._probe(port);
+    bindEvents() {
+        const list = document.getElementById('lostAndFoundList');
+        const addBtn = document.getElementById('addLostFoundBtn');
+        if (!list) return;
 
-            if (ok) {
-                this.baseUrl = `http://127.0.0.1:${port}`;
-                this.available = true;
-                return;
+        // 行内编辑
+        list.addEventListener('click', e => {
+            const target = e.target;
+            if (!target.classList.contains('editable')) return;
+
+            const idx = Number(target.dataset.index);
+            const type = target.dataset.type;
+            const arr = window.App.Store.get('lostfound');
+            if (!arr || !arr[idx]) return;
+
+            const input = document.createElement('input');
+            input.className = 'edit-input';
+            input.value = arr[idx][type] || '';
+            input.style.width = Math.max(80, target.offsetWidth) + 'px';
+
+            input.addEventListener('input', function () {
+                this.style.width = Math.max(80, this.value.length * 20 + 30) + 'px';
+            });
+
+            input.addEventListener('blur', () => {
+                const value = input.value.trim() || (type === 'name' ? '同学' : '物品');
+                arr[idx][type] = value;
+                window.App.Store.touch('lostfound');
+                this.render();
+            });
+
+            target.style.display = 'none';
+            target.parentNode.insertBefore(input, target);
+            input.focus();
+        });
+
+        // 删除
+        list.addEventListener('click', e => {
+            if (!e.target.classList.contains('delete-btn')) return;
+            const idx = Number(e.target.dataset.index);
+            const arr = window.App.Store.get('lostfound');
+            if (!arr || !arr[idx]) return;
+
+            if (e.target.textContent === '删除') {
+                e.target.textContent = '确认删除';
+                e.target.style.background = '#d32f2f';
+            } else {
+                arr.splice(idx, 1);
+                window.App.Store.touch('lostfound');
+                this.render();
             }
-        }
+        });
 
-        this.baseUrl = null;
-        this.available = false;
-    },
-
-    _probe(port) {
-        return new Promise(resolve => {
-            const controller = new AbortController();
-            const timer = setTimeout(() => controller.abort(), 500);
-
-            fetch(`http://127.0.0.1:${port}/api/ping`, {
-                signal: controller.signal,
-                cache: 'no-store'
-            })
-                .then(res => {
-                    clearTimeout(timer);
-
-                    if (!res.ok) {
-                        resolve(false);
-                        return;
-                    }
-
-                    res.json()
-                        .then(data => {
-                            resolve(
-                                data &&
-                                data.service === 'class-local-data'
-                            );
-                        })
-                        .catch(() => resolve(false));
-                })
-                .catch(() => {
-                    clearTimeout(timer);
-                    resolve(false);
+        // 点击其它地方复位删除按钮
+        document.addEventListener('click', e => {
+            if (!e.target.classList.contains('delete-btn')) {
+                document.querySelectorAll('#lostAndFoundList .delete-btn').forEach(btn => {
+                    btn.textContent = '删除';
+                    btn.style.background = '#f44';
                 });
+            }
+        });
+
+        // 新增
+        addBtn?.addEventListener('click', () => {
+            const arr = window.App.Store.get('lostfound') || [];
+            arr.push({ name: '同学', item: '物品' });
+            window.App.Store.touch('lostfound');
+            this.render();
         });
     },
 
-    async _loadAll() {
-        const names = [
-            'settings',
-            'timetable',
-            'schedule',
-            'phrases',
-            'solarterms',
-            'lostfound',
-            'notifications'
-        ];
+    initFontSizeControl() {
+        const slider = document.getElementById('lostAndFoundFontSizeSlider');
+        const valueInput = document.getElementById('lostAndFoundFontSizeValue');
+        if (!slider || !valueInput) return;
 
-        for (const name of names) {
-            this.cache[name] = await this._load(
-                name,
-                this.defaults[name]
-            );
-        }
-    },
+        const saved = window.App.State.lostAndFoundFontSize || 28;
+        slider.value = saved;
+        valueInput.value = saved;
 
-    async _load(name, defaultValue) {
-        const safeDefault = this._clone(defaultValue);
-
-        if (!this.available) {
-            return safeDefault;
-        }
-
-        try {
-            const res = await fetch(
-                `${this.baseUrl}/api/data/${name}`,
-                { cache: 'no-store' }
-            );
-
-            if (res.ok) {
-                const data = await res.json();
-
-                if (
-                    name === 'settings' &&
-                    data &&
-                    typeof data === 'object' &&
-                    !Array.isArray(data)
-                ) {
-                    return Object.assign({}, safeDefault, data);
-                }
-
-                return data;
-            }
-
-            if (res.status === 404) {
-                await this._writeNow(name, safeDefault);
-                return safeDefault;
-            }
-        } catch (e) {
-            console.warn(`[Store] 加载 ${name} 失败:`, e);
-        }
-
-        return safeDefault;
-    },
-
-    get(name) {
-        return this.cache[name];
-    },
-
-    set(name, value) {
-        this.cache[name] = value;
-        this._scheduleWrite(name);
-    },
-
-    touch(name) {
-        this._scheduleWrite(name);
-    },
-
-    getSetting(key) {
-        const settings =
-            this.cache.settings || this.defaults.settings;
-
-        return settings[key];
-    },
-
-    setSetting(key, value) {
-        if (!this.cache.settings) {
-            this.cache.settings = this._clone(
-                this.defaults.settings
-            );
-        }
-
-        this.cache.settings[key] = value;
-        this._scheduleWrite('settings');
-    },
-
-    _scheduleWrite(name) {
-        if (!this.available) return;
-
-        if (this.writeTimers[name]) {
-            clearTimeout(this.writeTimers[name]);
-        }
-
-        this.writeTimers[name] = setTimeout(() => {
-            this._writeNow(name, this.cache[name]);
-            this.writeTimers[name] = null;
-        }, 150);
-    },
-
-    _writeNow(name, value) {
-        if (!this.available) {
-            return Promise.resolve();
-        }
-
-        return fetch(`${this.baseUrl}/api/data/${name}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(value)
-        }).catch(err => {
-            console.warn(`[Store] 保存 ${name} 失败:`, err);
+        slider.addEventListener('input', () => this.updateFontSize(parseInt(slider.value, 10)));
+        valueInput.addEventListener('input', () => {
+            let val = parseInt(valueInput.value, 10) || 28;
+            val = Math.min(120, Math.max(12, val));
+            this.updateFontSize(val);
         });
+
+        this.updateFontSize(saved);
     },
 
-    flush() {
-        if (!this.available) return;
+    updateFontSize(size) {
+        window.App.State.lostAndFoundFontSize = size;   // 通过 setter 落盘
+        const container = document.getElementById('lostAndFoundList');
+        if (container) container.style.setProperty('--laf-font-size', size + 'px');
 
-        Object.keys(this.writeTimers).forEach(name => {
-            if (this.writeTimers[name]) {
-                clearTimeout(this.writeTimers[name]);
-                this.writeTimers[name] = null;
-                this._writeNow(name, this.cache[name]);
-            }
-        });
+        const slider = document.getElementById('lostAndFoundFontSizeSlider');
+        const valueInput = document.getElementById('lostAndFoundFontSizeValue');
+        if (slider) slider.value = size;
+        if (valueInput) valueInput.value = size;
     },
 
-    _clone(value) {
-        try {
-            return JSON.parse(JSON.stringify(value));
-        } catch (e) {
-            return value;
-        }
-    },
-
-    _updateBanner() {
-        const banner = document.getElementById('serviceBanner');
-
-        if (!banner) return;
-
-        if (this.available) {
-            banner.style.display = 'none';
-            return;
-        }
-
-        banner.style.display = 'block';
-        banner.textContent =
-            '本地服务未启动（D 盘 LocalDataServer.exe），修改不会被保存';
-
-        setTimeout(() => {
-            banner.style.opacity = '0';
-            banner.style.transition = 'opacity .5s';
-        }, 4000);
+    escapeHTML(value) {
+        return String(value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
     }
 };
 
-window.addEventListener('pagehide', () => {
-    window.App.Store.flush();
-});
+```
 
-window.addEventListener('beforeunload', () => {
-    window.App.Store.flush();
-});
+## 5 `js/features/modal_notification.js`
+```js
+window.App.ModalNotification = {
+    init() {
+        this.applySavedFontSize();
+        this.bindEvents();
+        this.render();
+    },
+
+    applySavedFontSize() {
+        const content = document.getElementById('notificationContent');
+        const slider = document.getElementById('fontSizeSlider');
+        const valueInput = document.getElementById('fontSizeValue');
+        if (!content) return;
+
+        const saved = (window.App.Store && window.App.Store.getSetting('notificationFontSize')) || 16;
+        content.style.fontSize = saved + 'px';
+        if (slider) slider.value = saved;
+        if (valueInput) valueInput.value = saved;
+    },
+
+    adjustTextareaHeight(textarea) {
+        textarea.style.height = 'auto';
+        textarea.style.height = Math.max(100, textarea.scrollHeight) + 'px';
+    },
+
+    render() {
+        const content = document.getElementById('notificationContent');
+        if (!content) return;
+
+        const notifications = window.App.State.notifications || [];
+        content.innerHTML = '';
+
+        if (notifications.length === 0) {
+            content.innerHTML = '<div class="empty-notification">暂无通知，点击下方按钮添加</div>';
+            return;
+        }
+
+        const currentFontSize = content.style.fontSize || '16px';
+
+        notifications.forEach((text, index) => {
+            const item = document.createElement('div');
+            item.className = 'notification-item';
+            item.dataset.index = index;
+            item.innerHTML = text.replace(/\n/g, '<br>');
+            item.style.fontSize = currentFontSize;
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'delete-notification-btn';
+            deleteBtn.textContent = '删除';
+            deleteBtn.dataset.index = index;
+            item.appendChild(deleteBtn);
+
+            deleteBtn.addEventListener('click', e => {
+                e.stopPropagation();
+                if (e.target.textContent === '删除') {
+                    e.target.textContent = '确认删除';
+                    e.target.style.background = '#d32f2f';
+                } else {
+                    const arr = window.App.State.notifications;
+                    arr.splice(Number(e.target.dataset.index), 1);
+                    window.App.Store.touch('notifications');
+                    this.render();
+                }
+            });
+
+            item.addEventListener('click', e => {
+                if (e.target.classList.contains('delete-notification-btn')) return;
+
+                const idx = Number(item.dataset.index);
+                const textarea = document.createElement('textarea');
+                textarea.className = 'notification-editable';
+                textarea.value = window.App.State.notifications[idx];
+                textarea.style.fontSize = currentFontSize;
+
+                item.innerHTML = '';
+                item.appendChild(textarea);
+                this.adjustTextareaHeight(textarea);
+                textarea.focus();
+
+                textarea.addEventListener('input', () => this.adjustTextareaHeight(textarea));
+
+                textarea.addEventListener('keydown', evt => {
+                    if (evt.key === 'Enter' && !evt.shiftKey) {
+                        evt.preventDefault();
+                        const start = textarea.selectionStart;
+                        const end = textarea.selectionEnd;
+                        textarea.value =
+                            textarea.value.substring(0, start) + '\n' + textarea.value.substring(end);
+                        textarea.selectionStart = textarea.selectionEnd = start + 1;
+                        this.adjustTextareaHeight(textarea);
+                    }
+                });
+
+                textarea.addEventListener('blur', () => {
+                    window.App.State.notifications[idx] = textarea.value;
+                    window.App.Store.touch('notifications');
+                    this.render();
+                });
+            });
+
+            content.appendChild(item);
+        });
+    },
+
+    bindEvents() {
+        const addBtn = document.getElementById('addNotificationBtn');
+        const content = document.getElementById('notificationContent');
+        const slider = document.getElementById('fontSizeSlider');
+        const valueInput = document.getElementById('fontSizeValue');
+
+        addBtn?.addEventListener('click', () => {
+            window.App.State.notifications.push('新通知 - 点击编辑内容');
+            window.App.Store.touch('notifications');
+            this.render();
+            if (content) content.scrollTop = content.scrollHeight;
+        });
+
+        if (slider && valueInput && content) {
+            slider.addEventListener('input', () => {
+                content.style.fontSize = slider.value + 'px';
+                valueInput.value = slider.value;
+                if (window.App.Store) window.App.Store.setSetting('notificationFontSize', Number(slider.value));
+                this.render();
+            });
+
+            valueInput.addEventListener('input', () => {
+                let val = parseInt(valueInput.value, 10) || 16;
+                val = Math.min(120, Math.max(12, val));
+                content.style.fontSize = val + 'px';
+                slider.value = val;
+                if (window.App.Store) window.App.Store.setSetting('notificationFontSize', val);
+                this.render();
+            });
+        }
+
+        document.addEventListener('click', e => {
+            if (!e.target.classList.contains('delete-notification-btn')) {
+                document.querySelectorAll('.delete-notification-btn').forEach(btn => {
+                    btn.textContent = '删除';
+                    btn.style.background = '#f44';
+                });
+            }
+        });
+    }
+};
 
 ```
 
