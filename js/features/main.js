@@ -7,18 +7,10 @@ window.onload = async function () {
 
     const safeInit = (name, fn) => {
         try {
-            if (typeof fn === 'function') {
-                fn();
-            } else {
-                console.warn(
-                    `模块 ${name} 未找到或 init 不是函数`
-                );
-            }
+            if (typeof fn === 'function') fn();
+            else console.warn(`模块 ${name} 未找到或 init 不是函数`);
         } catch (e) {
-            console.error(
-                `模块 ${name} 初始化失败:`,
-                e
-            );
+            console.error(`模块 ${name} 初始化失败:`, e);
         }
     };
 
@@ -37,28 +29,18 @@ window.onload = async function () {
     safeInit('ModalLostFound', () => window.App.ModalLostFound?.init());
     safeInit('ModalNotification', () => window.App.ModalNotification?.init());
     safeInit('ModalPhrase', () => window.App.ModalPhrase?.init());
+    safeInit('ModalSeatMap', () => window.App.SeatMap?.init());
 
-    const loadingOverlay =
-        document.getElementById('loadingOverlay');
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    const pageContent = document.getElementById('pageContent');
 
-    const pageContent =
-        document.getElementById('pageContent');
-
-    if (loadingOverlay) {
-        loadingOverlay.style.display = 'none';
-    }
-
-    if (pageContent) {
-        pageContent.style.display = 'block';
-    }
+    if (loadingOverlay) loadingOverlay.style.display = 'none';
+    if (pageContent) pageContent.style.display = 'block';
 };
 
 window.addEventListener('unload', () => {
     try {
-        if (window.App.Timers?.phrase) {
-            clearInterval(window.App.Timers.phrase);
-        }
-
+        if (window.App.Timers?.phrase) clearInterval(window.App.Timers.phrase);
         window.App.Store?.flush();
     } catch (e) {
         // 忽略页面关闭阶段的异常
