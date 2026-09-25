@@ -198,21 +198,18 @@ input:checked~.switch-text{color:#4CAF50}
         本地服务未启动，数据将不会被保存
     </div>
 
-    <div id="pageContent" style="display: none;">
-        <!-- 导航栏 -->
+    <div id="pageContent" style="display:none;">
         <header>
             <nav class="navbar">
                 <div class="brand">杨村一中&nbsp;高二（22）班</div>
             </nav>
         </header>
 
-        <!-- 时钟 -->
         <div id="currentDateTime">
             <div class="time-section"></div>
             <div class="date-section"></div>
         </div>
 
-        <!-- 作息提示容器 -->
         <div id="scheduleContainer" class="schedule-container">
             <div class="schedule-item">
                 <span class="schedule-title">天气：</span>
@@ -228,34 +225,29 @@ input:checked~.switch-text{color:#4CAF50}
             </div>
             <div class="schedule-item">
                 <span class="schedule-title" id="countdownName">倒计时：</span>
-                <span class="schedule-value" id="countdownTimer" style="font-size: 28px;">--:--</span>
+                <span class="schedule-value" id="countdownTimer" style="font-size:28px;">--:--</span>
             </div>
             <div class="timetable" id="todayTimetable"></div>
         </div>
 
-        <!-- 高考倒计时 -->
         <div class="small-title">距离2028年高考仅剩</div>
         <div id="daysUntil" class="big-title"></div>
 
-        <!-- 时间轴 -->
         <div class="timeline-container">
             <div class="timeline-progress" id="timeline">
                 <div class="end-marker">
-                    <div id="timelineEndTitle" style="white-space: nowrap;">高考日</div>
-                    <div id="timelineEndDate" style="font-size:0.9em; margin-top:3px">6月7日</div>
+                    <div id="timelineEndTitle" style="white-space:nowrap;">高考日</div>
+                    <div id="timelineEndDate" style="font-size:.9em;margin-top:3px">6月7日</div>
                 </div>
             </div>
         </div>
 
-        <!-- 金句 -->
         <div id="goldenPhrase"></div>
 
-        <!-- 每日60s -->
         <div class="right-image-container">
             <img id="apiImage" src="" alt="每日60s">
         </div>
 
-        <!-- 底部按钮 -->
         <div class="action-buttons">
             <button id="settingsButton" class="action-button">⚙️ 设置</button>
             <button id="changelogButton" class="action-button">📝 更新日志</button>
@@ -272,6 +264,7 @@ input:checked~.switch-text{color:#4CAF50}
                     <h3>设置</h3>
                     <span class="close-btn" id="closeSettings">&times;</span>
                 </div>
+
                 <div class="settings-body">
                     <div class="switch-container">
                         <label class="switch">
@@ -279,11 +272,13 @@ input:checked~.switch-text{color:#4CAF50}
                             <input type="checkbox" id="goldenSwitch" checked>
                             <span class="slider"></span>
                         </label>
+
                         <label class="switch">
                             <span class="switch-text">显示每日60s</span>
                             <input type="checkbox" id="imageSwitch" checked>
                             <span class="slider"></span>
                         </label>
+
                         <div class="probability-control">
                             <span class="switch-text">联网获取金句的概率(%)</span>
                             <div class="range-group">
@@ -292,6 +287,7 @@ input:checked~.switch-text{color:#4CAF50}
                                 <button class="reset-btn" onclick="resetProbability()">重置</button>
                             </div>
                         </div>
+
                         <div class="probability-control">
                             <span class="switch-text">金句轮播时间间隔（秒）</span>
                             <div class="range-group">
@@ -300,27 +296,51 @@ input:checked~.switch-text{color:#4CAF50}
                                 <button class="reset-btn" onclick="resetInterval()">重置</button>
                             </div>
                         </div>
+
                         <label class="switch">
                             <span class="switch-text">启用点击刷新金句</span>
                             <input type="checkbox" id="clickRefreshSwitch">
                             <span class="slider"></span>
                         </label>
+
                         <label class="switch">
                             <span class="switch-text">开启金句动画效果</span>
                             <input type="checkbox" id="animationSwitch" checked>
                             <span class="slider"></span>
                         </label>
-                        <!-- <label class="switch">
-                            <span class="switch-text">本地金句只展示原创</span>
-                            <input type="checkbox" id="originalSwitch">
-                            <span class="slider"></span>
-                        </label> -->
+
                         <label class="switch">
                             <span class="switch-text">自动刷新页面</span>
                             <input type="checkbox" id="autoRefreshSwitch">
                             <span class="slider"></span>
                         </label>
                     </div>
+
+                    <!-- 今日课表临时编辑 -->
+                    <section class="timetable-editor" id="temporaryTimetablePanel">
+                        <div class="timetable-editor-header">
+                            <h4 class="timetable-editor-title">今日课表临时编辑</h4>
+                            <span class="timetable-editor-meta" id="temporaryTimetableDate">加载中...</span>
+                        </div>
+
+                        <p class="timetable-editor-note">
+                            修改只在今天生效，第二天会自动恢复原始课表。
+                        </p>
+
+                        <div class="timetable-editor-grid" id="temporaryTimetableEditor"></div>
+
+                        <div class="timetable-editor-actions">
+                            <div class="timetable-editor-buttons">
+                                <button type="button" class="timetable-save-btn" id="saveTemporaryTimetable">
+                                    保存今日课表
+                                </button>
+                                <button type="button" class="timetable-reset-btn" id="resetTemporaryTimetable">
+                                    恢复原始课表
+                                </button>
+                            </div>
+                            <span class="timetable-editor-status" id="temporaryTimetableStatus"></span>
+                        </div>
+                    </section>
                 </div>
             </div>
         </div>
@@ -344,6 +364,7 @@ input:checked~.switch-text{color:#4CAF50}
                     4. 大幅精简现有代码，长度缩小 40%，提升运行效率；
                     5. 修复每次打开网页默认显示每日 60s 的 bug；
                     6. 修复周六课表无课时“下节课”不显示“无”的 bug；
+                    7. 新增课表临时修改功能；
                 </div>
             </div>
         </div>
@@ -351,28 +372,29 @@ input:checked~.switch-text{color:#4CAF50}
         <!-- 公告板模态框 -->
         <div class="settings-modal" id="announcementModal">
             <div class="settings-content">
-                <div class="settings-header" style="padding-bottom: 8px;">
-                    <h3 style="font-size: 1.2em;">公告</h3>
-                    <div style="display: flex; align-items: center;">
+                <div class="settings-header" style="padding-bottom:8px;">
+                    <h3 style="font-size:1.2em;">公告</h3>
+                    <div style="display:flex;align-items:center;">
                         <span class="maximize-btn" id="maximizeAnnouncement">⛶</span>
                         <span class="close-btn" id="closeAnnouncement">&times;</span>
                     </div>
                 </div>
+
                 <div class="announcement-content">
                     <div class="announcement-card">
-                        <div class="announcement-title">📢 倒计时网站征稿活动开始啦！</div>
-                        <div class="announcement-time">2025.3.1</div>
+                        <div class="announcement-title">📢 倒计时网站征稿活动</div>
+                        <div class="announcement-time">2026.9.26</div>
                         <div class="announcement-body">
-                            C2201倒计时网站底部金句轮播内容<strong>开始征稿了</strong>！选上的作品可以放在网站上<strong>轮播展示</strong>！
+                            22 班电子班牌底部金句轮播内容开始征稿了！投稿的作品可以放在网站上轮播展示。
                             <ul>
-                                <li><strong>参与条件：</strong>是个人都能参加</li>
-                                <li><strong>时间：</strong>即日起至2025年5月31日（活动已结束）</li>
-                                <li><strong>征稿内容：</strong><strong>励志文字</strong>、优美<strong>作文素材</strong>、<strong>诗歌（含现代诗）</strong>或<strong>整活</strong>（<strong>不能八卦</strong>）等（特别地，既可以原创，也可以投你在其他地方看到的很好的句子上来，但是要<strong>标明出处</strong>；若是原创句子可选择展示时是否显示署名）（一个句子展示的概率：励志文字 = 优美作文素材 > 整活，可根据具体情况调整，特别地，若原创句子写的<strong>过于精妙</strong>，可以<strong>提高展示概率</strong>）</li>
+                                <li><strong>参与条件：</strong>拥有一个鼻子两只眼睛一个嘴巴</li>
+                                <li><strong>时间：</strong>即日起至野生狗奶过期</li>
+                                <li><strong>征稿内容：</strong>包括但不限于<strong>励志文字</strong>、<strong>优美作文素材</strong>、<strong>诗歌（含现代诗）</strong>或<strong>整活</strong>等，既可以原创，也可以投现有的，但是要<strong>标明出处</strong>，若是原创句子可选择展示时是否显示署名
+                                <li>展示概率：</li>励志文字 ≈ 优美作文素材 ≈ 诗歌 > 整活，可根据具体情况调整，特别地，若原创句子写的<strong>过于精妙</strong>，可以<strong>提高展示概率</strong>）</li>
                                 <li><strong>字数要求：</strong>1~80字（包含标点）</li>
-                                <li><strong>提交格式：</strong>你的名字+句子内容+是否原创（+若非原创，标明出处）</li>
-                                <li><strong>提交方式：</strong>写在便利贴上交给TQC</li>
+                                <li><strong>提交方式：</strong>找 tqc</li>
                             </ul>
-                            <p class="announcement-footnote">最终解释权归TQC所有</p>
+                            <p class="announcement-footnote">只要句子不是违规内容一般来者不拒，最终解释权归 tqc 所有</p>
                         </div>
                     </div>
                 </div>
@@ -395,38 +417,44 @@ input:checked~.switch-text{color:#4CAF50}
             <div class="settings-content">
                 <div class="settings-header">
                     <h3>寻物</h3>
-                    <div style="display: flex; align-items: center;">
+                    <div style="display:flex;align-items:center;">
                         <span class="maximize-btn" id="maximizeLostAndFound">⛶</span>
                         <span class="close-btn" id="closeLostAndFound">&times;</span>
                     </div>
                 </div>
-                <div class="notification-container" style="display: flex; flex-direction: column; height: 100%;">
+
+                <div class="notification-container" style="display:flex;flex-direction:column;height:100%;">
                     <div class="big-title" style="
-                        background: linear-gradient(135deg, #FF0000 0%, #FF6B00 25%, #FFD700 50%, #FF6B00 75%, #FF0000 100%);
-                        -webkit-background-clip: text;
-                        background-clip: text;
-                        -webkit-text-fill-color: transparent;
-                        background-size: 200% 200%;
-                        animation: gradient-pulse 4s ease infinite;
-                        text-shadow: 2px 2px 4px rgba(0,0,0,0.3), 0 0 10px rgba(255,107,0,0.5);
-                        font-size: 120px;
-                        font-family: STXingkai, cursive;
-                        letter-spacing: 4px;
-                        width: 100%;
-                        text-align: center;
-                        margin: -8px 0 0;
-                        padding: 0;
-                        line-height: 1.2;
+                        background:linear-gradient(135deg,#FF0000 0%,#FF6B00 25%,#FFD700 50%,#FF6B00 75%,#FF0000 100%);
+                        -webkit-background-clip:text;
+                        background-clip:text;
+                        -webkit-text-fill-color:transparent;
+                        background-size:200% 200%;
+                        animation:gradient-pulse 4s ease infinite;
+                        text-shadow:2px 2px 4px rgba(0,0,0,.3),0 0 10px rgba(255,107,0,.5);
+                        font-size:120px;
+                        font-family:STXingkai,cursive;
+                        letter-spacing:4px;
+                        width:100%;
+                        text-align:center;
+                        margin:-8px 0 0;
+                        padding:0;
+                        line-height:1.2;
                     ">寻物</div>
 
-                    <!-- 列表容器 + 独立加号按钮 -->
-                    <div style="position: relative; flex: 1; overflow: hidden;">
+                    <div style="position:relative;flex:1;overflow:hidden;">
                         <div class="announcement-content" id="lostAndFoundList" style="
-                            height: 100%; overflow-y: auto; padding: 10px;"></div>
+                            height:100%;overflow-y:auto;padding:10px;"></div>
                         <div class="add-button" id="addLostFoundBtn">+</div>
                     </div>
 
-                    <div class="notification-footer" style="position: sticky; bottom: 0; background: white; z-index: 10; padding: 10px 15px; border-top: 1px solid #eee;">
+                    <div class="notification-footer" style="
+                        position:sticky;
+                        bottom:0;
+                        background:white;
+                        z-index:10;
+                        padding:10px 15px;
+                        border-top:1px solid #eee;">
                         <div class="font-size-control">
                             <span class="font-size-label">字体大小:</span>
                             <input type="range" id="lostAndFoundFontSizeSlider" min="12" max="120" value="28">
@@ -443,15 +471,17 @@ input:checked~.switch-text{color:#4CAF50}
             <div class="settings-content">
                 <div class="settings-header">
                     <h3>通知</h3>
-                    <div style="display: flex; align-items: center;">
+                    <div style="display:flex;align-items:center;">
                         <span class="maximize-btn" id="maximizeNotification">⛶</span>
                         <span class="close-btn" id="closeNotification">&times;</span>
                     </div>
                 </div>
+
                 <div class="notification-container">
                     <div id="notificationContent">
                         <div class="empty-notification">暂无通知，点击下方按钮添加</div>
                     </div>
+
                     <div class="notification-footer">
                         <button class="add-notification-btn" id="addNotificationBtn">+ 添加通知</button>
                         <div class="font-size-control">
@@ -466,20 +496,15 @@ input:checked~.switch-text{color:#4CAF50}
         </div>
     </div>
 
-    <!-- 1. 基础数据 -->
     <script src="js/data/solarterms.js"></script>
     <script src="js/data/timetable.js"></script>
     <script src="js/data/schedule.js"></script>
     <script src="js/data/phrases.js"></script>
 
-    <!-- 2. 状态与工具 -->
     <script src="js/features/00_state.js"></script>
     <script src="js/features/01_utils.js"></script>
-
-    <!-- 2.5 本地数据存储层（新增） -->
     <script src="js/features/store.js"></script>
 
-    <!-- 3. 独立功能模块 -->
     <script src="js/features/clock.js"></script>
     <script src="js/features/weather.js"></script>
     <script src="js/features/daily_image.js"></script>
@@ -489,9 +514,9 @@ input:checked~.switch-text{color:#4CAF50}
     <script src="js/features/golden_phrase.js"></script>
     <script src="js/features/auto_refresh.js"></script>
 
-    <!-- 4. 弹窗交互模块 -->
     <script src="js/features/modal_core.js"></script>
     <script src="js/features/modal_settings.js"></script>
+    <script src="js/features/modal_timetable.js"></script>
     <script src="js/features/modal_lost_found.js"></script>
     <script src="js/features/modal_notification.js"></script>
     <script src="js/features/modal_phrase.js"></script>
@@ -499,11 +524,17 @@ input:checked~.switch-text{color:#4CAF50}
     <script>
         (function () {
             const targetWidth = 1920;
+
             function resize() {
-                const currentWidth = document.documentElement.clientWidth || document.body.clientWidth;
+                const currentWidth =
+                    document.documentElement.clientWidth ||
+                    document.body.clientWidth;
+
                 const scale = currentWidth / targetWidth;
                 const pageContent = document.getElementById('pageContent');
+
                 if (!pageContent) return;
+
                 pageContent.style.zoom = scale;
                 pageContent.style.width = targetWidth + 'px';
                 pageContent.style.height = '1080px';
@@ -511,12 +542,12 @@ input:checked~.switch-text{color:#4CAF50}
                 pageContent.style.overflow = 'hidden';
                 document.body.style.overflowX = 'hidden';
             }
+
             resize();
             window.addEventListener('resize', resize);
         })();
     </script>
 
-    <!-- 5. 主入口 -->
     <script src="js/features/main.js"></script>
 </body>
 </html>
