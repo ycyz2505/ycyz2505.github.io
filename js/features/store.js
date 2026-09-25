@@ -1,45 +1,45 @@
-// ============================================================
-// js/features/store.js
-// 本地数据存储适配层
-// 与本地 LocalDataServer.exe（127.0.0.1:17632~17641）通信
-// ============================================================
-
 window.App = window.App || {};
 
 window.App.Store = {
     baseUrl: null,
     available: false,
+    initPromise: null,
     cache: {},
     writeTimers: {},
-    initPromise: null,
 
     defaults: {
         settings: {
-            goldenSwitch: true,
-            imageSwitch: true,
-            apiProbability: 50,
-            intervalDuration: 15000,
-            clickRefreshSwitch: false,
-            animationSwitch: true,
-            autoRefreshSwitch: false,
-            lostAndFoundFontSize: 28,
-            notificationFontSize: 16,
-
-            // 今日课表临时覆盖，不修改 timetable 原始数据
-            temporaryTimetable: null
+            autoRefresh: true,
+            showWeather: true,
+            showDailyImage: true
         },
-
         timetable: {},
         schedule: {},
         phrases: {},
         solarterms: [],
         lostfound: [],
-        notifications: []
+        notifications: [],
+        seatmap: {
+            columns: 12,
+            rows: 6,
+            blocks: [
+                { id: 'seat-1', type: 'person', name: '张三' },
+                { id: 'seat-2', type: 'person', name: '李四' },
+                { id: 'aisle-1', type: 'aisle' },
+                { id: 'seat-3', type: 'person', name: '王五' },
+                { id: 'seat-4', type: 'person', name: '赵六' },
+                { id: 'seat-5', type: 'person', name: '陈同学' },
+                { id: 'seat-6', type: 'person', name: '刘同学' },
+                { id: 'aisle-2', type: 'aisle' },
+                { id: 'seat-7', type: 'person', name: '周同学' },
+                { id: 'seat-8', type: 'person', name: '吴同学' },
+                { id: 'podium-1', type: 'podium', name: '讲台' }
+            ]
+        }
     },
 
     init() {
         if (this.initPromise) return this.initPromise;
-
         this.initPromise = this._doInit();
         return this.initPromise;
     },
@@ -124,7 +124,8 @@ window.App.Store = {
             'phrases',
             'solarterms',
             'lostfound',
-            'notifications'
+            'notifications',
+            'seatmap'
         ];
 
         for (const name of names) {
@@ -138,9 +139,7 @@ window.App.Store = {
     async _load(name, defaultValue) {
         const safeDefault = this._clone(defaultValue);
 
-        if (!this.available) {
-            return safeDefault;
-        }
+        if (!this.available) return safeDefault;
 
         try {
             const res = await fetch(
@@ -219,9 +218,7 @@ window.App.Store = {
     },
 
     _writeNow(name, value) {
-        if (!this.available) {
-            return Promise.resolve();
-        }
+        if (!this.available) return Promise.resolve();
 
         return fetch(`${this.baseUrl}/api/data/${name}`, {
             method: 'PUT',
@@ -256,7 +253,6 @@ window.App.Store = {
 
     _updateBanner() {
         const banner = document.getElementById('serviceBanner');
-
         if (!banner) return;
 
         if (this.available) {
