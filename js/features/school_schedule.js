@@ -61,7 +61,7 @@ window.App.SchoolSchedule = {
         const currentMinutes = now.getHours() * 60 + now.getMinutes();
         const utils = window.App.Utils;
 
-        if (day === 6) return { current: '周末', nextLesson: '' };
+        if (day === 6) return { current: '周末', nextLesson: '无' };
 
         if (day === 0 && currentMinutes < utils.timeToMinutes('17:30')) {
             return { current: '周末', nextLesson: '第一节晚自习' };
@@ -118,9 +118,10 @@ window.App.SchoolSchedule = {
 
         if (currentElement) currentElement.textContent = this.getCourseDisplayName(day, result.current);
         if (nextElement) {
-            nextElement.textContent = result.nextLesson === '无'
+            const next = result.nextLesson;
+            nextElement.textContent = (!next || next === '无')
                 ? '无'
-                : this.getCourseDisplayName(day, result.nextLesson);
+                : this.getCourseDisplayName(day, next);
         }
 
         this.renderTimetable(day);
