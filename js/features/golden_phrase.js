@@ -98,7 +98,9 @@ window.App.GoldenPhrase = {
         if (!container) return;
 
         const finalText = text === undefined || text === null ? '' : String(text);
-        const animationEnabled = document.getElementById('animationSwitch')?.checked !== false;
+        const animationEnabled = window.App.Store
+            ? window.App.Store.getSetting('animationSwitch') !== false
+            : (document.getElementById('animationSwitch')?.checked !== false);
         const formatted = this.escapeHTML(finalText).replace(/\n/g, '<br>');
 
         const apply = () => {
@@ -172,7 +174,9 @@ window.App.GoldenPhrase = {
         container.addEventListener('click', () => {
             if (!document.getElementById('clickRefreshSwitch')?.checked) return;
 
-            const animationEnabled = document.getElementById('animationSwitch')?.checked !== false;
+            const animationEnabled = window.App.Store
+                ? window.App.Store.getSetting('animationSwitch') !== false
+                : (document.getElementById('animationSwitch')?.checked !== false);
 
             if (animationEnabled) {
                 container.style.transform = 'scale(0.98)';

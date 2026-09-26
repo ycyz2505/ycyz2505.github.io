@@ -120,18 +120,8 @@ window.App.ModalSettings = {
 
         document.getElementById('imageSwitch')?.addEventListener('change', e => {
             saveSetting('imageSwitch', e.target.checked);
-            const image = document.getElementById('apiImage');
-            if (!image) return;
-            if (e.target.checked) {
-                image.style.display = 'block';
-                window.App.DailyImage?.init();
-            } else {
-                image.style.display = 'none';
-                if (window.App.Timers.image) {
-                    clearInterval(window.App.Timers.image);
-                    window.App.Timers.image = null;
-                }
-            }
+            // 全部交给 DailyImage 处理：它会读 Store 的最新值，决定显示/隐藏 + 定时器
+            window.App.DailyImage?.init();
         });
 
         document.getElementById('animationSwitch')?.addEventListener('change', e => {
