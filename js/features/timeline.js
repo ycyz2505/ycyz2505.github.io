@@ -5,7 +5,6 @@ window.App.Timeline = {
         this.generateMarkers();
         this.updateColor();
 
-        // 点击空白处关闭所有节气卡片
         document.addEventListener('click', () => {
             document.querySelectorAll('.solar-card').forEach(c => c.classList.remove('active'));
             document.querySelectorAll('.solar-term-marker').forEach(m => (m.style.zIndex = '2'));
@@ -19,11 +18,19 @@ window.App.Timeline = {
         }, 86400000);
     },
 
+    getSolarTerms() {
+        if (window.App.Store) return window.App.Store.get('solarterms') || [];
+        return (typeof solarTerms !== 'undefined') ? solarTerms : [];
+    },
+
     generateMarkers() {
+        const terms = this.getSolarTerms();
+        if (!terms.length) return;
+
         const currentYear = new Date().getFullYear();
         const gradYear = 2028;
 
-        const springStart = solarTerms.find(t => t.name === '立春');
+        const springStart = terms.find(t => t.name === '立春');
         if (!springStart) return;
 
         const startDate = new Date(currentYear, springStart.month - 1, springStart.day);
@@ -45,7 +52,7 @@ window.App.Timeline = {
 
         document.querySelectorAll('.solar-term-marker').forEach(m => m.remove());
 
-        solarTerms.forEach((term, index) => {
+        terms.forEach((term, index) => {
             const termDate = new Date(currentYear, term.month - 1, term.day);
             if (termDate < startDate || termDate > endDate) return;
 
@@ -106,9 +113,12 @@ window.App.Timeline = {
     },
 
     updateColor() {
+        const terms = this.getSolarTerms();
+        if (!terms.length) return;
+
         const currentYear = new Date().getFullYear();
         const gradYear = 2028;
-        const springStart = solarTerms.find(t => t.name === '立春');
+        const springStart = terms.find(t => t.name === '立春');
         if (!springStart) return;
 
         const startDate = new Date(currentYear, springStart.month - 1, springStart.day);
@@ -123,6 +133,9 @@ window.App.Timeline = {
 
     // 21 世纪寿星天文历公式：[Y*D+C]-L
     updateSolarTermsDates(year) {
+        const terms = this.getSolarTerms();
+        if (!terms.length) return;
+
         const cMap = {
             '小寒': 5.4055, '大寒': 20.12, '立春': 3.87, '雨水': 18.73,
             '惊蛰': 5.63, '春分': 20.646, '清明': 4.81, '谷雨': 20.1,
@@ -145,7 +158,7 @@ window.App.Timeline = {
         const D = 0.2422;
         const leapCount = Math.floor(y / 4);
 
-        solarTerms.forEach(term => {
+        terms.forEach(term => {
             if (!cMap[term.name]) return;
             term.day = Math.floor(y * D + cMap[term.name]) - leapCount;
             term.month = monthMap[term.name];

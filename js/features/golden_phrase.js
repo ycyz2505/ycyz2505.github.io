@@ -2,19 +2,12 @@ window.App.GoldenPhrase = {
     apiConfigs: [
         {
             url: 'https://zj.v.api.aa1.cn/api/wenan-shici/?type=json',
-            method: 'GET',
-            weight: 15,
-            maxRetry: 3,
-            handler(data) {
-                const text = data.msg || '';
-                return text.length <= 100 ? text : null;
-            }
+            method: 'GET', weight: 15, maxRetry: 3,
+            handler(data) { const t = data.msg || ''; return t.length <= 100 ? t : null; }
         },
         {
             url: 'https://api.songzixian.com/api/daily-poem?dataSource=LOCAL_DAILY_POEM',
-            method: 'GET',
-            weight: 15,
-            maxRetry: 3,
+            method: 'GET', weight: 15, maxRetry: 3,
             handler(data) {
                 if (!data.data) return null;
                 const title = (data.data.title || '').replace(/\s*·\s*/g, '·');
@@ -24,29 +17,17 @@ window.App.GoldenPhrase = {
         },
         {
             url: 'https://zj.v.api.aa1.cn/api/wenan-wm/?type=json',
-            method: 'GET',
-            weight: 20,
-            maxRetry: 3,
-            handler(data) {
-                const text = data.msg || '';
-                return text.length <= 100 ? text : null;
-            }
+            method: 'GET', weight: 20, maxRetry: 3,
+            handler(data) { const t = data.msg || ''; return t.length <= 100 ? t : null; }
         },
         {
             url: 'https://zj.v.api.aa1.cn/api/wenan-mj/?type=json',
-            method: 'GET',
-            weight: 30,
-            maxRetry: 3,
-            handler(data) {
-                const text = data.msg || '';
-                return text.length <= 100 ? text : null;
-            }
+            method: 'GET', weight: 30, maxRetry: 3,
+            handler(data) { const t = data.msg || ''; return t.length <= 100 ? t : null; }
         },
         {
             url: 'https://api.mu-jie.cc/stray-birds/range?type=json',
-            method: 'GET',
-            weight: 20,
-            maxRetry: 5,
+            method: 'GET', weight: 20, maxRetry: 5,
             handler(data) {
                 const cnLength = data.cn?.length || 0;
                 const enLength = data.en?.length || 0;
@@ -80,10 +61,8 @@ window.App.GoldenPhrase = {
         try {
             const res = await fetch(api.url, { method: api.method || 'GET' });
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
             const text = api.handler(await res.json());
             if (text !== null && text !== '') return text;
-
             if (retry < api.maxRetry) return this.fetchWithRetry(api, retry + 1);
             throw new Error('超过最大重试次数');
         } catch (err) {
@@ -95,7 +74,6 @@ window.App.GoldenPhrase = {
     selectRandomAPI() {
         const total = this.apiConfigs.reduce((sum, api) => sum + api.weight, 0);
         let random = Math.random() * total;
-
         for (const api of this.apiConfigs) {
             if (random < api.weight) return api;
             random -= api.weight;
@@ -106,7 +84,6 @@ window.App.GoldenPhrase = {
     async fetch() {
         const probability = Number(window.App.State?.apiProbability ?? 50);
         if (Math.random() >= probability / 100) return this.showLocal();
-
         try {
             const text = await this.fetchWithRetry(this.selectRandomAPI());
             this.updateDisplay(text);
@@ -138,7 +115,11 @@ window.App.GoldenPhrase = {
     },
 
     showLocal() {
-        const data = window.localPhrases || { high: [], medium: [], low: [] };
+        // ★ 从本地存储读取金句库
+        const data = (window.App.Store && window.App.Store.get('phrases'))
+                  || window.localPhrases
+                  || { high: [], medium: [], low: [] };
+
         const toArray = value => (Array.isArray(value) ? value : []);
         const onlyOriginal = document.getElementById('originalSwitch')?.checked || false;
         const filter = list => (onlyOriginal ? list.filter(p => String(p).trim().endsWith('🌟')) : list);
@@ -159,7 +140,6 @@ window.App.GoldenPhrase = {
 
         let selected;
 
-        // high 45% / medium 35% / low 20%
         if (!onlyOriginal) {
             const pools = [];
             if (high.length) pools.push({ list: high, weight: 45 });
@@ -170,10 +150,7 @@ window.App.GoldenPhrase = {
             let random = Math.random() * total;
 
             for (const pool of pools) {
-                if (random < pool.weight) {
-                    selected = pick(pool.list);
-                    break;
-                }
+                if (random < pool.weight) { selected = pick(pool.list); break; }
                 random -= pool.weight;
             }
         }

@@ -6,9 +6,11 @@ window.App.AutoRefresh = {
         if (!switchBtn) return;
 
         switchBtn.addEventListener('change', e => {
+            if (window.App.Store) window.App.Store.setSetting('autoRefreshSwitch', e.target.checked);
             e.target.checked ? this.start() : this.stop();
         });
 
+        // DOM 里的 checked 已在 modal_settings.applyFromStore 里被同步过
         if (switchBtn.checked) this.start();
     },
 

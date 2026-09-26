@@ -6,6 +6,13 @@
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+    <div id="serviceBanner" style="
+        position:fixed;top:10px;right:10px;z-index:99999;display:none;
+        background:#ff9800;color:#fff;padding:6px 14px;border-radius:4px;
+        font-size:12px;box-shadow:0 2px 8px rgba(0,0,0,.2);">
+        本地服务未启动，数据将不会被保存
+    </div>
+
     <div id="pageContent" style="display: none;">
         <!-- 导航栏 -->
         <header>
@@ -198,8 +205,11 @@
                         line-height: 1.2;
                     ">寻物</div>
 
-                    <div class="announcement-content" id="lostAndFoundList" style="flex: 1; overflow-y: auto; padding: 10px;">
-                        <div class="add-button">+</div>
+                    <!-- 列表容器 + 独立加号按钮 -->
+                    <div style="position: relative; flex: 1; overflow: hidden;">
+                        <div class="announcement-content" id="lostAndFoundList" style="
+                            height: 100%; overflow-y: auto; padding: 10px;"></div>
+                        <div class="add-button" id="addLostFoundBtn">+</div>
                     </div>
 
                     <div class="notification-footer" style="position: sticky; bottom: 0; background: white; z-index: 10; padding: 10px 15px; border-top: 1px solid #eee;">
@@ -251,6 +261,9 @@
     <!-- 2. 状态与工具 -->
     <script src="js/features/00_state.js"></script>
     <script src="js/features/01_utils.js"></script>
+
+    <!-- 2.5 本地数据存储层（新增） -->
+    <script src="js/features/store.js"></script>
 
     <!-- 3. 独立功能模块 -->
     <script src="js/features/clock.js"></script>

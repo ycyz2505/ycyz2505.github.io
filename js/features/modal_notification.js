@@ -1,7 +1,20 @@
 window.App.ModalNotification = {
     init() {
+        this.applySavedFontSize();
         this.bindEvents();
         this.render();
+    },
+
+    applySavedFontSize() {
+        const content = document.getElementById('notificationContent');
+        const slider = document.getElementById('fontSizeSlider');
+        const valueInput = document.getElementById('fontSizeValue');
+        if (!content) return;
+
+        const saved = (window.App.Store && window.App.Store.getSetting('notificationFontSize')) || 16;
+        content.style.fontSize = saved + 'px';
+        if (slider) slider.value = saved;
+        if (valueInput) valueInput.value = saved;
     },
 
     adjustTextareaHeight(textarea) {
@@ -13,16 +26,17 @@ window.App.ModalNotification = {
         const content = document.getElementById('notificationContent');
         if (!content) return;
 
+        const notifications = window.App.State.notifications || [];
         content.innerHTML = '';
 
-        if (window.App.State.notifications.length === 0) {
+        if (notifications.length === 0) {
             content.innerHTML = '<div class="empty-notification">暂无通知，点击下方按钮添加</div>';
             return;
         }
 
         const currentFontSize = content.style.fontSize || '16px';
 
-        window.App.State.notifications.forEach((text, index) => {
+        notifications.forEach((text, index) => {
             const item = document.createElement('div');
             item.className = 'notification-item';
             item.dataset.index = index;
@@ -41,7 +55,9 @@ window.App.ModalNotification = {
                     e.target.textContent = '确认删除';
                     e.target.style.background = '#d32f2f';
                 } else {
-                    window.App.State.notifications.splice(e.target.dataset.index, 1);
+                    const arr = window.App.State.notifications;
+                    arr.splice(Number(e.target.dataset.index), 1);
+                    window.App.Store.touch('notifications');
                     this.render();
                 }
             });
@@ -49,7 +65,7 @@ window.App.ModalNotification = {
             item.addEventListener('click', e => {
                 if (e.target.classList.contains('delete-notification-btn')) return;
 
-                const idx = item.dataset.index;
+                const idx = Number(item.dataset.index);
                 const textarea = document.createElement('textarea');
                 textarea.className = 'notification-editable';
                 textarea.value = window.App.State.notifications[idx];
@@ -76,6 +92,7 @@ window.App.ModalNotification = {
 
                 textarea.addEventListener('blur', () => {
                     window.App.State.notifications[idx] = textarea.value;
+                    window.App.Store.touch('notifications');
                     this.render();
                 });
             });
@@ -92,6 +109,7 @@ window.App.ModalNotification = {
 
         addBtn?.addEventListener('click', () => {
             window.App.State.notifications.push('新通知 - 点击编辑内容');
+            window.App.Store.touch('notifications');
             this.render();
             if (content) content.scrollTop = content.scrollHeight;
         });
@@ -100,6 +118,7 @@ window.App.ModalNotification = {
             slider.addEventListener('input', () => {
                 content.style.fontSize = slider.value + 'px';
                 valueInput.value = slider.value;
+                if (window.App.Store) window.App.Store.setSetting('notificationFontSize', Number(slider.value));
                 this.render();
             });
 
@@ -108,6 +127,7 @@ window.App.ModalNotification = {
                 val = Math.min(120, Math.max(12, val));
                 content.style.fontSize = val + 'px';
                 slider.value = val;
+                if (window.App.Store) window.App.Store.setSetting('notificationFontSize', val);
                 this.render();
             });
         }

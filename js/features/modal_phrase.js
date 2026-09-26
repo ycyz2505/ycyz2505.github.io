@@ -16,7 +16,9 @@ window.App.ModalPhrase = {
         const container = document.getElementById('phraseList');
         if (!container) return;
 
-        const data = window.localPhrases || {};
+        const data = (window.App.Store && window.App.Store.get('phrases'))
+                  || window.localPhrases || {};
+
         const allPhrases = [
             ...(data.high || []),
             ...(data.medium || []),
