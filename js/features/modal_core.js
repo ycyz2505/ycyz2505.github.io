@@ -19,7 +19,7 @@ window.App.ModalCore = {
             });
         });
 
-        ['maximizeNotification', 'maximizeLostAndFound'].forEach(id => {
+        ['maximizeNotification', 'maximizeLostAndFound', 'maximizeAnnouncement'].forEach(id => {
             document.getElementById(id)?.addEventListener('click', function () {
                 const modal = this.closest('.settings-modal');
                 modal.classList.toggle('fullscreen');
