@@ -147,3 +147,12 @@ input:checked~.switch-text{color:#4CAF50}
 #lostAndFoundList{ --laf-font-size: 28px; }
 #lostAndFoundList .editable,
 #lostAndFoundList .static-text{ font-size: var(--laf-font-size) !important; }
+
+/* ===== 临时编辑今日课表 ===== */
+.temp-course-row{ display:flex; align-items:center; gap:10px; padding:6px 8px; margin:4px 0; background:#f8f8f8; border-radius:6px; transition:background .2s;}
+.temp-course-row:hover{ background:#eef7e6; }
+.temp-course-label{ width:52px; text-align:right; color:#8bc34a; font-weight:600; font-family:STZhongsong,serif; flex-shrink:0; }
+.temp-course-input{ flex:1; padding:6px 10px; border:1px solid #ddd; border-radius:4px; font-size:15px; font-family:STZhongsong,serif; color:#333; outline:none; transition:all .2s; }
+.temp-course-input:focus{ border-color:#8bc34a; box-shadow:0 0 0 2px rgba(139,195,74,.2);}
+.temp-course-del{ padding:5px 12px; background:#f44; color:#fff; border:none; border-radius:4px; cursor:pointer; font-size:13px; font-family:STZhongsong,serif; flex-shrink:0; transition:all .3s; }
+.temp-course-del:hover{ background:#d32f2f; }

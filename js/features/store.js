@@ -36,6 +36,7 @@ window.App.Store = {
         solarterms: [],
         lostfound: [],
         notifications: []
+        tempTimetable: null
     },
 
     // ---------- 初始化 ----------
@@ -106,7 +107,8 @@ window.App.Store = {
     async _loadAll() {
         const names = [
             'settings', 'timetable', 'schedule',
-            'phrases', 'solarterms', 'lostfound', 'notifications'
+            'phrases', 'solarterms', 'lostfound', 'notifications',
+            'tempTimetable'
         ];
         for (const name of names) {
             this.cache[name] = await this._load(name, this.defaults[name]);

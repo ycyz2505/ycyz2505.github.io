@@ -31,6 +31,7 @@ window.onload = async function () {
     safeInit('ModalLostFound', () => window.App.ModalLostFound?.init());
     safeInit('ModalNotification', () => window.App.ModalNotification?.init());
     safeInit('ModalPhrase', () => window.App.ModalPhrase?.init());
+    safeInit('ModalTempTimetable', () => window.App.ModalTempTimetable?.init());
 
     // 4) 显示主界面
     const loadingOverlay = document.getElementById('loadingOverlay');
