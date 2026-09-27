@@ -24,7 +24,13 @@ window.App.ModalTimer = {
         document.addEventListener('click', () => {
             document
                 .querySelectorAll('.modal-timer.open')
-                .forEach(el => el.classList.remove('open'));
+                .forEach(el => {
+                    el.classList.remove('open');
+                    const button = el.querySelector('.modal-timer-btn');
+                    if (button) {
+                        button.setAttribute('aria-expanded', 'false');
+                    }
+                });
         });
     },
 
@@ -40,7 +46,7 @@ window.App.ModalTimer = {
         const wrap = document.createElement('div');
         wrap.className = 'modal-timer';
         wrap.innerHTML = `
-            <button class="modal-timer-btn" type="button" title="定时关闭">⏱</button>
+            <button class="modal-timer-btn" type="button" title="定时关闭" aria-label="定时关闭" aria-expanded="false">⏱</button>
             <div class="modal-timer-panel">
                 <div class="modal-timer-presets">
                     <button type="button" data-seconds="60">1分</button>
@@ -49,7 +55,7 @@ window.App.ModalTimer = {
                     <button type="button" data-seconds="600">10分</button>
                 </div>
                 <div class="modal-timer-custom">
-                    <input type="number" min="5" max="3600" step="5" value="30">
+                    <input type="number" min="5" max="3600" step="5" value="30" aria-label="自定义关闭时间">
                     <span>秒</span>
                     <button type="button" data-action="start">开始</button>
                 </div>
@@ -57,58 +63,80 @@ window.App.ModalTimer = {
             </div>
         `;
 
-        closeBtn.parentNode.insertBefore(wrap, closeBtn);
+        /*
+         * 标题栏按钮顺序：
+         * 定时关闭 -> 最大化 -> 关闭
+         * 没有最大化按钮时：
+         * 定时关闭 -> 关闭
+         */
+        const maximizeBtn = header.querySelector('.maximize-btn');
+        const insertBefore = maximizeBtn || closeBtn;
+        insertBefore.parentNode.insertBefore(wrap, insertBefore);
 
         const btn = wrap.querySelector('.modal-timer-btn');
         const panel = wrap.querySelector('.modal-timer-panel');
         const customInput = wrap.querySelector('.modal-timer-custom input');
         const startBtn = wrap.querySelector('[data-action="start"]');
 
+        const setPanelOpen = open => {
+            wrap.classList.toggle('open', open);
+            btn.setAttribute('aria-expanded', String(open));
+        };
+
         // ---------- 事件 ----------
         // 点击面板内不冒泡到 document
-        panel.addEventListener('click', e => e.stopPropagation());
+        panel.addEventListener('click', event => {
+            event.stopPropagation();
+        });
 
         // 快捷预设
-        wrap.querySelectorAll('.modal-timer-presets button').forEach(b => {
-            b.addEventListener('click', e => {
-                e.stopPropagation();
-                this.start(modal, Number(b.dataset.seconds));
-                wrap.classList.remove('open');
+        wrap.querySelectorAll('.modal-timer-presets button').forEach(presetBtn => {
+            presetBtn.addEventListener('click', event => {
+                event.stopPropagation();
+                this.start(modal, Number(presetBtn.dataset.seconds));
+                setPanelOpen(false);
             });
         });
 
-        // 自定义
-        startBtn.addEventListener('click', e => {
-            e.stopPropagation();
-            const val = Math.max(5, Math.min(3600, Number(customInput.value) || 30));
-            customInput.value = val;
-            this.start(modal, val);
-            wrap.classList.remove('open');
+        // 自定义时间
+        startBtn.addEventListener('click', event => {
+            event.stopPropagation();
+
+            const value = Math.max(
+                5,
+                Math.min(3600, Number(customInput.value) || 30)
+            );
+
+            customInput.value = value;
+            this.start(modal, value);
+            setPanelOpen(false);
         });
 
-        // 主按钮：倒计时中点一次取消，否则开关面板
-        btn.addEventListener('click', e => {
-            e.stopPropagation();
+        // 主按钮：倒计时中点击取消，否则打开或关闭面板
+        btn.addEventListener('click', event => {
+            event.stopPropagation();
+
             const state = this.instances.get(modal.id);
+
             if (state && state.timerId) {
                 this.stop(modal);
                 return;
             }
-            wrap.classList.toggle('open');
+
+            setPanelOpen(!wrap.classList.contains('open'));
         });
 
-        // 模态框关闭后（transition 结束）清理
+        // 模态框关闭后清理倒计时
         modal.addEventListener('transitionend', () => {
             if (!modal.classList.contains('active')) {
                 this.stop(modal);
-                wrap.classList.remove('open');
+                setPanelOpen(false);
             }
         });
     },
 
     // ---------- 开始倒计时 ----------
     start(modal, seconds) {
-        // 先清理旧状态
         this.stop(modal);
 
         const wrap = modal.querySelector('.modal-timer');
@@ -119,7 +147,6 @@ window.App.ModalTimer = {
 
         wrap.classList.add('counting');
 
-        // 先声明 state，闭包引用
         const state = {
             timerId: null,
             updateId: null,
@@ -134,10 +161,14 @@ window.App.ModalTimer = {
         const update = () => {
             const remain = Math.max(0, endTime - Date.now());
             const total = Math.ceil(remain / 1000);
-            const mm = String(Math.floor(total / 60)).padStart(2, '0');
-            const ss = String(total % 60).padStart(2, '0');
-            btn.textContent = `${mm}:${ss}`;
-            state.updateId = setTimeout(update, 250);
+            const minutes = String(Math.floor(total / 60)).padStart(2, '0');
+            const secondsText = String(total % 60).padStart(2, '0');
+
+            btn.textContent = `${minutes}:${secondsText}`;
+
+            if (remain > 0) {
+                state.updateId = setTimeout(update, 250);
+            }
         };
 
         state.timerId = setTimeout(finish, seconds * 1000);
@@ -149,13 +180,19 @@ window.App.ModalTimer = {
     // ---------- 停止倒计时（幂等） ----------
     stop(modal) {
         const state = this.instances.get(modal.id);
+
         if (!state) {
             this._resetButton(modal);
             return;
         }
 
-        if (state.timerId) clearTimeout(state.timerId);
-        if (state.updateId) clearTimeout(state.updateId);
+        if (state.timerId) {
+            clearTimeout(state.timerId);
+        }
+
+        if (state.updateId) {
+            clearTimeout(state.updateId);
+        }
 
         this.instances.delete(modal.id);
         this._resetButton(modal);
@@ -164,14 +201,21 @@ window.App.ModalTimer = {
     _resetButton(modal) {
         const wrap = modal.querySelector('.modal-timer');
         if (!wrap) return;
+
         const btn = wrap.querySelector('.modal-timer-btn');
-        if (btn) btn.textContent = '⏱';
+
+        if (btn) {
+            btn.textContent = '⏱';
+            btn.setAttribute('aria-expanded', 'false');
+        }
+
         wrap.classList.remove('counting', 'open');
     },
 
     // ---------- 关闭模态框 ----------
     closeModal(modal) {
         modal.classList.remove('active');
+
         if (window.App.ModalCore?.resetFullscreen) {
             window.App.ModalCore.resetFullscreen(modal.id);
         }

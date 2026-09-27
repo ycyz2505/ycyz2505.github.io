@@ -28,11 +28,11 @@ body,html{overflow:hidden;margin:0;padding:0;width:100%;height:100%;font-family:
 .action-button:hover,.add-notification-btn:hover{transform:scale(1.05)}
 .settings-button:hover{transform:translateX(-50%) scale(1.1)}
 .reset-btn:hover{background:#7cb342;transform:scale(1.05)}
-.close-btn,.maximize-btn{cursor:pointer;padding:0 10px;color:#666}
+.close-btn,.maximize-btn,.modal-timer-btn{cursor:pointer;padding:0 10px;color:#666;line-height:1;transition:all .2s}
 .close-btn{font-size:28px}
-.maximize-btn{font-size:24px;transition:all .3s;position:relative;z-index:100}
-.close-btn:hover,.maximize-btn:hover{color:#333}
-.maximize-btn:hover{transform:scale(1.1)}
+.maximize-btn{font-size:24px;position:relative;z-index:100}
+.close-btn:hover,.maximize-btn:hover,.modal-timer-btn:hover{color:#333}
+.maximize-btn:hover,.modal-timer-btn:hover{transform:scale(1.1)}
 .delete-btn,.delete-notification-btn{position:absolute;right:15px;top:50%;transform:translateY(-50%);padding:4px 12px;border-radius:15px;background:#f44;color:#fff;border:none;cursor:pointer;transition:all .3s}
 .delete-notification-btn{font-family:STZhongsong,serif;font-size:14px}
 
@@ -178,12 +178,11 @@ input:checked~.switch-text{color:#4CAF50}
 }
 
 /* ===== 模态框定时关闭 ===== */
-.modal-timer{position:relative;display:inline-flex;align-items:center;margin-right:8px;font-family:'Microsoft YaHei',sans-serif;flex-shrink:0}
-.modal-timer-btn{display:flex;align-items:center;justify-content:center;min-width:36px;height:28px;padding:0 8px;background:#f1f5f1;color:#4c6b4f;border:1px solid #d7e3d7;border-radius:14px;font-size:14px;font-weight:600;font-variant-numeric:tabular-nums;cursor:pointer;transition:all .2s}
-.modal-timer-btn:hover{background:#e8f5e9;color:#1b5e20;border-color:#b6d7b8}
-.modal-timer.counting .modal-timer-btn{background:#8bc34a;color:#fff;border-color:#7cb342;box-shadow:0 0 0 3px rgba(139,195,74,.15)}
-.modal-timer.counting .modal-timer-btn:hover{background:#7cb342}
-.modal-timer-panel{position:absolute;top:calc(100% + 10px);right:0;width:220px;padding:12px;background:#fff;border:1px solid #e3eee3;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);opacity:0;visibility:hidden;transform:translateY(-6px);transition:all .2s ease;z-index:200}
+.modal-timer{position:relative;display:inline-flex;align-items:center;margin-right:0;font-family:'Microsoft YaHei',sans-serif;flex-shrink:0;z-index:201}
+.modal-timer-btn{display:inline-flex;align-items:center;justify-content:center;min-width:36px;height:36px;background:transparent;border:none;border-radius:4px;font:inherit;font-size:20px;font-variant-numeric:tabular-nums;line-height:1;white-space:nowrap}
+.modal-timer-btn:focus-visible{outline:2px solid #8bc34a;outline-offset:2px}
+.modal-timer.counting .modal-timer-btn{color:#1b5e20;font-weight:600}
+.modal-timer-panel{position:absolute;top:calc(100% + 8px);right:0;width:220px;padding:12px;background:#fff;border:1px solid #e3eee3;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.12);opacity:0;visibility:hidden;transform:translateY(-6px);transition:all .2s ease;z-index:200}
 .modal-timer.open .modal-timer-panel{opacity:1;visibility:visible;transform:translateY(0)}
 .modal-timer-presets{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px}
 .modal-timer-presets button{padding:6px 0;font-size:13px;background:#f8faf8;color:#4c6b4f;border:1px solid #e3eee3;border-radius:6px;cursor:pointer;transition:all .15s;font-family:inherit}
