@@ -23,28 +23,34 @@ window.App.Timeline = {
         return (typeof solarTerms !== 'undefined') ? solarTerms : [];
     },
 
+    // ★ 统一的时间轴起止：起点固定 1/1，终点高考年为 6/7、其余为 12/31
+    getTimelineRange(currentYear) {
+        const gradYear = 2028;
+        const startDate = new Date(currentYear, 0, 1);        // 1 月 1 日
+        const isGradYear = currentYear === gradYear;
+        const endDate = isGradYear
+            ? new Date(gradYear, 5, 7)                        // 高考年：6 月 7 日
+            : new Date(currentYear, 11, 31);                  // 其余：12 月 31 日
+
+        return { startDate, endDate, isGradYear };
+    },
+
     generateMarkers() {
         const terms = this.getSolarTerms();
         if (!terms.length) return;
 
         const currentYear = new Date().getFullYear();
-        const gradYear = 2028;
+        const { startDate, endDate, isGradYear } = this.getTimelineRange(currentYear);
 
-        const springStart = terms.find(t => t.name === '立春');
-        if (!springStart) return;
-
-        const startDate = new Date(currentYear, springStart.month - 1, springStart.day);
         const endMarkerEl = document.querySelector('.end-marker');
-        let endDate;
-
-        if (currentYear === gradYear) {
-            endDate = new Date(gradYear, 5, 7);
-            endMarkerEl.style.display = 'block';
-            document.getElementById('timelineEndTitle').textContent = '高考日';
-            document.getElementById('timelineEndDate').textContent = '6月7日';
-        } else {
-            endDate = new Date(currentYear, 11, 31);
-            endMarkerEl.style.display = 'none';
+        if (endMarkerEl) {
+            if (isGradYear) {
+                endMarkerEl.style.display = 'block';
+                document.getElementById('timelineEndTitle').textContent = '高考日';
+                document.getElementById('timelineEndDate').textContent = '6月7日';
+            } else {
+                endMarkerEl.style.display = 'none';
+            }
         }
 
         const totalDays = (endDate - startDate) / 86400000;
@@ -117,14 +123,7 @@ window.App.Timeline = {
         if (!terms.length) return;
 
         const currentYear = new Date().getFullYear();
-        const gradYear = 2028;
-        const springStart = terms.find(t => t.name === '立春');
-        if (!springStart) return;
-
-        const startDate = new Date(currentYear, springStart.month - 1, springStart.day);
-        const endDate = currentYear === gradYear
-            ? new Date(gradYear, 5, 7)
-            : new Date(currentYear, 11, 31);
+        const { startDate, endDate } = this.getTimelineRange(currentYear);
 
         const progress = Math.min(1, Math.max(0, (new Date() - startDate) / (endDate - startDate)));
         const timeline = document.getElementById('timeline');
