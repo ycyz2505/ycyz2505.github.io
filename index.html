@@ -106,8 +106,8 @@
                         <div class="probability-control">
                             <span class="switch-text">金句轮播时间间隔（秒）</span>
                             <div class="range-group">
-                                <input type="range" id="intervalSlider" min="1" max="60" value="15">
-                                <input type="number" id="intervalValue" min="1" max="60" value="15">
+                                <input type="range" id="intervalSlider" min="1" max="600" value="15">
+                                <input type="number" id="intervalValue" min="1" max="600" value="15">
                                 <button class="reset-btn" onclick="resetInterval()">重置</button>
                             </div>
                         </div>
@@ -183,6 +183,8 @@
 
                     2026.9.27
                     1. 修复金句不正常更新的 bug，优化金句轮播逻辑；
+                    2. 将通知、寻物的字号最大值改为 240px，金句轮播时间间隔最大值改为 600s；
+                    3. 新增模态框定时关闭功能。
                 </div>
             </div>
         </div>
@@ -275,8 +277,8 @@
                         border-top:1px solid #eee;">
                         <div class="font-size-control">
                             <span class="font-size-label">字体大小:</span>
-                            <input type="range" id="lostAndFoundFontSizeSlider" min="12" max="120" value="28">
-                            <input type="number" id="lostAndFoundFontSizeValue" min="12" max="120" value="28">
+                            <input type="range" id="lostAndFoundFontSizeSlider" min="12" max="240" value="28">
+                            <input type="number" id="lostAndFoundFontSizeValue" min="12" max="240" value="28">
                             <span>px</span>
                         </div>
                     </div>
@@ -304,8 +306,8 @@
                         <button class="add-notification-btn" id="addNotificationBtn">+ 添加通知</button>
                         <div class="font-size-control">
                             <span class="font-size-label">字体大小:</span>
-                            <input type="range" id="fontSizeSlider" min="12" max="120" value="16">
-                            <input type="number" id="fontSizeValue" min="12" max="120" value="16">
+                            <input type="range" id="fontSizeSlider" min="12" max="240" value="16">
+                            <input type="number" id="fontSizeValue" min="12" max="240" value="16">
                             <span>px</span>
                         </div>
                     </div>

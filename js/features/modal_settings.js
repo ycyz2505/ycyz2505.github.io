@@ -97,7 +97,7 @@ window.App.ModalSettings = {
 
     bindInterval() {
         this.bindPair('intervalSlider', 'intervalValue', {
-            min: 1, max: 60, fallback: 15,
+            min: 1, max: 600, fallback: 15,
             onInput: value => {
                 window.App.State.intervalDuration = value * 1000;
                 if (document.getElementById('goldenSwitch')?.checked) {
