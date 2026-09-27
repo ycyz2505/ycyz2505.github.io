@@ -1,136 +1,135 @@
-可以把这个项目理解成一句话：
+此 readme 最后更新时间：2026.9.26。
 
-> `index.html` 是骨架，`css/style.css` 是皮肤，`js/data/*` 是默认数据，`js/features/*` 是功能模块，`store.js` 是本地持久化，`main.js` 是启动器。
+# 杨村一中电子班牌
 
-下面按目录逐个文件说明职责。
+面向班级希沃一体机展示的静态网页，包含班级信息、作息课表、高考倒计时、二十四节气、金句轮播、每日 60 秒新闻简报、公告、通知、寻物、电子座位表、随机抽人等内容。以 1920×1080 为设计基准，自适应缩放到不同分辨率。
 
----
+## 技术栈
 
-## 一、根目录文件
+纯 HTML + CSS + JavaScript，本地存储使用 json。
 
-| 文件 | 作用 | 关键点 |
-|---|---|---|
-| `index.html` | 网站主页面结构 | 定义所有 DOM 容器、按钮、模态框；按顺序引入 CSS 和 JS；内含 1920×1080 等比缩放脚本；默认隐藏 `#pageContent`，由 `main.js` 显示。 |
-| `css/style.css` | 全站样式表 | 字体、背景、模态框、按钮、时间/作息面板、节气卡片、时间轴、每日 60s、金句、开关滑块、公告、通知、寻物、添加按钮、今日课表临时编辑、响应式布局。 |
-| `LocalDataServer.exe` | 本地 HTTP 数据服务 | 提供 `/api/ping` 和 `/api/data/{name}` 读写接口，端口 `17632~17641`，让网页能直接读写本地磁盘数据。没有它时网站进入内存模式，修改不保存。 |
-| `fonts/STZhongsong.ttf` | 中宋字体 | 被 `style.css` 的 `@font-face` 引用，用于标题、金句、通知等。 |
-| `fonts/STKaiti.ttf` | 楷体字体 | 用于高考天数大标题。 |
-| `fonts/STXingkai.ttf` | 行楷字体 | 用于“寻物”大标题。 |
-| `images/立春.png` 等 24 张图 | 二十四节气配图 | 被 `js/data/solarterms.js` 引用，在节气卡片中显示。 |
-
----
-
-## 二、`js/data/` 静态默认数据
-
-这些文件提供网站内置的默认数据。  
-`Store` 初始化时会优先尝试从本地服务读取数据；如果本地服务不可用，就用这里的默认数据。
-
-| 文件 | 作用 | 关键内容 |
-|---|---|---|
-| `js/data/solarterms.js` | 二十四节气默认数据 | 定义 `solarTerms` 数组，每项包含 `name`、`month`、`day`、`color`、`image`、`desc`。`Timeline` 会再用寿星公式动态修正日期。 |
-| `js/data/timetable.js` | 课表默认数据 | 定义 `timetable`，包含 `monday` 到 `friday`、`sunday` 的课程数组。另有 `timetable_last2`、`timetable_last` 是保留旧数据，当前未加载。 |
-| `js/data/schedule.js` | 作息表默认数据 | 定义 `schedule`，包含 `weekday`、`friday`、`saturday`、`sunday` 的时间段和活动名。`schedule2`、`schedule_last` 是保留旧数据，当前未加载。 |
-| `js/data/phrases.js` | 本地金句库 | 定义 `localPhrases`，分 `high`、`medium`、`low` 三档，对应 45%、35%、20% 展示权重。最后 `window.localPhrases = localPhrases` 暴露到全局。 |
-
----
-
-## 三、`js/features/` 基础设施
-
-| 文件 | 作用 | 关键点 |
-|---|---|---|
-| `js/features/00_state.js` | 全局状态和定时器句柄 | 定义 `App.State` 和 `App.Timers`。`App.State` 保存 `lastPhrase`、`intervalDuration`、`apiProbability`、`lostAndFoundFontSize`、`notifications`，并通过 getter/setter 桥接 `Store`。`App.Timers` 保存各模块定时器。 |
-| `js/features/01_utils.js` | 通用工具函数 | 目前只提供 `timeToMinutes(time)`，把 `"HH:MM"` 或 `Date` 转成分钟数，供作息判断使用。 |
-| `js/features/store.js` | 本地数据存储适配层 | 核心持久化模块。探测本地服务端口、加载默认数据、缓存数据、防抖写入、页面关闭前 `flush()`。管理 `settings`、`timetable`、`schedule`、`phrases`、`solarterms`、`lostfound`、`notifications`。控制右上角 `#serviceBanner` 提示。 |
-
----
-
-## 四、`js/features/` 页面功能模块
-
-| 文件 | 作用 | 关键点 |
-|---|---|---|
-| `js/features/clock.js` | 当前时间、日期、星期 | 每帧更新 `#currentDateTime`，内容为 `HH:MM:SS` 和 `YYYY/MM/DD 周X`。 |
-| `js/features/weather.js` | 天气显示 | 先用 `ipwho.is` 获取经纬度和时区，再用 `open-meteo.com` 获取天气代码和温度，更新 `#weatherInfo`，每 60 秒刷新。 |
-| `js/features/daily_image.js` | 每日 60s 图片 | 控制 `.right-image-container` 和 `#apiImage`。读取 `imageSwitch`，开启时加载图片并每 24 小时刷新；关闭时隐藏且不请求。有主备两个图片 API。 |
-| `js/features/timeline.js` | 二十四节气时间轴 | 根据 `solarterms` 生成节气标记和详情卡片，计算进度条，点击标记显示卡片。用寿星公式动态计算当年节气日期。 |
-| `js/features/exam_countdown.js` | 高考倒计时 | 目标日期 `2028-06-07`，计算剩余天数并写入 `#daysUntil`，每天更新一次。 |
-| `js/features/school_schedule.js` | 作息与课表核心模块 | 计算当前活动、下节课、作息倒计时；渲染 `#todayTimetable`；支持今日课表临时覆盖；每秒刷新 `#currentSchedule`、`#nextSchedule`、`#countdownName`、`#countdownTimer`。 |
-| `js/features/golden_phrase.js` | 金句轮播 | 从本地或联网获取金句，更新 `#goldenPhrase`。支持联网概率、轮播间隔、点击刷新、动画开关、API 权重和重试。联网失败自动回退本地金句。 |
-| `js/features/auto_refresh.js` | 自动刷新页面 | 读取 `autoRefreshSwitch`，开启后 15 分钟执行一次 `location.reload()`。 |
-
----
-
-## 五、`js/features/` 模态框模块
-
-| 文件 | 作用 | 关键点 |
-|---|---|---|
-| `js/features/modal_core.js` | 模态框通用开关 | 绑定设置、更新日志、公告、寻物、通知的打开/关闭按钮；处理全屏按钮 `⛶ / 🗗`。金句选择弹窗由 `ModalPhrase` 单独处理。 |
-| `js/features/modal_settings.js` | 设置面板逻辑 | 从 `Store` 同步设置到 DOM；绑定金句开关、图片开关、点击刷新、动画、自动刷新；绑定联网概率、轮播间隔、字号滑块和数字输入；提供 `resetProbability()` 和 `resetInterval()`。 |
-| `js/features/modal_timetable.js` | 今日课表临时编辑 | 在设置面板中渲染今天课表输入框；保存到 `settings.temporaryTimetable`；只对当天生效；第二天自动恢复原始课表；支持“恢复原始课表”。 |
-| `js/features/modal_lost_found.js` | 寻物功能 | 读取和保存 `lostfound` 数组；渲染“姓名 的 物品”；支持行内编辑、添加、删除二次确认；通过 `--laf-font-size` 控制整表字号。 |
-| `js/features/modal_notification.js` | 通知功能 | 读取和保存 `notifications` 数组；支持添加、编辑、删除通知；支持 Enter 换行；字号保存到 `notificationFontSize`。 |
-| `js/features/modal_phrase.js` | 金句选择弹窗 | 从 `Store` 或 `localPhrases` 读取金句，渲染 `#phraseList`；点击某条后调用 `GoldenPhrase.updateDisplay()` 显示，并关闭弹窗；若轮播开启则重启定时器。 |
-
----
-
-## 六、启动文件
-
-| 文件 | 作用 | 关键点 |
-|---|---|---|
-| `js/features/main.js` | 网站启动入口 | `window.onload` 后先 `await App.Store.init()`；然后用 `safeInit` 依次初始化 Clock、Weather、DailyImage、Timeline、ExamCountdown、SchoolSchedule、GoldenPhrase、AutoRefresh、各 Modal；最后显示 `#pageContent`；页面卸载时清理金句定时器并 `Store.flush()` 保存数据。 |
-
----
-
-## 七、整体调用关系
+## 目录结构
 
 ```text
-index.html
-  ├─ 引入 css/style.css
-  ├─ 引入 js/data/*.js            提供默认数据
-  ├─ 引入 js/features/00_state.js 提供 App.State / App.Timers
-  ├─ 引入 js/features/01_utils.js 提供时间工具
-  ├─ 引入 js/features/store.js    提供本地持久化
-  ├─ 引入 js/features/*.js        各功能模块
-  └─ 引入 js/features/main.js     统一启动
-
-Store.init()
-  ├─ 探测 LocalDataServer.exe
-  ├─ 加载 settings / timetable / schedule / phrases / solarterms / lostfound / notifications
-  └─ 失败则使用 js/data/*.js 默认数据
-
-各功能模块
-  ├─ 从 Store 或全局默认数据读取
-  ├─ 更新对应 DOM
-  └─ 用户修改后写回 Store，再由 Store 保存到本地服务
+.
+├── index.html                主页面
+├── LocalDataServer.exe       本地数据服务（可选）
+├── css/style.css             全站样式
+├── fonts/                    字体
+├── images/                   节气配图
+└── js/
+    ├── data/                 默认数据
+    │   ├── solarterms.js     二十四节气
+    │   ├── timetable.js      课表
+    │   ├── schedule.js       作息表
+    │   └── phrases.js        本地金句库
+    └── features/             功能模块
+        ├── 00_state.js       全局状态
+        ├── 01_utils.js       工具函数
+        ├── store.js          本地存储适配
+        ├── clock.js          时间日期
+        ├── weather.js        天气
+        ├── daily_image.js    每日 60 秒
+        ├── timeline.js       节气时间轴
+        ├── exam_countdown.js 高考倒计时
+        ├── school_schedule.js作息课表
+        ├── golden_phrase.js  金句轮播
+        ├── auto_refresh.js   自动刷新
+        ├── modal_core.js     模态框通用开关与全屏
+        ├── modal_settings.js 设置面板
+        ├── modal_timetable.js今日课表临时编辑
+        ├── modal_lost_found.js 寻物
+        ├── modal_notification.js 通知
+        ├── modal_phrase.js   金句选择
+        ├── modal_timer.js    模态框定时关闭
+        └── main.js           启动入口
 ```
 
----
+## 快速开始
 
-## 八、一句话总结每个文件
+直接双击 `index.html` 即可打开。此模式下：
 
-- `index.html`：页面骨架和所有容器。
-- `css/style.css`：全站外观和布局。
-- `js/data/solarterms.js`：二十四节气默认数据。
-- `js/data/timetable.js`：课表默认数据。
-- `js/data/schedule.js`：作息表默认数据。
-- `js/data/phrases.js`：本地金句库。
-- `00_state.js`：全局状态和定时器。
-- `01_utils.js`：时间工具。
-- `store.js`：本地持久化核心。
-- `clock.js`：时间日期显示。
-- `weather.js`：天气显示。
-- `daily_image.js`：每日 60s 图片。
-- `timeline.js`：节气时间轴。
-- `exam_countdown.js`：高考倒计时。
-- `school_schedule.js`：作息、课表、倒计时核心。
-- `golden_phrase.js`：金句轮播。
-- `auto_refresh.js`：自动刷新。
-- `modal_core.js`：模态框开关。
-- `modal_settings.js`：设置面板。
-- `modal_timetable.js`：今日课表临时编辑。
-- `modal_lost_found.js`：寻物。
-- `modal_notification.js`：通知。
-- `modal_phrase.js`：金句选择。
-- `main.js`：启动入口。
-- `LocalDataServer.exe`：本地数据服务。
-- `fonts/*`：字体资源。
-- `images/*`：节气图片资源。
+- 所有展示功能正常；
+- 修改不会被保存；
+- 右上角提示“本地服务未启动”。
+
+考虑到 C 盘会还原，因此本地数据未使用浏览器缓存进行存储，而是由位于 D 盘的 `LocalDataServer.exe` 进行中转，实现网页直接读写本地磁盘。请先运行该文件，再打开页面。页面会自动探测本地端口 `17632` 到 `17641`。
+
+## 功能一览
+
+**展示**：时间日期、天气、当前课程、下节课、作息倒计时、今日课表、高考倒计时、节气时间轴、每日 60 秒、金句轮播。
+
+**交互**：设置、金句选择、公告、更新日志、通知、寻物、今日课表临时编辑、模态框全屏、模态框定时关闭、电子座位表、随机抽人。
+
+## 设置项
+
+| 选项 | 说明 | 默认 |
+|------|------|------|
+| 金句自动轮播 | 按间隔自动切换金句 | 开启 |
+| 联网获取金句概率 | 联网与本地比例 | 50% |
+| 轮播间隔 | 单位秒，1 到 60 | 15 |
+| 启用点击刷新 | 点击金句立即切换 | 关闭 |
+| 金句动画效果 | 淡入淡出 | 开启 |
+| 显示每日 60 秒 | 右侧图片容器 | 开启 |
+| 自动刷新页面 | 每 15 分钟刷新 | 关闭 |
+| 通知字号 | 12 到 120 | 16 |
+| 寻物字号 | 12 到 120 | 28 |
+
+**今日课表临时编辑**：修改仅当天生效，次日自动恢复原始课表。
+
+**模态框定时关闭**：更新日志、公告、寻物、通知的标题栏右侧有定时按钮，可选 1/3/5/10 分钟或自定义秒数，时间到自动关闭。
+
+## 本地数据服务
+
+页面通过 `LocalDataServer.exe` 读写本地磁盘，接口：
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/api/ping` | 探测服务 |
+| GET | `/api/data/{name}` | 读取数据 |
+| PUT | `/api/data/{name}` | 写入数据 |
+
+支持的数据名称：`settings`、`timetable`、`schedule`、`phrases`、`solarterms`、`lostfound`、`notifications`。
+
+服务不可用时自动降级为内存模式，刷新后修改丢失。
+
+## 数据读取规则
+
+大部分模块遵循：
+
+```text
+Store 缓存 > js/data 中的默认数据
+```
+
+写入时先更新缓存，150 毫秒防抖后提交到本地服务；页面关闭时立即写入待保存数据。
+
+## 页面缩放
+
+以 1920×1080 为基准，按视口宽度计算 `zoom` 比例，等比缩放到不同大屏。
+
+## 常见问题
+
+**页面空白**：检查控制台报错、脚本路径。
+
+**提示“本地服务未启动”**：运行 `LocalDataServer.exe` 后刷新。
+
+**天气不可用**：依赖 `ipwho.is` 和 `open-meteo.com`，检查网络。
+
+**每日 60 秒图片不显示**：两个图片接口都失败时会空白，不影响其他功能。
+
+**金句不变**：检查“金句自动轮播”和“轮播间隔”设置；本地金句库为空时会提示“没有找到金句”。
+
+**点击金句没反应**：需在设置中勾选“启用点击刷新金句”，默认关闭。
+
+**修改不保存**：本地服务未启动，启动后重试。
+
+## 开发
+
+- 数据层放 `js/data/`，功能层放 `js/features/`，样式集中在 `css/style.css`；
+- 模块挂载到 `window.App`，首字母大写，私有方法以下划线开头；
+- 脚本加载顺序：数据 → 状态与工具 → 展示模块 → 模态框 → `main.js`；
+- 新增 `.settings-modal` 会自动获得定时关闭功能；如需排除，将其 `id` 加入 `ModalTimer.EXCLUDE`。
+
+## 许可
+
+班级内部使用项目，未附带开源许可证。
