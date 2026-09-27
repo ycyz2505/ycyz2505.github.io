@@ -36,15 +36,11 @@ window.App.ModalTimer = {
         const closeBtn = header.querySelector('.close-btn');
         if (!closeBtn) return;
 
-        // 优先插到最大化按钮左边；没有最大化按钮时插到关闭按钮左边
-        const maximizeBtn = header.querySelector('.maximize-btn');
-        const anchor = maximizeBtn || closeBtn;
-
         // ---------- 构建 UI ----------
         const wrap = document.createElement('div');
         wrap.className = 'modal-timer';
         wrap.innerHTML = `
-            <span class="modal-timer-btn" title="定时关闭">⏱</span>
+            <button class="modal-timer-btn" type="button" title="定时关闭">⏱</button>
             <div class="modal-timer-panel">
                 <div class="modal-timer-presets">
                     <button type="button" data-seconds="60">1分</button>
@@ -61,7 +57,7 @@ window.App.ModalTimer = {
             </div>
         `;
 
-        anchor.parentNode.insertBefore(wrap, anchor);
+        closeBtn.parentNode.insertBefore(wrap, closeBtn);
 
         const btn = wrap.querySelector('.modal-timer-btn');
         const panel = wrap.querySelector('.modal-timer-panel');
@@ -69,7 +65,7 @@ window.App.ModalTimer = {
         const startBtn = wrap.querySelector('[data-action="start"]');
 
         // ---------- 事件 ----------
-        // 面板内点击不冒泡到 document
+        // 点击面板内不冒泡到 document
         panel.addEventListener('click', e => e.stopPropagation());
 
         // 快捷预设

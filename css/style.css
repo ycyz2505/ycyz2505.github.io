@@ -178,12 +178,12 @@ input:checked~.switch-text{color:#4CAF50}
 }
 
 /* ===== 模态框定时关闭 ===== */
-.modal-timer{position:relative;display:inline-flex;align-items:center;flex-shrink:0}
-.modal-timer-btn{cursor:pointer;padding:0 10px;color:#666;font-size:24px;line-height:1;transition:all .3s;user-select:none;display:inline-flex;align-items:center;font-variant-numeric:tabular-nums;font-family:'Microsoft YaHei',sans-serif}
-.modal-timer-btn:hover{color:#333}
-.modal-timer.counting .modal-timer-btn{color:#8bc34a;font-size:14px;font-weight:700;letter-spacing:.4px}
-.modal-timer.counting .modal-timer-btn:hover{color:#7cb342}
-.modal-timer-panel{position:absolute;top:calc(100% + 10px);right:0;width:220px;padding:12px;background:#fff;border:1px solid #e3eee3;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);opacity:0;visibility:hidden;transform:translateY(-6px);transition:all .2s ease;z-index:200;cursor:default}
+.modal-timer{position:relative;display:inline-flex;align-items:center;margin-right:8px;font-family:'Microsoft YaHei',sans-serif;flex-shrink:0}
+.modal-timer-btn{display:flex;align-items:center;justify-content:center;min-width:36px;height:28px;padding:0 8px;background:#f1f5f1;color:#4c6b4f;border:1px solid #d7e3d7;border-radius:14px;font-size:14px;font-weight:600;font-variant-numeric:tabular-nums;cursor:pointer;transition:all .2s}
+.modal-timer-btn:hover{background:#e8f5e9;color:#1b5e20;border-color:#b6d7b8}
+.modal-timer.counting .modal-timer-btn{background:#8bc34a;color:#fff;border-color:#7cb342;box-shadow:0 0 0 3px rgba(139,195,74,.15)}
+.modal-timer.counting .modal-timer-btn:hover{background:#7cb342}
+.modal-timer-panel{position:absolute;top:calc(100% + 10px);right:0;width:220px;padding:12px;background:#fff;border:1px solid #e3eee3;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);opacity:0;visibility:hidden;transform:translateY(-6px);transition:all .2s ease;z-index:200}
 .modal-timer.open .modal-timer-panel{opacity:1;visibility:visible;transform:translateY(0)}
 .modal-timer-presets{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px}
 .modal-timer-presets button{padding:6px 0;font-size:13px;background:#f8faf8;color:#4c6b4f;border:1px solid #e3eee3;border-radius:6px;cursor:pointer;transition:all .15s;font-family:inherit}
