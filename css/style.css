@@ -195,3 +195,4 @@ input:checked~.switch-text{color:#4CAF50}
 .modal-timer-custom button{height:30px;padding:0 12px;font-size:13px;background:#8bc34a;color:#fff;border:none;border-radius:6px;cursor:pointer;transition:all .15s;font-family:inherit}
 .modal-timer-custom button:hover{background:#7cb342}
 .modal-timer-hint{margin-top:8px;font-size:11px;color:#999;text-align:center}
+.settings-header-actions{display:flex;align-items:center}

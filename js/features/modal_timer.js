@@ -70,8 +70,15 @@ window.App.ModalTimer = {
          * 定时关闭 -> 关闭
          */
         const maximizeBtn = header.querySelector('.maximize-btn');
-        const insertBefore = maximizeBtn || closeBtn;
-        insertBefore.parentNode.insertBefore(wrap, insertBefore);
+
+        if (maximizeBtn) {
+            maximizeBtn.parentNode.insertBefore(wrap, maximizeBtn);
+        } else {
+            const actions = document.createElement('div');
+            actions.className = 'settings-header-actions';
+            actions.append(wrap, closeBtn);
+            header.appendChild(actions);
+        }
 
         const btn = wrap.querySelector('.modal-timer-btn');
         const panel = wrap.querySelector('.modal-timer-panel');
