@@ -176,3 +176,23 @@ input:checked~.switch-text{color:#4CAF50}
 .timetable-editor-meta,.timetable-editor-status{text-align:left;white-space:normal}
 .timetable-editor-grid{grid-template-columns:1fr}
 }
+
+/* ===== 模态框定时关闭 ===== */
+.modal-timer{position:relative;display:inline-flex;align-items:center;margin-right:8px;font-family:'Microsoft YaHei',sans-serif;flex-shrink:0}
+.modal-timer-btn{display:flex;align-items:center;justify-content:center;min-width:36px;height:28px;padding:0 8px;background:#f1f5f1;color:#4c6b4f;border:1px solid #d7e3d7;border-radius:14px;font-size:14px;font-weight:600;font-variant-numeric:tabular-nums;cursor:pointer;transition:all .2s}
+.modal-timer-btn:hover{background:#e8f5e9;color:#1b5e20;border-color:#b6d7b8}
+.modal-timer.counting .modal-timer-btn{background:#8bc34a;color:#fff;border-color:#7cb342;box-shadow:0 0 0 3px rgba(139,195,74,.15)}
+.modal-timer.counting .modal-timer-btn:hover{background:#7cb342}
+.modal-timer-panel{position:absolute;top:calc(100% + 10px);right:0;width:220px;padding:12px;background:#fff;border:1px solid #e3eee3;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);opacity:0;visibility:hidden;transform:translateY(-6px);transition:all .2s ease;z-index:200}
+.modal-timer.open .modal-timer-panel{opacity:1;visibility:visible;transform:translateY(0)}
+.modal-timer-presets{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px}
+.modal-timer-presets button{padding:6px 0;font-size:13px;background:#f8faf8;color:#4c6b4f;border:1px solid #e3eee3;border-radius:6px;cursor:pointer;transition:all .15s;font-family:inherit}
+.modal-timer-presets button:hover{background:#e8f5e9;color:#1b5e20;border-color:#b6d7b8}
+.modal-timer-custom{display:flex;align-items:center;gap:6px}
+.modal-timer-custom input{flex:1;min-width:0;height:30px;box-sizing:border-box;padding:0 8px;border:1px solid #d8e5d8;border-radius:6px;font-size:13px;color:#333;text-align:center;outline:none;transition:border-color .2s,box-shadow .2s;font-family:inherit;-moz-appearance:textfield}
+.modal-timer-custom input::-webkit-outer-spin-button,.modal-timer-custom input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.modal-timer-custom input:focus{border-color:#8bc34a;box-shadow:0 0 0 3px rgba(139,195,74,.15)}
+.modal-timer-custom span{font-size:12px;color:#999}
+.modal-timer-custom button{height:30px;padding:0 12px;font-size:13px;background:#8bc34a;color:#fff;border:none;border-radius:6px;cursor:pointer;transition:all .15s;font-family:inherit}
+.modal-timer-custom button:hover{background:#7cb342}
+.modal-timer-hint{margin-top:8px;font-size:11px;color:#999;text-align:center}
