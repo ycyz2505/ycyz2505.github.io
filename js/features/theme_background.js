@@ -16,7 +16,21 @@ window.App.ThemeBackground = {
         return typeof solarTerms !== 'undefined' ? solarTerms : [];
     },
 
+    // 主题渐变是否开启（读取用户设置，默认开启）
+    isGradientEnabled() {
+        if (window.App.Store) {
+            return window.App.Store.getSetting('themeGradientSwitch') !== false;
+        }
+        return true;
+    },
+
     update() {
+        // 关闭时：清除内联变量，回退到 CSS 里写死的默认绿色主题
+        if (!this.isGradientEnabled()) {
+            this.resetTheme();
+            return;
+        }
+
         const terms = this.getTerms();
         if (!terms.length) return;
 
@@ -24,6 +38,27 @@ window.App.ThemeBackground = {
         if (!base) return;
 
         this.applyTheme(base);
+    },
+
+    // 移除所有动态注入的主题变量，让 :root 里的默认值重新生效
+    resetTheme() {
+        const root = document.documentElement;
+        [
+            '--theme-primary',
+            '--theme-primary-hover',
+            '--theme-primary-active',
+            '--theme-primary-rgb',
+            '--theme-dark',
+            '--theme-text',
+            '--theme-muted',
+            '--theme-bg-start',
+            '--theme-bg-end',
+            '--theme-surface',
+            '--theme-surface-solid',
+            '--theme-surface-soft',
+            '--theme-surface-hover',
+            '--theme-border'
+        ].forEach(name => root.style.removeProperty(name));
     },
 
     // 兼容旧接口：返回当前插值出的色相（0~360，OKLCH 色相角）

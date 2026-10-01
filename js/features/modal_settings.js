@@ -29,6 +29,7 @@ window.App.ModalSettings = {
         setChecked('imageSwitch', s.imageSwitch, true);
         setChecked('clickRefreshSwitch', s.clickRefreshSwitch, false);
         setChecked('animationSwitch', s.animationSwitch, true);
+        setChecked('themeGradientSwitch', s.themeGradientSwitch, true);
         setChecked('autoRefreshSwitch', s.autoRefreshSwitch, false);
 
         const intervalSec = (s.intervalDuration ?? 15000) / 1000;
@@ -129,6 +130,12 @@ window.App.ModalSettings = {
         document.getElementById('animationSwitch')?.addEventListener('change', e => {
             saveSetting('animationSwitch', e.target.checked);
             document.getElementById('goldenPhrase')?.classList.toggle('no-animation', !e.target.checked);
+        });
+
+        document.getElementById('themeGradientSwitch')?.addEventListener('change', e => {
+            saveSetting('themeGradientSwitch', e.target.checked);
+            // 立刻重新计算/回退主题色，无需刷新页面
+            window.App.ThemeBackground?.update();
         });
 
         // clickRefresh / autoRefresh 的持久化分别在 golden_phrase.js / auto_refresh.js 中完成

@@ -21,6 +21,7 @@ window.App.Store = {
             intervalDuration: 15000,
             clickRefreshSwitch: false,
             animationSwitch: true,
+            themeGradientSwitch: true,
             autoRefreshSwitch: false,
             lostAndFoundFontSize: 28,
             notificationFontSize: 16,

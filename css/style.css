@@ -1,20 +1,19 @@
 :root{
-    /* ===== 主题色（由 theme_background.js 动态注入；此处为默认青绿主题回退值） ===== */
-    --theme-primary:        #4f9d78;
-    --theme-primary-hover:  #458c6b;
-    --theme-primary-active: #3b7c5e;
-    /* 主色的 RGB 分量（供 rgba() 半透明光晕使用） */
-    --theme-primary-rgb:    79, 157, 120;
-    --theme-dark:           #20463a;
-    --theme-text:           #2f3d37;
-    --theme-muted:          #6f827a;
-    --theme-bg-start:       #f3faf6;
-    --theme-bg-end:         #e6f3ec;
+    /* ===== 主题色（由 theme_background.js 动态注入；此处为默认主题回退值） ===== */
+    --theme-primary:        #8bc34a;
+    --theme-primary-hover:  #7cb342;
+    --theme-primary-active: #689f38;
+    --theme-primary-rgb:    139, 195, 74;
+    --theme-dark:           #1b5e20;
+    --theme-text:           #2d2d2d;
+    --theme-muted:          #666666;
+    --theme-bg-start:       #f5fff5;
+    --theme-bg-end:         #e8f5e9;
     --theme-surface:        rgba(255,255,255,.9);
-    --theme-surface-solid:  #fcfffd;
-    --theme-surface-soft:   #eef8f2;
-    --theme-surface-hover:  #e0f1e8;
-    --theme-border:         #dcebe2;
+    --theme-surface-solid:  #ffffff;
+    --theme-surface-soft:   #f8f8f8;
+    --theme-surface-hover:  #e8f5e9;
+    --theme-border:         #eeeeee;
 }
 
 body,html{overflow:hidden;margin:0;padding:0;width:100%;height:100%;font-family:'Microsoft YaHei',sans-serif;background:linear-gradient(to bottom right,var(--theme-bg-start),var(--theme-bg-end))}
