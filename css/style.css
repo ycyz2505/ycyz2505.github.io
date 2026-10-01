@@ -120,7 +120,7 @@ body,html{overflow:hidden;margin:0;padding:0;width:100%;height:100%;font-family:
 .right-image-container img{height:800px;object-fit:cover;display:block;border-radius:6px;width:auto}
 
 /* ===== 金句 ===== */
-#goldenPhrase{text-align:center;margin:0 auto;width:760px;font-size:26px;color:var(--theme-dark);min-height:40px;font-family:STZhongSong,cursive;text-shadow:1px 1px 2px rgba(0,0,0,.1);transition:opacity .5s,transform .3s;position:relative;top:0;cursor:pointer;z-index:5}
+#goldenPhrase{text-align:center;margin:0 auto;width:760px;font-size:27px;color:var(--theme-dark);min-height:40px;font-family:STZhongSong,cursive;text-shadow:1px 1px 2px rgba(0,0,0,.1);transition:opacity .5s,transform .3s;position:relative;top:0;cursor:pointer;z-index:5}
 #goldenPhrase:active{transform:scale(.98)}
 #goldenPhrase.no-animation{transition:none!important}
 #goldenPhrase.no-animation:active{transform:none!important}
