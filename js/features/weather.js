@@ -23,22 +23,19 @@ window.App.Weather = {
                 'https://api.open-meteo.com/v1/forecast' +
                 `?latitude=${encodeURIComponent(loc.latitude)}` +
                 `&longitude=${encodeURIComponent(loc.longitude)}` +
-                '&current=weather_code' +
-                '&daily=temperature_2m_min,temperature_2m_max' +
-                '&forecast_days=1' +
+                '&current=weather_code,temperature_2m' +
                 `&timezone=${encodeURIComponent(tz)}`;
 
             const res = await fetch(url);
             if (!res.ok) throw new Error('天气数据请求失败');
 
-            const { current, daily } = await res.json();
-            if (!current || (daily && (!Array.isArray(daily.temperature_2m_min) || !Array.isArray(daily.temperature_2m_max)))) {
+            const { current } = await res.json();
+            if (!current || typeof current.temperature_2m !== 'number') {
                 throw new Error('天气数据格式错误');
             }
 
-            const low = this.formatTemperature(daily.temperature_2m_min[0]);
-            const high = this.formatTemperature(daily.temperature_2m_max[0]);
-            el.textContent = `${this.getWeatherName(current.weather_code)} ${low}~${high}℃`;
+            const temp = this.formatTemperature(current.temperature_2m);
+            el.textContent = `${this.getWeatherName(current.weather_code)} ${temp}℃`;
         } catch (err) {
             console.error('天气加载失败:', err);
             el.textContent = '天气暂不可用';
