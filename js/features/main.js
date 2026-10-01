@@ -30,6 +30,7 @@ window.onload = async function () {
     safeInit('SchoolSchedule', () => window.App.SchoolSchedule?.init());
     safeInit('GoldenPhrase', () => window.App.GoldenPhrase?.init());
     safeInit('AutoRefresh', () => window.App.AutoRefresh?.init());
+    safeInit('ThemeBackground', () => window.App.ThemeBackground?.init());
 
     safeInit('ModalCore', () => window.App.ModalCore?.init());
     safeInit('ModalSettings', () => window.App.ModalSettings?.init());
