@@ -4,6 +4,8 @@ window.App.ModalSettings = {
         this.bindProbability();
         this.bindInterval();
         this.bindSwitches();
+        this.bindVirtualTime();
+        this.bindPreviewSlider();
 
         window.resetProbability = () => this.setProbability(50);
         window.resetInterval = () => this.setIntervalDuration(15);
@@ -132,6 +134,185 @@ window.App.ModalSettings = {
         // clickRefresh / autoRefresh 的持久化分别在 golden_phrase.js / auto_refresh.js 中完成
         document.getElementById('clickRefreshSwitch')?.addEventListener('change', e => {
             saveSetting('clickRefreshSwitch', e.target.checked);
+        });
+    },
+
+    // ---------- 虚拟时间 ----------
+
+    // 把 Date 转成 <input type="datetime-local"> 需要的本地时间字符串
+    toLocalInputValue(date) {
+        const pad = n => String(n).padStart(2, '0');
+        return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` +
+               `T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+    },
+
+    formatOffset(ms) {
+        const abs = Math.abs(ms);
+        const sign = ms >= 0 ? '+' : '-';
+        const days = Math.floor(abs / 86400000);
+        const hours = Math.floor((abs % 86400000) / 3600000);
+        const mins = Math.floor((abs % 3600000) / 60000);
+        const parts = [];
+        if (days) parts.push(`${days}天`);
+        if (hours) parts.push(`${hours}小时`);
+        if (mins) parts.push(`${mins}分`);
+        if (!parts.length) parts.push('不到1分钟');
+        return sign + parts.join('');
+    },
+
+    bindVirtualTime() {
+        const input = document.getElementById('virtualTimeInput');
+        const applyBtn = document.getElementById('applyVirtualTime');
+        const resetBtn = document.getElementById('resetVirtualTime');
+        const statusEl = document.getElementById('timeOffsetStatus');
+        const hintEl = document.getElementById('timeOffsetHint');
+        if (!input) return;
+
+        const currentOffset = window.App.Utils.getTimeOffset();
+
+        // 输入框初值 = 当前"业务时间"
+        input.value = this.toLocalInputValue(window.App.Utils.now());
+
+        if (statusEl) {
+            statusEl.textContent = currentOffset === 0
+                ? '当前跟随系统时间'
+                : `已偏移 ${this.formatOffset(currentOffset)}`;
+        }
+
+        if (hintEl) {
+            hintEl.textContent = currentOffset === 0
+                ? ''
+                : `实际系统时间：${new Date().toLocaleString('zh-CN')}`;
+        }
+
+        applyBtn?.addEventListener('click', () => {
+            const val = input.value;
+            if (!val) return;
+
+            const target = new Date(val);
+            if (isNaN(target.getTime())) {
+                if (hintEl) hintEl.textContent = '时间格式无效';
+                return;
+            }
+
+            const offset = target.getTime() - Date.now();
+            window.App.Utils.setTimeOffset(offset);
+
+            // 直接刷新页面，让所有模块按新时间重新初始化
+            location.reload();
+        });
+
+        resetBtn?.addEventListener('click', () => {
+            window.App.Utils.setTimeOffset(0);
+            location.reload();
+        });
+    },
+
+    // ---------- 时间预览滑动条 ----------
+
+    bindPreviewSlider() {
+        const zone = document.getElementById('previewSliderZone');
+        const slider = document.getElementById('previewSlider');
+        const labelStart = document.getElementById('previewSliderLabelStart');
+        const labelEnd = document.getElementById('previewSliderLabelEnd');
+        const currentEl = document.getElementById('previewSliderCurrent');
+        const modal = document.getElementById('settingsModal');
+        if (!zone || !slider || !modal) return;
+
+        // 以"当前虚拟时间"所在的年份作为滑动范围：1/1 ~ 12/31
+        const now = window.App.Utils.now();
+        const year = now.getFullYear();
+        const startDate = new Date(year, 0, 1);
+        const endDate = new Date(year, 11, 31);
+        const totalDays = Math.round((endDate - startDate) / 86400000);
+
+        slider.min = 0;
+        slider.max = totalDays;
+
+        // 初始滑块位置 = 当前业务时间在一年中的第几天
+        const initialOffset = Math.round((now - startDate) / 86400000);
+        slider.value = Math.max(0, Math.min(totalDays, initialOffset));
+
+        if (labelStart) labelStart.textContent = `${year}/1/1`;
+        if (labelEnd) labelEnd.textContent = `${year}/12/31`;
+
+        const DAY_NAMES = '日一二三四五六';
+
+        // 把滑块位置换算成预览日期（时分秒继承当前业务时间，这样作息状态也直观）
+        const getPreviewDate = () => {
+            const dayIndex = Number(slider.value) || 0;
+            const base = new Date(year, 0, 1 + dayIndex);
+            const vNow = window.App.Utils.now();
+            base.setHours(
+                vNow.getHours(),
+                vNow.getMinutes(),
+                vNow.getSeconds(),
+                0
+            );
+            return base;
+        };
+
+        const refreshLabel = () => {
+            const date = getPreviewDate();
+            if (currentEl) {
+                currentEl.textContent =
+                    `预览：${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()} 周${DAY_NAMES[date.getDay()]}`;
+            }
+        };
+
+        // 拖动过程：只改内存偏移 + 轻量实时刷新（A 档，80ms 节流）
+        const applyPreviewLight = () => {
+            const preview = getPreviewDate();
+            const offset = preview.getTime() - Date.now();
+
+            window.App.Utils.setTimeOffset(offset, { persist: false });
+            window.App.Utils.refreshAll();   // 轻量：文本/颜色/进度
+            refreshLabel();
+        };
+
+        // 松手：持久化 + 完整刷新（A 档 + B 档）
+        const applyPreviewFull = () => {
+            const preview = getPreviewDate();
+            const offset = preview.getTime() - Date.now();
+
+            window.App.Utils.setTimeOffset(offset, { persist: true });
+            window.App.Utils.refreshAllFull();   // 完整：含课表 HTML 重建
+            refreshLabel();
+        };
+
+        // 拖动过程：实时应用 + 淡化模态框
+        slider.addEventListener('input', () => {
+            modal.classList.add('previewing');
+            applyPreviewLight();
+        });
+
+        // 松手：完整刷新一次 + 恢复模态框
+        slider.addEventListener('change', () => {
+            applyPreviewFull();
+            modal.classList.remove('previewing');
+        });
+
+        // 鼠标离开/失焦时兜底，避免 previewing 卡住
+        slider.addEventListener('mouseleave', () => {
+            if (slider.matches(':active')) return;
+            modal.classList.remove('previewing');
+        });
+
+        // 键盘操作时（方向键），input 和 change 会同时触发，
+        // 用 rAF 稍微延后移除 previewing，避免视觉闪烁
+        slider.addEventListener('keyup', () => {
+            requestAnimationFrame(() => {
+                if (!slider.matches(':active')) {
+                    modal.classList.remove('previewing');
+                }
+            });
+        });
+
+        refreshLabel();
+
+        // 关闭设置面板时也要清掉 previewing 状态
+        document.getElementById('closeSettings')?.addEventListener('click', () => {
+            modal.classList.remove('previewing');
         });
     }
 };

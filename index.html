@@ -81,6 +81,35 @@
                 </div>
 
                 <div class="settings-body">
+                    <!-- 虚拟时间 -->
+                    <section class="time-offset-panel" id="virtualTimePanel">
+                        <div class="time-offset-header">
+                            <h4 class="time-offset-title">虚拟时间</h4>
+                            <span class="time-offset-meta" id="timeOffsetStatus">当前跟随系统时间</span>
+                        </div>
+
+                        <p class="time-offset-note">
+                            设置后，网站的所有时间判断（时钟、高考倒计时、作息、课表、节气）都会按此时间计算。设置会被保存，点击"恢复系统时间"即可关闭。
+                        </p>
+
+                        <div class="time-offset-actions">
+                            <input
+                                type="datetime-local"
+                                id="virtualTimeInput"
+                                class="virtual-time-input"
+                                step="1"
+                            >
+                            <button type="button" class="timetable-save-btn" id="applyVirtualTime">
+                                应用
+                            </button>
+                            <button type="button" class="timetable-reset-btn" id="resetVirtualTime">
+                                恢复系统时间
+                            </button>
+                        </div>
+
+                        <div class="time-offset-hint" id="timeOffsetHint"></div>
+                    </section>
+
                     <div class="switch-container">
                         <label class="switch">
                             <span class="switch-text">金句自动轮播</span>
@@ -158,6 +187,17 @@
                     </section>
                 </div>
             </div>
+
+            <!-- 时间预览滑动条（拖动时会浮到最上层） -->
+            <div class="preview-slider-zone" id="previewSliderZone">
+                <div class="preview-slider-header">
+                    <span class="preview-slider-label" id="previewSliderLabelStart">--</span>
+                    <span class="preview-slider-current" id="previewSliderCurrent">--</span>
+                    <span class="preview-slider-label" id="previewSliderLabelEnd">--</span>
+                </div>
+                <input type="range" class="preview-slider" id="previewSlider" min="0" max="365" value="0" step="1">
+                <div class="preview-slider-hint">左右拖动预览不同日期的网站效果，松开鼠标保存</div>
+            </div>
         </div>
 
         <!-- 更新日志模态框 -->
@@ -173,7 +213,10 @@
                     待添加的新功能：自定义倒计时（不只是高考倒计时，如一月考倒计时、期末倒计时等）、智能的座位表（支持快捷搜索等）、老虎机（随机抽人）、方便地统计需要讲的题目（课前统计好，课上老师直接讲）、数据本地存储（目的是增加普适性，让所有班级都能用上这个网站，而不是仅 22 班）等。欢迎提建议。
 
                     2026.10.1
-                    1. 更改节气颜色，并新增主题色根据当前日期随节气颜色变化；
+                    1. 重新设计全部 24 节气的配色，改为贴合四季氛围的多色方案；
+                    2. 新增"主题跟随节气"功能：背景、按钮、标题、边框等整站 UI 的颜色会随日期在一年中缓缓变化；
+                    3. 新增虚拟时间功能，可在设置中修改网站显示的日期和时间（时钟、倒计时、作息、课表、节气均按此计算）；
+                    4. 新增时间预览滑动条：拖动即可实时预览一年内不同日期的网站效果，拖动时轻量刷新（文本、颜色、进度），松手后完整刷新（节气标记、课表结构），避免长时间拖动卡顿；
 
                     2026.9.27
                     1. 修复金句不正常更新的 bug，优化金句轮播逻辑；

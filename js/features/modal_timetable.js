@@ -35,7 +35,7 @@ window.App.ModalTimetable = {
             });
     },
 
-    getDateKey(date = new Date()) {
+    getDateKey(date = window.App.Utils.now()) {
         const pad = value =>
             String(value).padStart(2, '0');
 
@@ -46,7 +46,7 @@ window.App.ModalTimetable = {
         ].join('-');
     },
 
-    getDateLabel(date = new Date()) {
+    getDateLabel(date = window.App.Utils.now()) {
         const dayNames = [
             '日',
             '一',
@@ -155,7 +155,7 @@ window.App.ModalTimetable = {
 
         if (!editor) return;
 
-        const date = new Date();
+        const date = window.App.Utils.now();
         const day = date.getDay();
 
         const originalCourses =
@@ -238,7 +238,7 @@ window.App.ModalTimetable = {
             return;
         }
 
-        const date = new Date();
+        const date = window.App.Utils.now();
         const day = date.getDay();
 
         const inputs = [

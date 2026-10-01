@@ -26,7 +26,10 @@ window.App.Store = {
             notificationFontSize: 16,
 
             // 今日课表临时覆盖，不修改 timetable 原始数据
-            temporaryTimetable: null
+            temporaryTimetable: null,
+
+            // 虚拟时间偏移量（毫秒），0 表示跟随系统时间
+            timeOffset: 0
         },
 
         timetable: {},
@@ -194,7 +197,8 @@ window.App.Store = {
         return settings[key];
     },
 
-    setSetting(key, value) {
+    // options.persist === false 时只改内存，不触发写盘
+    setSetting(key, value, options) {
         if (!this.cache.settings) {
             this.cache.settings = this._clone(
                 this.defaults.settings
@@ -202,7 +206,10 @@ window.App.Store = {
         }
 
         this.cache.settings[key] = value;
-        this._scheduleWrite('settings');
+
+        if (!options || options.persist !== false) {
+            this._scheduleWrite('settings');
+        }
     },
 
     _scheduleWrite(name) {

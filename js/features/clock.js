@@ -8,7 +8,7 @@ window.App.Clock = (() => {
         },
 
         update() {
-            const d = new Date();
+            const d = window.App.Utils.now();
             const html =
                 `<div class="time-section">${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}</div>` +
                 `<div class="date-section">${d.getFullYear()}/${pad(d.getMonth() + 1)}/${pad(d.getDate())} 周${'日一二三四五六'[d.getDay()]}</div>`;

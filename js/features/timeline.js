@@ -1,6 +1,6 @@
 window.App.Timeline = {
     init() {
-        const currentYear = new Date().getFullYear();
+        const currentYear = window.App.Utils.now().getFullYear();
         this.updateSolarTermsDates(currentYear);
         this.generateMarkers();
         this.updateColor();
@@ -13,7 +13,7 @@ window.App.Timeline = {
         setInterval(() => this.updateColor(), 1000);
 
         setInterval(() => {
-            this.updateSolarTermsDates(new Date().getFullYear());
+            this.updateSolarTermsDates(window.App.Utils.now().getFullYear());
             this.generateMarkers();
         }, 86400000);
     },
@@ -39,7 +39,8 @@ window.App.Timeline = {
         const terms = this.getSolarTerms();
         if (!terms.length) return;
 
-        const currentYear = new Date().getFullYear();
+        const now = window.App.Utils.now();
+        const currentYear = now.getFullYear();
         const { startDate, endDate, isGradYear } = this.getTimelineRange(currentYear);
 
         const endMarkerEl = document.querySelector('.end-marker');
@@ -63,7 +64,7 @@ window.App.Timeline = {
             if (termDate < startDate || termDate > endDate) return;
 
             const position = ((termDate - startDate) / 86400000 / totalDays) * 100;
-            const isPast = termDate < new Date();
+            const isPast = termDate < now;
             const isTop = index % 2 === 0;
             const topPosition = isTop ? '-45px' : '25px';
 
@@ -122,10 +123,11 @@ window.App.Timeline = {
         const terms = this.getSolarTerms();
         if (!terms.length) return;
 
-        const currentYear = new Date().getFullYear();
+        const now = window.App.Utils.now();
+        const currentYear = now.getFullYear();
         const { startDate, endDate } = this.getTimelineRange(currentYear);
 
-        const progress = Math.min(1, Math.max(0, (new Date() - startDate) / (endDate - startDate)));
+        const progress = Math.min(1, Math.max(0, (now - startDate) / (endDate - startDate)));
         const timeline = document.getElementById('timeline');
         if (timeline) timeline.style.setProperty('--progress-percent', `${progress * 100}%`);
     },

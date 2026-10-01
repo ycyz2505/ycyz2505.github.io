@@ -41,7 +41,7 @@ window.App.SchoolSchedule = {
             : {};
     },
 
-    getDateKey(date = new Date()) {
+    getDateKey(date = window.App.Utils.now()) {
         const pad = value => String(value).padStart(2, '0');
 
         return [
@@ -51,7 +51,7 @@ window.App.SchoolSchedule = {
         ].join('-');
     },
 
-    getTemporaryTimetableOverride(day = new Date().getDay()) {
+    getTemporaryTimetableOverride(day = window.App.Utils.now().getDay()) {
         const store = window.App.Store;
 
         if (!store) return null;
@@ -74,7 +74,7 @@ window.App.SchoolSchedule = {
         return override;
     },
 
-    getEffectiveCourses(day = new Date().getDay()) {
+    getEffectiveCourses(day = window.App.Utils.now().getDay()) {
         const override = this.getTemporaryTimetableOverride(day);
 
         if (override) {
@@ -150,7 +150,7 @@ window.App.SchoolSchedule = {
     },
 
     getCurrentSchedule() {
-        const now = new Date();
+        const now = window.App.Utils.now();
         const day = now.getDay();
         const currentMinutes =
             now.getHours() * 60 + now.getMinutes();
@@ -270,8 +270,10 @@ window.App.SchoolSchedule = {
         );
     },
 
-    updateDisplay() {
-        const day = new Date().getDay();
+    // options.renderTimetable === false 时只更新文字，
+    // 跳过课表 HTML 重建（时间预览滑动时用，避免高频 DOM 重建）
+    updateDisplay(options) {
+        const day = window.App.Utils.now().getDay();
         const result = this.getCurrentSchedule();
 
         const currentElement =
@@ -297,7 +299,9 @@ window.App.SchoolSchedule = {
                     : this.getCourseDisplayName(day, next);
         }
 
-        this.renderTimetable(day);
+        if (!options || options.renderTimetable !== false) {
+            this.renderTimetable(day);
+        }
     },
 
     renderTimetable(day) {
@@ -356,7 +360,7 @@ window.App.SchoolSchedule = {
     },
 
     getNextScheduleInfo() {
-        const now = new Date();
+        const now = window.App.Utils.now();
         const day = now.getDay();
         const currentMinutes =
             now.getHours() * 60 + now.getMinutes();
@@ -456,7 +460,7 @@ window.App.SchoolSchedule = {
 
     updateCountdownDisplay() {
         const result = this.getNextScheduleInfo();
-        const now = new Date();
+        const now = window.App.Utils.now();
 
         let target;
 

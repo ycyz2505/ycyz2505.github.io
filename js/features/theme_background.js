@@ -28,7 +28,7 @@ window.App.ThemeBackground = {
 
     // 找出当前日期落在哪两个节气之间，对"色相"做环形插值
     getCurrentHue(terms) {
-        const now = new Date();
+        const now = window.App.Utils.now();
         const year = now.getFullYear();
 
         const entries = terms
