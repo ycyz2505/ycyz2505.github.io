@@ -185,7 +185,7 @@ window.App.ModalSettings = {
                 : `实际系统时间：${new Date().toLocaleString('zh-CN')}`;
         }
 
-        applyBtn?.addEventListener('click', () => {
+        applyBtn?.addEventListener('click', async () => {
             const val = input.value;
             if (!val) return;
 
@@ -198,12 +198,27 @@ window.App.ModalSettings = {
             const offset = target.getTime() - Date.now();
             window.App.Utils.setTimeOffset(offset);
 
-            // 直接刷新页面，让所有模块按新时间重新初始化
+            // 等写盘完成再刷新，最多等 500ms，避免请求慢时卡太久
+            if (window.App.Store) {
+                await Promise.race([
+                    window.App.Store.flush(),
+                    new Promise(r => setTimeout(r, 500))
+                ]).catch(() => {});
+            }
+
             location.reload();
         });
 
-        resetBtn?.addEventListener('click', () => {
+        resetBtn?.addEventListener('click', async () => {
             window.App.Utils.setTimeOffset(0);
+
+            if (window.App.Store) {
+                await Promise.race([
+                    window.App.Store.flush(),
+                    new Promise(r => setTimeout(r, 500))
+                ]).catch(() => {});
+            }
+
             location.reload();
         });
     },

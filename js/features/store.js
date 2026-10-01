@@ -235,22 +235,25 @@ window.App.Store = {
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify(value)
+            body: JSON.stringify(value),
+            keepalive: true
         }).catch(err => {
             console.warn(`[Store] 保存 ${name} 失败:`, err);
         });
     },
 
     flush() {
-        if (!this.available) return;
+        if (!this.available) return Promise.resolve();
 
+        const tasks = [];
         Object.keys(this.writeTimers).forEach(name => {
             if (this.writeTimers[name]) {
                 clearTimeout(this.writeTimers[name]);
                 this.writeTimers[name] = null;
-                this._writeNow(name, this.cache[name]);
+                tasks.push(this._writeNow(name, this.cache[name]));
             }
         });
+        return Promise.all(tasks);
     },
 
     _clone(value) {

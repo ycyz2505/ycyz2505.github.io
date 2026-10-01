@@ -1,6 +1,25 @@
 ## 1 `css/style.css`
 ```css
-body,html{overflow:hidden;margin:0;padding:0;width:100%;height:100%;font-family:'Microsoft YaHei',sans-serif;background:linear-gradient(to bottom right,#f5fff5,#e8f5e9)}
+:root{
+    /* ===== 主题色（由 theme_background.js 动态注入；此处为默认青绿主题回退值） ===== */
+    --theme-primary:        #4f9d78;
+    --theme-primary-hover:  #458c6b;
+    --theme-primary-active: #3b7c5e;
+    /* 主色的 RGB 分量（供 rgba() 半透明光晕使用） */
+    --theme-primary-rgb:    79, 157, 120;
+    --theme-dark:           #20463a;
+    --theme-text:           #2f3d37;
+    --theme-muted:          #6f827a;
+    --theme-bg-start:       #f3faf6;
+    --theme-bg-end:         #e6f3ec;
+    --theme-surface:        rgba(255,255,255,.9);
+    --theme-surface-solid:  #fcfffd;
+    --theme-surface-soft:   #eef8f2;
+    --theme-surface-hover:  #e0f1e8;
+    --theme-border:         #dcebe2;
+}
+
+body,html{overflow:hidden;margin:0;padding:0;width:100%;height:100%;font-family:'Microsoft YaHei',sans-serif;background:linear-gradient(to bottom right,var(--theme-bg-start),var(--theme-bg-end))}
 
 @font-face{font-family:'STZhongsong';src:url('../fonts/STZhongsong.ttf') format('truetype');font-weight:400;font-style:normal;font-display:swap}
 @font-face{font-family:'STZhongSong';src:url('../fonts/STZhongsong.ttf') format('truetype');font-weight:400;font-style:normal;font-display:swap}
@@ -10,17 +29,33 @@ body,html{overflow:hidden;margin:0;padding:0;width:100%;height:100%;font-family:
 /* ===== 模态框 ===== */
 .settings-modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;justify-content:center;align-items:center;opacity:0;visibility:hidden;transition:all .3s;z-index:999}
 .settings-modal.active{opacity:1;visibility:visible}
-.settings-content{background:#fff;width:60%;height:75%;border-radius:12px;transform:scale(.8);opacity:0;transition:all .3s;position:relative;padding:20px;overflow:hidden;display:flex;flex-direction:column}
+.settings-content{background:var(--theme-surface-solid);width:60%;height:75%;border-radius:12px;transform:scale(.8);opacity:0;transition:all .3s;position:relative;padding:20px;overflow:hidden;display:flex;flex-direction:column}
 .settings-modal.active .settings-content{transform:scale(1);opacity:1}
 .settings-modal.fullscreen .settings-content{width:100%;height:100%;max-width:none;max-height:none;border-radius:0}
 .changelog-modal .settings-content{max-width:600px}
-.settings-header{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #eee;padding-bottom:10px;margin-bottom:20px}
-.settings-header h3{margin:0;font-size:24px;color:#333}
+.settings-header{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--theme-border);padding-bottom:10px;margin-bottom:20px}
+.settings-header h3{margin:0;font-size:24px;color:var(--theme-text)}
 .settings-body{display:flex;flex-direction:column;gap:10px;padding:20px;overflow-y:auto;height:calc(100% - 60px)}
 .text-content{padding:15px;white-space:pre-wrap;overflow-y:auto;height:calc(100% - 50px)}
 
+/* ===== 时间预览滑动条 ===== */
+.preview-slider-zone{position:absolute;left:50%;bottom:24px;transform:translateX(-50%);width:min(1440px,calc(100% - 60px));padding:14px 26px 12px;background:var(--theme-surface-solid);border-radius:12px;box-shadow:0 6px 28px rgba(0,0,0,.22),0 0 0 1px var(--theme-border);display:none;opacity:0;transition:opacity .25s ease,box-shadow .25s ease;z-index:5;font-family:'Microsoft YaHei',sans-serif}
+.settings-modal.active .preview-slider-zone{display:block;opacity:1}
+.settings-modal.previewing .preview-slider-zone{z-index:10001;box-shadow:0 12px 48px rgba(0,0,0,.45),0 0 0 2px var(--theme-primary);transition:none}
+.settings-modal.previewing .settings-content{opacity:.05;transition:opacity .15s ease;pointer-events:none}
+.preview-slider-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;font-size:13px;color:var(--theme-muted)}
+.preview-slider-label{white-space:nowrap;font-family:STZhongsong,serif}
+.preview-slider-current{flex:1;text-align:center;color:var(--theme-dark);font-weight:600;font-size:15px;font-family:STZhongsong,serif}
+.preview-slider{width:100%;height:6px;background:var(--theme-surface-soft);border-radius:3px;-webkit-appearance:none;appearance:none;outline:none;cursor:pointer;margin:0;padding:0;display:block}
+.preview-slider::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:22px;height:22px;background:var(--theme-primary);border-radius:50%;cursor:pointer;border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.25)}
+.preview-slider::-moz-range-thumb{width:22px;height:22px;background:var(--theme-primary);border-radius:50%;cursor:pointer;border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.25)}
+.preview-slider-hint{margin-top:8px;font-size:11px;color:var(--theme-muted);text-align:center}
+@media(max-width:700px){
+.preview-slider-zone{width:calc(100% - 24px);padding:12px 16px 10px}
+}
+
 /* ===== 按钮 ===== */
-.action-button,.settings-button,.add-notification-btn,.reset-btn{background:#8bc34a;border:none;cursor:pointer;color:#fff;transition:all .3s}
+.action-button,.settings-button,.add-notification-btn,.reset-btn{background:var(--theme-primary);border:none;cursor:pointer;color:#fff;transition:all .3s}
 .action-buttons,.settings-button{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:10}
 .action-buttons{display:flex;gap:15px}
 .action-button{padding:0 20px;height:40px;border-radius:20px;box-shadow:0 2px 8px rgba(0,0,0,.2);font-size:14px;display:flex;align-items:center;justify-content:center;white-space:nowrap}
@@ -29,176 +64,197 @@ body,html{overflow:hidden;margin:0;padding:0;width:100%;height:100%;font-family:
 .reset-btn{padding:5px 12px;min-width:50px;white-space:nowrap;border-radius:4px;font-size:13px}
 .action-button:hover,.add-notification-btn:hover{transform:scale(1.05)}
 .settings-button:hover{transform:translateX(-50%) scale(1.1)}
-.reset-btn:hover{background:#7cb342;transform:scale(1.05)}
-.close-btn,.maximize-btn,.modal-timer-btn{cursor:pointer;padding:0 10px;color:#666;line-height:1;transition:all .2s}
+.reset-btn:hover{background:var(--theme-primary-hover);transform:scale(1.05)}
+.close-btn,.maximize-btn,.modal-timer-btn{cursor:pointer;padding:0 10px;color:var(--theme-muted);line-height:1;transition:all .2s}
 .close-btn{font-size:28px}
 .maximize-btn{font-size:24px;position:relative;z-index:100}
-.close-btn:hover,.maximize-btn:hover,.modal-timer-btn:hover{color:#333}
+.close-btn:hover,.maximize-btn:hover,.modal-timer-btn:hover{color:var(--theme-text)}
 .maximize-btn:hover,.modal-timer-btn:hover{transform:scale(1.1)}
 .delete-btn,.delete-notification-btn{position:absolute;right:15px;top:50%;transform:translateY(-50%);padding:4px 12px;border-radius:15px;background:#f44;color:#fff;border:none;cursor:pointer;transition:all .3s}
 .delete-notification-btn{font-family:STZhongsong,serif;font-size:14px}
 
 /* ===== 节气卡片 ===== */
-.solar-card{position:absolute;top:calc(100% + 20px);left:50%;transform:translateX(-50%);width:500px;background:rgba(255,255,255,.96);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.15);padding:20px;opacity:0;visibility:hidden;transition:all .3s;z-index:10;display:flex;align-items:center;gap:20px}
-.solar-card::before{content:'';position:absolute;bottom:100%;left:50%;transform:translateX(-50%);border:10px solid transparent;border-bottom-color:rgba(255,255,255,.96)}
+.solar-card{position:absolute;top:calc(100% + 20px);left:50%;transform:translateX(-50%);width:500px;background:var(--theme-surface);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.15);padding:20px;opacity:0;visibility:hidden;transition:all .3s;z-index:10;display:flex;align-items:center;gap:20px}
+.solar-card::before{content:'';position:absolute;bottom:100%;left:50%;transform:translateX(-50%);border:10px solid transparent;border-bottom-color:var(--theme-surface)}
 .solar-card.active{opacity:1;visibility:visible;transform:translate(-50%,0)}
-.solar-card h3{text-align:center;margin:0 0 15px;font-size:24px;color:#1b5e20;font-family:STZhongsong,serif}
+.solar-card h3{text-align:center;margin:0 0 15px;font-size:24px;color:var(--theme-dark);font-family:STZhongsong,serif}
 .solar-card img{width:160px;height:140px;object-fit:cover;border-radius:8px}
-.solar-card p{font-size:16px;line-height:1.6;color:#444;margin:0;font-family:'Microsoft YaHei';flex-grow:1;text-indent:2em}
+.solar-card p{font-size:16px;line-height:1.6;color:var(--theme-text);margin:0;font-family:'Microsoft YaHei';flex-grow:1;text-indent:2em}
 
 /* ===== 时间 / 作息 ===== */
-#currentDateTime,.schedule-container{position:absolute;left:25px;z-index:5;background:rgba(255,255,255,.9);border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.1)}
+#currentDateTime,.schedule-container{position:absolute;left:25px;z-index:5;background:var(--theme-surface);border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.1)}
 #currentDateTime{top:78px;padding:15px 25px;text-align:center;min-width:180px}
 .schedule-container{top:225px;padding:15px 20px;min-width:190px}
-.time-section{font-family:'Microsoft-Yahei',sans-serif;font-size:44px;color:#1b5e20;margin:8px 0;display:block;width:100%}
-.date-section{font-family:'Microsoft YaHei',serif;font-size:22px;color:#666;letter-spacing:.5px;white-space:nowrap;display:block;width:100%}
+.time-section{font-family:'Microsoft-Yahei',sans-serif;font-size:44px;color:var(--theme-dark);margin:8px 0;display:block;width:100%}
+.date-section{font-family:'Microsoft YaHei',serif;font-size:22px;color:var(--theme-muted);letter-spacing:.5px;white-space:nowrap;display:block;width:100%}
 .schedule-item{font-family:'STZhongSong',sans-serif;margin:8px 0}
-.schedule-title{display:block;font-size:20px;color:#1b5e20;font-weight:600;line-height:.8}
-.schedule-value{display:block;font-size:25px;color:#2d2d2d;text-align:center;margin:4px 0 0;padding:2px 0;line-height:.8}
-.timetable{margin-top:10px;border-top:1px solid #eee;padding-top:8px}
+.schedule-title{display:block;font-size:20px;color:var(--theme-dark);font-weight:600;line-height:.8}
+.schedule-value{display:block;font-size:25px;color:var(--theme-text);text-align:center;margin:4px 0 0;padding:2px 0;line-height:.8}
+.timetable{margin-top:10px;border-top:1px solid var(--theme-border);padding-top:8px}
 .timetable-item{font-size:25px;font-family:STZhongSong,cursive;line-height:1.2;text-align:center}
+.timetable-row{display:flex;align-items:center;font-family:STZhongSong,cursive;font-size:24px;line-height:1;padding:2px 0}
+.timetable-row-divider{border-bottom:2px dashed var(--theme-border);margin-bottom:6px;padding-bottom:6px}
+.timetable-label{width:42%;text-align:right;padding-right:15px;color:var(--theme-primary);font-weight:bold}
+.timetable-course{width:58%;text-align:left;padding-left:5px;color:var(--theme-text)}
 
 /* ===== 导航 / 倒计时 ===== */
 .navbar{background-color:#333;overflow:hidden;width:100%;box-shadow:0 2px 10px rgba(0,0,0,.2);position:relative;z-index:6}
 .brand{float:left;color:#fff;padding:14px 20px;font-size:20px;font-weight:700;text-decoration:none;letter-spacing:1px}
 .navbar a{float:left;display:block;color:#f2f2f2;text-align:center;padding:14px 18px;text-decoration:none;font-size:16px;transition:all .3s}
 .navbar a:hover{background:#ddd;color:#000}
-.small-title{text-align:center;color:#2d2d2d;font-size:38px;font-family:STZhongsong,serif;margin-top:50px;text-shadow:1px 1px 2px rgba(0,0,0,.1)}
-.big-title{text-align:center;color:#1b5e20;font-size:160px;font-family:STKaiti;margin:20px 0;text-shadow:2px 2px 4px rgba(0,0,0,.1)}
+.small-title{text-align:center;color:var(--theme-text);font-size:38px;font-family:STZhongsong,serif;margin-top:50px;text-shadow:1px 1px 2px rgba(0,0,0,.1)}
+.big-title{text-align:center;color:var(--theme-dark);font-size:160px;font-family:STKaiti;margin:20px 0;text-shadow:2px 2px 4px rgba(0,0,0,.1)}
 .timeline-container{max-width:750px;margin:50px auto;position:relative;height:120px;overflow:visible}
 .timeline-progress{height:8px;background:none;border-radius:4px;position:relative;margin-top:60px}
-.timeline-progress::before{content:'';position:absolute;left:0;right:0;top:7px;height:8px;border-radius:4px;background:linear-gradient(to right,#8bc34a 0%,#8bc34a var(--progress-percent),#e0e0e0 var(--progress-percent),#e0e0e0 100%)}
+.timeline-progress::before{content:'';position:absolute;left:0;right:0;top:7px;height:8px;border-radius:4px;background:linear-gradient(to right,var(--theme-primary) 0%,var(--theme-primary) var(--progress-percent),var(--theme-border) var(--progress-percent),var(--theme-border) 100%)}
 .solar-term-marker{position:absolute;top:-45px;width:70px;text-align:center;transform:translateX(-50%);cursor:pointer;transition:all .3s;z-index:2}
 .current-marker{position:absolute;left:0;top:-10px;width:3px;height:30px;background:#ff5722;transform:translateX(-50%);transition:left .5s ease-out;box-shadow:0 2px 4px rgba(255,87,34,.3)}
 .end-marker{position:absolute;right:-15px;top:-45px;width:90px;text-align:center;color:#d32f2f;font-weight:700;text-shadow:0 2px 4px rgba(211,47,47,.2);transform:translateX(30%)}
 
 /* ===== 每日 60s ===== */
-.right-image-container{position:absolute;right:50px;top:45%;transform:translateY(-50%);z-index:5;background:#fff;padding:10px;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,.1);display:flex}
+.right-image-container{position:absolute;right:50px;top:45%;transform:translateY(-50%);z-index:5;background:var(--theme-surface-solid);padding:10px;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,.1);display:flex}
 .right-image-container img{height:800px;object-fit:cover;display:block;border-radius:6px;width:auto}
 
 /* ===== 金句 ===== */
-#goldenPhrase{text-align:center;margin:0 auto;width:760px;font-size:26px;color:#1b5e20;min-height:40px;font-family:STZhongSong,cursive;text-shadow:1px 1px 2px rgba(0,0,0,.1);transition:opacity .5s,transform .3s;position:relative;top:0;cursor:pointer;z-index:5}
+#goldenPhrase{text-align:center;margin:0 auto;width:760px;font-size:26px;color:var(--theme-dark);min-height:40px;font-family:STZhongSong,cursive;text-shadow:1px 1px 2px rgba(0,0,0,.1);transition:opacity .5s,transform .3s;position:relative;top:0;cursor:pointer;z-index:5}
 #goldenPhrase:active{transform:scale(.98)}
 #goldenPhrase.no-animation{transition:none!important}
 #goldenPhrase.no-animation:active{transform:none!important}
 #phraseList{padding:15px;overflow-y:auto;height:calc(100% - 50px)}
-.phrase-item{padding:12px;margin:8px 0;border-radius:6px;background:#f8f8f8;cursor:pointer;transition:all .3s ease;font-family:STZhongSong,cursive;color:#1b5e20}
-.phrase-item:hover{background:#e8f5e9;transform:translateX(5px);box-shadow:0 2px 8px rgba(0,0,0,.1)}
-.phrase-item:active{transform:scale(.97);background:#e0f2f1!important}
+.phrase-item{padding:12px;margin:8px 0;border-radius:6px;background:var(--theme-surface-soft);cursor:pointer;transition:all .3s ease;font-family:STZhongSong,cursive;color:var(--theme-dark)}
+.phrase-item:hover{background:var(--theme-surface-hover);transform:translateX(5px);box-shadow:0 2px 8px rgba(0,0,0,.1)}
+.phrase-item:active{transform:scale(.97);background:var(--theme-surface-hover)!important}
 .phrase-click-effect{animation:phraseClickWave .4s ease-out;position:relative}
-@keyframes phraseClickWave{0%{box-shadow:0 0 0 0 rgba(139,195,74,.3)}100%{box-shadow:0 0 0 10px rgba(139,195,74,0)}}
+@keyframes phraseClickWave{0%{box-shadow:0 0 0 0 rgba(var(--theme-primary-rgb),.3)}100%{box-shadow:0 0 0 10px rgba(var(--theme-primary-rgb),0)}}
 
 /* ===== 开关 / 滑块 ===== */
 input[type="checkbox"]{position:absolute;opacity:0;cursor:pointer;height:0;width:0}
 .switch-container{display:flex;flex-direction:column;gap:20px;margin-top:20px}
 .switch{position:relative;display:flex;align-items:center;justify-content:space-between;width:100%}
 .slider{position:relative;cursor:pointer;width:40px;height:24px;background-color:#ccc;transition:.4s;border-radius:24px}
-.switch-text{font-size:14px;color:#1b5e20;display:inline-block}
+.switch-text{font-size:14px;color:var(--theme-dark);display:inline-block}
 .slider:before{position:absolute;content:"";height:20px;width:20px;left:2px;bottom:2px;background-color:#fff;transition:.4s;border-radius:50%}
-input:checked+.slider{background-color:#8bc34a}
+input:checked+.slider{background-color:var(--theme-primary)}
 input:checked+.slider:before{transform:translateX(16px)}
-input:checked~.switch-text{color:#4CAF50}
+input:checked~.switch-text{color:var(--theme-primary)}
 .probability-control{display:flex;align-items:center;gap:15px;width:100%;margin:12px 0}
-.probability-control .switch-text{flex:1;font-size:14px;color:#1b5e20}
+.probability-control .switch-text{flex:1;font-size:14px;color:var(--theme-dark)}
 .range-group{display:flex;align-items:center;gap:10px;width:40%;justify-content:flex-end}
 .font-size-control{display:flex;align-items:center;gap:10px}
-.font-size-label{font-size:14px;color:#1b5e20;font-family:STZhongsong,serif}
+.font-size-label{font-size:14px;color:var(--theme-dark);font-family:STZhongsong,serif}
 #apiProbability,#intervalSlider,#fontSizeSlider,#lostAndFoundFontSizeSlider{height:4px;background:#ddd;border-radius:2px;-webkit-appearance:none;margin:0 8px}
 #apiProbability,#intervalSlider{width:100%}
 #fontSizeSlider,#lostAndFoundFontSizeSlider{width:150px}
-#apiProbability::-webkit-slider-thumb,#intervalSlider::-webkit-slider-thumb,#fontSizeSlider::-webkit-slider-thumb,#lostAndFoundFontSizeSlider::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;background:#8bc34a;border-radius:50%;cursor:pointer;border:none;box-shadow:none}
-#apiProbability::-moz-range-thumb,#intervalSlider::-moz-range-thumb,#fontSizeSlider::-moz-range-thumb,#lostAndFoundFontSizeSlider::-moz-range-thumb{width:16px;height:16px;background:#8bc34a;border-radius:50%;border:none;cursor:pointer}
+#apiProbability::-webkit-slider-thumb,#intervalSlider::-webkit-slider-thumb,#fontSizeSlider::-webkit-slider-thumb,#lostAndFoundFontSizeSlider::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;background:var(--theme-primary);border-radius:50%;cursor:pointer;border:none;box-shadow:none}
+#apiProbability::-moz-range-thumb,#intervalSlider::-moz-range-thumb,#fontSizeSlider::-moz-range-thumb,#lostAndFoundFontSizeSlider::-moz-range-thumb{width:16px;height:16px;background:var(--theme-primary);border-radius:50%;border:none;cursor:pointer}
 #apiProbabilityValue,#intervalValue,#fontSizeValue{width:50px;padding:5px;border:1px solid #ddd;border-radius:4px;text-align:center;font-size:13px;font-family:inherit}
 
 /* ===== 公告 / 通知 ===== */
-.announcement-card{background:#fff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.1);padding:20px;margin:15px;border:1px solid #eee}
-.announcement-title{font-size:1.6em;color:#1b5e20;font-weight:600;margin-bottom:8px;border-bottom:2px solid #8bc34a;padding-bottom:5px;text-align:center}
-.announcement-time{font-size:.95em;color:#666;margin-bottom:15px;text-align:center}
-.announcement-body{line-height:1.2;color:#444;font-size:1.2em}
+.announcement-card{background:var(--theme-surface-solid);border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.1);padding:20px;margin:15px;border:1px solid var(--theme-border)}
+.announcement-title{font-size:1.6em;color:var(--theme-dark);font-weight:600;margin-bottom:8px;border-bottom:2px solid var(--theme-primary);padding-bottom:5px;text-align:center}
+.announcement-time{font-size:.95em;color:var(--theme-muted);margin-bottom:15px;text-align:center}
+.announcement-body{line-height:1.2;color:var(--theme-text);font-size:1.2em}
 .announcement-body ul{margin:8px 0;padding-left:25px}
 .announcement-body li{margin:6px 0}
-.announcement-footnote{font-size:.85em;color:#999;margin-top:15px;border-top:1px dashed #ddd;padding-top:10px}
+.announcement-footnote{font-size:.85em;color:var(--theme-muted);margin-top:15px;border-top:1px dashed var(--theme-border);padding-top:10px}
 .announcement-content{height:calc(100% - 60px);overflow-y:auto;padding:0 10px}
 .announcement-content::-webkit-scrollbar{width:6px}
-.announcement-content::-webkit-scrollbar-track{background:#f1f1f1;border-radius:3px}
-.announcement-content::-webkit-scrollbar-thumb{background:#c1c1c1;border-radius:3px}
-.announcement-content::-webkit-scrollbar-thumb:hover{background:#8bc34a}
+.announcement-content::-webkit-scrollbar-track{background:var(--theme-surface-soft);border-radius:3px}
+.announcement-content::-webkit-scrollbar-thumb{background:var(--theme-border);border-radius:3px}
+.announcement-content::-webkit-scrollbar-thumb:hover{background:var(--theme-primary)}
 .notification-container{display:flex;flex-direction:column;height:100%;font-family:STZhongsong,serif}
 #notificationContent{flex:1;overflow-y:auto;padding:15px;transition:font-size .3s ease;max-height:calc(100% - 70px)}
-.notification-item{position:relative;margin-bottom:15px;padding:15px;background:#f8f8f8;border-radius:8px;cursor:pointer;transition:all .3s;min-height:40px;word-wrap:break-word;overflow-wrap:break-word;font-family:inherit;box-shadow:0 2px 5px rgba(0,0,0,.05)}
-.notification-item:hover{background:#e8f5e9;box-shadow:0 3px 8px rgba(0,0,0,.1)}
-.notification-editable{width:100%;min-height:60px;padding:10px;border:2px solid #8bc34a;border-radius:4px;font-size:inherit;box-sizing:border-box;font-family:inherit;resize:vertical;line-height:1.5}
-.notification-footer{display:flex;justify-content:space-between;align-items:center;padding:15px;border-top:1px solid #eee;margin-top:10px;position:sticky;bottom:0;background:#fff;z-index:10;flex-shrink:0}
-.empty-notification{text-align:center;padding:30px;color:#999;font-style:italic}
+.notification-item{position:relative;margin-bottom:15px;padding:15px;background:var(--theme-surface-soft);border-radius:8px;cursor:pointer;transition:all .3s;min-height:40px;word-wrap:break-word;overflow-wrap:break-word;font-family:inherit;box-shadow:0 2px 5px rgba(0,0,0,.05)}
+.notification-item:hover{background:var(--theme-surface-hover);box-shadow:0 3px 8px rgba(0,0,0,.1)}
+.notification-editable{width:100%;min-height:60px;padding:10px;border:2px solid var(--theme-primary);border-radius:4px;font-size:inherit;box-sizing:border-box;font-family:inherit;resize:vertical;line-height:1.5}
+.notification-footer{display:flex;justify-content:space-between;align-items:center;padding:15px;border-top:1px solid var(--theme-border);margin-top:10px;position:sticky;bottom:0;background:var(--theme-surface-solid);z-index:10;flex-shrink:0}
+.empty-notification{text-align:center;padding:30px;color:var(--theme-muted);font-style:italic}
 
 /* ===== 寻物 ===== */
 .editable{cursor:pointer;transition:all .3s;padding:2px 5px;border-radius:4px;font-family:STZhongsong,serif;color:#1e90ff;text-shadow:0 0 2px rgba(0,0,0,.2);border-bottom:2px solid #ffd700}
-.editable:hover{background:#f0f0f0}
-.edit-input{width:120px;padding:5px;border:2px solid #8bc34a;border-radius:4px;font-size:28px;text-align:center;color:#1e90ff;margin:0 5px;font-family:STZhongsong,serif}
+.editable:hover{background:var(--theme-surface-soft)}
+.edit-input{width:120px;padding:5px;border:2px solid var(--theme-primary);border-radius:4px;font-size:28px;text-align:center;color:#1e90ff;margin:0 5px;font-family:STZhongsong,serif}
 #lostAndFoundList .announcement-card{padding:12px;margin:8px 10px}
 #lostAndFoundList .announcement-body{line-height:1.1}
 #lostAndFoundList .editable{margin:1px 0;padding:2px 4px}
 
 /* ===== 添加按钮 ===== */
-.add-button{position:fixed;bottom:30px;right:30px;width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#8bc34a,#7cb342);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.25),0 0 0 2px rgba(255,255,255,.8) inset;transition:all .3s ease;z-index:999;font-size:24px;font-weight:700;animation:button-pulse 2s infinite}
+.add-button{position:fixed;bottom:30px;right:30px;width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--theme-primary),var(--theme-primary-hover));color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.25),0 0 0 2px rgba(255,255,255,.8) inset;transition:all .3s ease;z-index:999;font-size:24px;font-weight:700;animation:button-pulse 2s infinite}
 .add-button:hover{transform:scale(1.15);box-shadow:0 6px 16px rgba(0,0,0,.3),0 0 0 2px rgba(255,255,255,.9) inset}
-.add-button:active{transform:scale(.85);box-shadow:0 2px 6px rgba(0,0,0,.2),0 0 0 3px rgba(255,255,255,.8) inset;background:linear-gradient(135deg,#7cb342,#689f38)}
+.add-button:active{transform:scale(.85);box-shadow:0 2px 6px rgba(0,0,0,.2),0 0 0 3px rgba(255,255,255,.8) inset;background:linear-gradient(135deg,var(--theme-primary-hover),var(--theme-primary-active))}
 @keyframes gradient-pulse{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
-@keyframes button-pulse{0%,100%{box-shadow:0 0 0 0 rgba(139,195,74,0)}70%{box-shadow:0 0 0 10px rgba(139,195,74,0)}}
+/* 加号按钮的呼吸光圈：原来关键帧全是透明色（等于没有动画），这里改成淡淡的主题色光圈 */
+@keyframes button-pulse{0%,100%{box-shadow:0 0 0 0 rgba(var(--theme-primary-rgb),0)}70%{box-shadow:0 0 0 10px rgba(var(--theme-primary-rgb),.3)}}
 
 /* ===== 寻物：字号通过 CSS 变量控制，方便整表重渲染 ===== */
 #lostAndFoundList{--laf-font-size:28px}
 #lostAndFoundList .editable,#lostAndFoundList .static-text{font-size:var(--laf-font-size)!important}
 
 /* ===== 今日课表临时编辑 ===== */
-.timetable-editor{margin-top:8px;padding:18px;border:1px solid #e3eee3;border-radius:8px;background:#fbfdfb;box-shadow:0 2px 8px rgba(27,94,32,.05)}
+.timetable-editor{margin-top:8px;padding:18px;border:1px solid var(--theme-border);border-radius:8px;background:var(--theme-surface-soft);box-shadow:0 2px 8px rgba(var(--theme-primary-rgb),.06)}
 .timetable-editor-header{display:flex;align-items:center;justify-content:space-between;gap:15px;margin-bottom:6px}
-.timetable-editor-title{margin:0;color:#1b5e20;font-size:19px;font-family:STZhongsong,serif;font-weight:600}
-.timetable-editor-meta{color:#777;font-size:13px;white-space:nowrap}
-.timetable-editor-note{margin:0 0 15px;color:#777;font-size:13px;line-height:1.6}
+.timetable-editor-title{margin:0;color:var(--theme-dark);font-size:19px;font-family:STZhongsong,serif;font-weight:600}
+.timetable-editor-meta{color:var(--theme-muted);font-size:13px;white-space:nowrap}
+.timetable-editor-note{margin:0 0 15px;color:var(--theme-muted);font-size:13px;line-height:1.6}
 .timetable-editor-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 14px;max-height:310px;overflow-y:auto;padding:2px}
 .timetable-editor-grid::-webkit-scrollbar{width:6px}
-.timetable-editor-grid::-webkit-scrollbar-track{background:#f1f5f1;border-radius:3px}
-.timetable-editor-grid::-webkit-scrollbar-thumb{background:#c6d8c6;border-radius:3px}
-.timetable-editor-grid::-webkit-scrollbar-thumb:hover{background:#8bc34a}
+.timetable-editor-grid::-webkit-scrollbar-track{background:var(--theme-surface-soft);border-radius:3px}
+.timetable-editor-grid::-webkit-scrollbar-thumb{background:var(--theme-border);border-radius:3px}
+.timetable-editor-grid::-webkit-scrollbar-thumb:hover{background:var(--theme-primary)}
 .timetable-editor-row{display:flex;align-items:center;gap:9px;min-width:0}
-.timetable-editor-label{flex:0 0 42px;color:#8bc34a;font-size:14px;font-weight:700;text-align:right}
-.timetable-course-input{flex:1;min-width:0;height:34px;box-sizing:border-box;padding:5px 9px;border:1px solid #d8e5d8;border-radius:5px;outline:none;color:#333;background:#fff;font-family:'Microsoft YaHei',sans-serif;font-size:14px;transition:border-color .2s,box-shadow .2s}
-.timetable-course-input:focus{border-color:#8bc34a;box-shadow:0 0 0 3px rgba(139,195,74,.15)}
-.timetable-editor-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:16px;padding-top:14px;border-top:1px solid #e8eee8}
+.timetable-editor-label{flex:0 0 42px;color:var(--theme-primary);font-size:14px;font-weight:700;text-align:right}
+.timetable-course-input{flex:1;min-width:0;height:34px;box-sizing:border-box;padding:5px 9px;border:1px solid var(--theme-border);border-radius:5px;outline:none;color:var(--theme-text);background:var(--theme-surface-solid);font-family:'Microsoft YaHei',sans-serif;font-size:14px;transition:border-color .2s,box-shadow .2s}
+.timetable-course-input:focus{border-color:var(--theme-primary);box-shadow:0 0 0 3px rgba(var(--theme-primary-rgb),.15)}
+.timetable-editor-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:16px;padding-top:14px;border-top:1px solid var(--theme-border)}
 .timetable-editor-buttons{display:flex;align-items:center;gap:9px}
 .timetable-save-btn,.timetable-reset-btn{border:none;border-radius:5px;padding:8px 14px;cursor:pointer;font-size:13px;transition:all .2s}
-.timetable-save-btn{background:#8bc34a;color:#fff;box-shadow:0 2px 5px rgba(139,195,74,.25)}
-.timetable-save-btn:hover{background:#7cb342;transform:translateY(-1px)}
-.timetable-reset-btn{background:#f1f5f1;color:#56705a;border:1px solid #d7e3d7}
-.timetable-reset-btn:hover{background:#e8f5e9;color:#1b5e20}
+.timetable-save-btn{background:var(--theme-primary);color:#fff;box-shadow:0 2px 5px rgba(var(--theme-primary-rgb),.25)}
+.timetable-save-btn:hover{background:var(--theme-primary-hover);transform:translateY(-1px)}
+.timetable-reset-btn{background:var(--theme-surface-soft);color:var(--theme-muted);border:1px solid var(--theme-border)}
+.timetable-reset-btn:hover{background:var(--theme-surface-hover);color:var(--theme-dark)}
 .timetable-save-btn:disabled,.timetable-reset-btn:disabled{cursor:not-allowed;opacity:.5;transform:none}
-.timetable-editor-status{min-height:18px;color:#777;font-size:12px;text-align:right}
+.timetable-editor-status{min-height:18px;color:var(--theme-muted);font-size:12px;text-align:right}
 @media(max-width:700px){
 .timetable-editor-header,.timetable-editor-actions{align-items:flex-start;flex-direction:column}
 .timetable-editor-meta,.timetable-editor-status{text-align:left;white-space:normal}
 .timetable-editor-grid{grid-template-columns:1fr}
 }
 
+/* ===== 虚拟时间 ===== */
+.time-offset-panel{margin-top:8px;padding:18px;border:1px solid var(--theme-border);border-radius:8px;background:var(--theme-surface-soft);box-shadow:0 2px 8px rgba(var(--theme-primary-rgb),.06)}
+.time-offset-header{display:flex;align-items:center;justify-content:space-between;gap:15px;margin-bottom:6px}
+.time-offset-title{margin:0;color:var(--theme-dark);font-size:19px;font-family:STZhongsong,serif;font-weight:600}
+.time-offset-meta{color:var(--theme-muted);font-size:13px;white-space:nowrap}
+.time-offset-note{margin:0 0 15px;color:var(--theme-muted);font-size:13px;line-height:1.6}
+.time-offset-actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.virtual-time-input{flex:1;min-width:220px;height:34px;box-sizing:border-box;padding:5px 9px;border:1px solid var(--theme-border);border-radius:5px;outline:none;color:var(--theme-text);background:var(--theme-surface-solid);font-family:'Microsoft YaHei',sans-serif;font-size:14px;transition:border-color .2s,box-shadow .2s}
+.virtual-time-input:focus{border-color:var(--theme-primary);box-shadow:0 0 0 3px rgba(var(--theme-primary-rgb),.15)}
+.time-offset-hint{min-height:18px;color:var(--theme-muted);font-size:12px;margin-top:8px}
+@media(max-width:700px){
+.time-offset-header{align-items:flex-start;flex-direction:column}
+.time-offset-meta{text-align:left;white-space:normal}
+}
+
 /* ===== 模态框定时关闭 ===== */
 .modal-timer{position:relative;display:inline-flex;align-items:center;margin-right:0;font-family:'Microsoft YaHei',sans-serif;flex-shrink:0;z-index:201}
 .modal-timer-btn{display:inline-flex;align-items:center;justify-content:center;min-width:36px;height:36px;background:transparent;border:none;border-radius:4px;font:inherit;font-size:20px;font-variant-numeric:tabular-nums;line-height:1;white-space:nowrap}
-.modal-timer-btn:focus-visible{outline:2px solid #8bc34a;outline-offset:2px}
-.modal-timer.counting .modal-timer-btn{color:#1b5e20;font-weight:600}
-.modal-timer-panel{position:absolute;top:calc(100% + 8px);right:0;width:220px;padding:12px;background:#fff;border:1px solid #e3eee3;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.12);opacity:0;visibility:hidden;transform:translateY(-6px);transition:all .2s ease;z-index:200}
+.modal-timer-btn:focus-visible{outline:2px solid var(--theme-primary);outline-offset:2px}
+.modal-timer.counting .modal-timer-btn{color:var(--theme-dark);font-weight:600}
+.modal-timer-panel{position:absolute;top:calc(100% + 8px);right:0;width:220px;padding:12px;background:var(--theme-surface-solid);border:1px solid var(--theme-border);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.12);opacity:0;visibility:hidden;transform:translateY(-6px);transition:all .2s ease;z-index:200}
 .modal-timer.open .modal-timer-panel{opacity:1;visibility:visible;transform:translateY(0)}
 .modal-timer-presets{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px}
-.modal-timer-presets button{padding:6px 0;font-size:13px;background:#f8faf8;color:#4c6b4f;border:1px solid #e3eee3;border-radius:6px;cursor:pointer;transition:all .15s;font-family:inherit}
-.modal-timer-presets button:hover{background:#e8f5e9;color:#1b5e20;border-color:#b6d7b8}
+.modal-timer-presets button{padding:6px 0;font-size:13px;background:var(--theme-surface-soft);color:var(--theme-muted);border:1px solid var(--theme-border);border-radius:6px;cursor:pointer;transition:all .15s;font-family:inherit}
+.modal-timer-presets button:hover{background:var(--theme-surface-hover);color:var(--theme-dark);border-color:var(--theme-primary)}
 .modal-timer-custom{display:flex;align-items:center;gap:6px}
-.modal-timer-custom input{flex:1;min-width:0;height:30px;box-sizing:border-box;padding:0 8px;border:1px solid #d8e5d8;border-radius:6px;font-size:13px;color:#333;text-align:center;outline:none;transition:border-color .2s,box-shadow .2s;font-family:inherit;-moz-appearance:textfield}
+.modal-timer-custom input{flex:1;min-width:0;height:30px;box-sizing:border-box;padding:0 8px;border:1px solid var(--theme-border);border-radius:6px;font-size:13px;color:var(--theme-text);text-align:center;outline:none;transition:border-color .2s,box-shadow .2s;font-family:inherit;-moz-appearance:textfield}
 .modal-timer-custom input::-webkit-outer-spin-button,.modal-timer-custom input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
-.modal-timer-custom input:focus{border-color:#8bc34a;box-shadow:0 0 0 3px rgba(139,195,74,.15)}
-.modal-timer-custom span{font-size:12px;color:#999}
-.modal-timer-custom button{height:30px;padding:0 12px;font-size:13px;background:#8bc34a;color:#fff;border:none;border-radius:6px;cursor:pointer;transition:all .15s;font-family:inherit}
-.modal-timer-custom button:hover{background:#7cb342}
-.modal-timer-hint{margin-top:8px;font-size:11px;color:#999;text-align:center}
+.modal-timer-custom input:focus{border-color:var(--theme-primary);box-shadow:0 0 0 3px rgba(var(--theme-primary-rgb),.15)}
+.modal-timer-custom span{font-size:12px;color:var(--theme-muted)}
+.modal-timer-custom button{height:30px;padding:0 12px;font-size:13px;background:var(--theme-primary);color:#fff;border:none;border-radius:6px;cursor:pointer;transition:all .15s;font-family:inherit}
+.modal-timer-custom button:hover{background:var(--theme-primary-hover)}
+.modal-timer-hint{margin-top:8px;font-size:11px;color:var(--theme-muted);text-align:center}
 .settings-header-actions{display:flex;align-items:center}
+
 
 ```
 
@@ -287,6 +343,35 @@ input:checked~.switch-text{color:#4CAF50}
                 </div>
 
                 <div class="settings-body">
+                    <!-- 虚拟时间 -->
+                    <section class="time-offset-panel" id="virtualTimePanel">
+                        <div class="time-offset-header">
+                            <h4 class="time-offset-title">虚拟时间</h4>
+                            <span class="time-offset-meta" id="timeOffsetStatus">当前跟随系统时间</span>
+                        </div>
+
+                        <p class="time-offset-note">
+                            设置后，网站的所有时间判断（时钟、高考倒计时、作息、课表、节气）都会按此时间计算。设置会被保存，点击"恢复系统时间"即可关闭。
+                        </p>
+
+                        <div class="time-offset-actions">
+                            <input
+                                type="datetime-local"
+                                id="virtualTimeInput"
+                                class="virtual-time-input"
+                                step="1"
+                            >
+                            <button type="button" class="timetable-save-btn" id="applyVirtualTime">
+                                应用
+                            </button>
+                            <button type="button" class="timetable-reset-btn" id="resetVirtualTime">
+                                恢复系统时间
+                            </button>
+                        </div>
+
+                        <div class="time-offset-hint" id="timeOffsetHint"></div>
+                    </section>
+
                     <div class="switch-container">
                         <label class="switch">
                             <span class="switch-text">金句自动轮播</span>
@@ -364,6 +449,17 @@ input:checked~.switch-text{color:#4CAF50}
                     </section>
                 </div>
             </div>
+
+            <!-- 时间预览滑动条（拖动时会浮到最上层） -->
+            <div class="preview-slider-zone" id="previewSliderZone">
+                <div class="preview-slider-header">
+                    <span class="preview-slider-label" id="previewSliderLabelStart">--</span>
+                    <span class="preview-slider-current" id="previewSliderCurrent">--</span>
+                    <span class="preview-slider-label" id="previewSliderLabelEnd">--</span>
+                </div>
+                <input type="range" class="preview-slider" id="previewSlider" min="0" max="365" value="0" step="1">
+                <div class="preview-slider-hint">左右拖动预览不同日期的网站效果，松开鼠标保存</div>
+            </div>
         </div>
 
         <!-- 更新日志模态框 -->
@@ -378,6 +474,18 @@ input:checked~.switch-text{color:#4CAF50}
 
                     待添加的新功能：自定义倒计时（不只是高考倒计时，如一月考倒计时、期末倒计时等）、智能的座位表（支持快捷搜索等）、老虎机（随机抽人）、方便地统计需要讲的题目（课前统计好，课上老师直接讲）、数据本地存储（目的是增加普适性，让所有班级都能用上这个网站，而不是仅 22 班）等。欢迎提建议。
 
+                    2026.10.1
+                    1. 重新设计全部 24 节气的配色，改为贴合四季氛围的多色方案；
+                    2. 新增"主题跟随节气"功能：背景、按钮、标题、边框等整站 UI 的颜色会随日期在一年中缓缓变化；
+                    3. 新增虚拟时间功能，可在设置中修改网站显示的日期和时间（时钟、倒计时、作息、课表、节气均按此计算）；
+                    4. 新增时间预览滑动条：拖动即可实时预览一年内不同日期的网站效果，拖动时轻量刷新（文本、颜色、进度），松手后完整刷新（节气标记、课表结构），避免长时间拖动卡顿；
+
+                    2026.9.27
+                    1. 修复金句不正常更新的 bug，优化金句轮播逻辑；
+                    2. 将通知、寻物的字号最大值改为 240px，金句轮播时间间隔最大值改为 600s；
+                    3. 新增模态框定时关闭功能；
+                    4. 修复时间轴没有小寒、大寒的 bug，以及时间轴与节气标记竖直位置不对齐的 bug；
+
                     2026.9.26
                     1. 修复天气无法获取的 bug；
                     2. 更新课表与作息表；
@@ -386,12 +494,6 @@ input:checked~.switch-text{color:#4CAF50}
                     5. 修复每次打开网页默认显示每日 60s 的 bug；
                     6. 修复周六课表无课时“下节课”不显示“无”的 bug；
                     7. 新增课表临时修改功能；
-
-                    2026.9.27
-                    1. 修复金句不正常更新的 bug，优化金句轮播逻辑；
-                    2. 将通知、寻物的字号最大值改为 240px，金句轮播时间间隔最大值改为 600s；
-                    3. 新增模态框定时关闭功能；
-                    4. 修复时间轴没有小寒、大寒的 bug，以及时间轴与节气标记竖直位置不对齐的 bug；
                 </div>
             </div>
         </div>
@@ -992,12 +1094,21 @@ const schedule_last = {
 
 ## 5 `js/data/solarterms.js`
 ```js
+// 二十四节气「年度色带」：这 24 个颜色会被 js/features/theme_background.js 取来，
+// 在 OKLCH 空间做平滑插值，生成整站的主题色（背景、按钮、标题、边框……）。
+//
+// 设计原则：
+//   1. 相邻节气的色相尽量接近，全年沿一条平滑色带流动：
+//      早春柳芽绿 → 春青绿 → 初夏黄绿 → 盛夏金橙 → 秋琥珀棕
+//      → 入冬经低饱和灰紫 → 冰蓝 → 冻青 → 回到柳芽绿；
+//   2. 饱和度（鲜艳度）也参与过渡：春夏明快、秋冬素雅；
+//   3. 想微调某个时段的观感，只改它前后一两个色值即可，中间会自动缓慢过渡。
 const solarTerms = [
 {
 name: '立春',
 month: 1,
 day: 3,
-color: '#c7dfae',
+color: '#a9c98b', // 柳芽黄绿
 image: 'images/立春.png',
 desc: '立春是二十四节气之首，标志着冬天的结束和春天的开始。此时气温开始回暖，万物复苏，东风送暖，柳树发芽，梅花绽放。古代有迎春仪式和咬春习俗，人们祈求新年吉祥如意。'
 },
@@ -1005,7 +1116,7 @@ desc: '立春是二十四节气之首，标志着冬天的结束和春天的开�
 name: '雨水',
 month: 1,
 day: 18,
-color: '#b1d392',
+color: '#96c482', // 新草青
 image: 'images/雨水.png',
 desc: '雨水节气正值仲春之初，气温继续回升，降水增多，冰雪融化。这个时节适宜春耕备耕，农民开始忙碌农事。古人有"獭祭鱼"、"鸿雁来"等物候现象观察记载。'
 },
@@ -1013,7 +1124,7 @@ desc: '雨水节气正值仲春之初，气温继续回升，降水增多，冰�
 name: '惊蛰',
 month: 2,
 day: 5,
-color: '#92c87a',
+color: '#82bd85', // 春草绿
 image: 'images/惊蛰.png',
 desc: '惊蛰时节春雷始鸣，蛰伏的昆虫被惊醒而出。此时桃花盛开，杏花怒放，田间地头一片繁忙景象。古有"桃始华"、"仓庚鸣"的物候特征。'
 },
@@ -1021,7 +1132,7 @@ desc: '惊蛰时节春雷始鸣，蛰伏的昆虫被惊醒而出。此时桃花�
 name: '春分',
 month: 2,
 day: 20,
-color: '#78be70',
+color: '#74b98e', // 春分青绿
 image: 'images/春分.png',
 desc: '春分日昼夜平分，标志着春季中期。此时莺飞草长，小麦拔节孕穗，农事活动进入繁忙阶段。民间有竖蛋游戏和祭日习俗。'
 },
@@ -1029,7 +1140,7 @@ desc: '春分日昼夜平分，标志着春季中期。此时莺飞草长，小�
 name: '清明',
 month: 3,
 day: 4,
-color: '#6bb96b',
+color: '#7ab697', // 碧玉青
 image: 'images/清明.png',
 desc: '清明时节气温升高，春雨绵绵滋润大地。这是扫墓祭祖的重要日子，也是踏青赏花的好时机。古代有蹴鞠、荡秋千等娱乐活动。'
 },
@@ -1037,7 +1148,7 @@ desc: '清明时节气温升高，春雨绵绵滋润大地。这是扫墓祭祖�
 name: '谷雨',
 month: 3,
 day: 20,
-color: '#80ba64',
+color: '#86ba87', // 雨润新绿
 image: 'images/谷雨.png',
 desc: '谷雨是春季最后一个节气，降雨量增加利于谷物生长。此时牡丹盛开，茶树抽新芽，农忙季节全面到来。有"萍始生"、"鸣鸠拂其羽"等物候现象。'
 },
@@ -1045,7 +1156,7 @@ desc: '谷雨是春季最后一个节气，降雨量增加利于谷物生长。�
 name: '立夏',
 month: 4,
 day: 5,
-color: '#9bbc5a',
+color: '#9cc484', // 初夏新叶
 image: 'images/立夏.png',
 desc: '立夏标志着夏季的开始，气温显著上升。此时蝼蝈鸣叫，蚯蚓出地面，王瓜开始生长。古代有"迎夏"仪式和尝新活动。'
 },
@@ -1053,7 +1164,7 @@ desc: '立夏标志着夏季的开始，气温显著上升。此时蝼蝈鸣叫�
 name: '小满',
 month: 4,
 day: 21,
-color: '#b2bc55',
+color: '#b6c25f', // 麦浪黄绿
 image: 'images/小满.png',
 desc: '小满时节麦类作物籽粒开始饱满但未成熟。此时蚕结茧，菜子成熟可以收割。农谚有"小满小满，麦粒渐满"的说法。'
 },
@@ -1061,7 +1172,7 @@ desc: '小满时节麦类作物籽粒开始饱满但未成熟。此时蚕结茧�
 name: '芒种',
 month: 5,
 day: 5,
-color: '#c8af4e',
+color: '#ccb75a', // 麦熟金
 image: 'images/芒种.png',
 desc: '芒种是农忙时节，北方麦收南方插秧。此时梅子成熟，天气潮湿闷热。农谚说"芒种忙忙种"，抓紧时间播种作物。'
 },
@@ -1069,7 +1180,7 @@ desc: '芒种是农忙时节，北方麦收南方插秧。此时梅子成熟，�
 name: '夏至',
 month: 5,
 day: 21,
-color: '#d5a04a',
+color: '#dcac52', // 盛夏金橙
 image: '夏至.png',
 desc: '夏至日北半球白昼最长，标志着盛夏到来。此时蝉鸣阵阵，荷花盛开，农作物生长旺盛。古人有祭天仪式和消夏活动。'
 },
@@ -1077,7 +1188,7 @@ desc: '夏至日北半球白昼最长，标志着盛夏到来。此时蝉鸣阵�
 name: '小暑',
 month: 6,
 day: 7,
-color: '#dc9146',
+color: '#df9a4e', // 骄阳橙
 image: '小暑.png',
 desc: '小暑时节天气逐渐炎热，雷雨增多。此时蟋蟀开始在墙角鸣叫，鹰隼捕食更加频繁。农谚有"小暑大暑，灌死老鼠"的说法。'
 },
@@ -1085,7 +1196,7 @@ desc: '小暑时节天气逐渐炎热，雷雨增多。此时蟋蟀开始在墙�
 name: '大暑',
 month: 6,
 day: 22,
-color: '#dd7c43',
+color: '#dd8747', // 炎夏深橙
 image: '大暑.png',
 desc: '大暑是一年中最热的时节，高温酷暑考验着万物生长。此时荷花盛开至极，雷阵雨频繁出现。古人有饮伏茶、晒伏姜的习俗。'
 },
@@ -1093,7 +1204,7 @@ desc: '大暑是一年中最热的时节，高温酷暑考验着万物生长。�
 name: '立秋',
 month: 7,
 day: 7,
-color: '#d47343',
+color: '#d68a5a', // 初秋暖橙
 image: '立秋.png',
 desc: '立秋标志着秋天的开始，气温由热转凉。此时早晚温差加大，稻谷抽穗扬花。古人有"贴秋膘"、"啃秋"等习俗。'
 },
@@ -1101,7 +1212,7 @@ desc: '立秋标志着秋天的开始，气温由热转凉。此时早晚温差�
 name: '处暑',
 month: 7,
 day: 23,
-color: '#cd6b46',
+color: '#ca8460', // 暑退陶土
 image: '处暑.png',
 desc: '处暑时节暑气消退，秋意渐浓。此时农作物进入成熟期，农民开始收割。古代有"祭蜡"和"迎秋"仪式。'
 },
@@ -1109,7 +1220,7 @@ desc: '处暑时节暑气消退，秋意渐浓。此时农作物进入成熟期�
 name: '白露',
 month: 8,
 day: 7,
-color: '#c36a4b',
+color: '#c1846a', // 秋赭
 image: '白露.png',
 desc: '白露时节天气转凉，清晨露水凝结成霜。此时鸿雁南飞，菊花开放。农谚有"白露白茫茫，无谷满粮仓"的说法。'
 },
@@ -1117,7 +1228,7 @@ desc: '白露时节天气转凉，清晨露水凝结成霜。此时鸿雁南飞�
 name: '秋分',
 month: 8,
 day: 23,
-color: '#ba774d',
+color: '#c48c6a', // 秋分琥珀
 image: '秋分.png',
 desc: '秋分日昼夜平分，标志着秋季中期。此时秋高气爽，桂花飘香。古代有"竖蛋"和"送秋牛"的习俗。'
 },
@@ -1125,7 +1236,7 @@ desc: '秋分日昼夜平分，标志着秋季中期。此时秋高气爽，桂�
 name: '寒露',
 month: 9,
 day: 8,
-color: '#b7864f',
+color: '#b98b6b', // 寒露棕
 image: '寒露.png',
 desc: '寒露时节气温降低，露水寒冷凝结。此时菊花盛开至极，农事进入抢收阶段。古人有赏菊和饮菊花酒的习俗。'
 },
@@ -1133,7 +1244,7 @@ desc: '寒露时节气温降低，露水寒冷凝结。此时菊花盛开至极�
 name: '霜降',
 month: 9,
 day: 23,
-color: '#a98255',
+color: '#ad8668', // 霜叶褐
 image: '霜降.png',
 desc: '霜降是秋季最后一个节气，天气渐冷初霜出现。此时柿子成熟红透，枫叶变红。农谚有"霜降见霜，米谷满仓"的说法。'
 },
@@ -1141,7 +1252,7 @@ desc: '霜降是秋季最后一个节气，天气渐冷初霜出现。此时柿�
 name: '立冬',
 month: 10,
 day: 7,
-color: '#9a8972',
+color: '#a08a78', // 初冬灰棕
 image: '立冬.png',
 desc: '立冬标志着冬季的开始，气温明显下降。此时水始冰地始冻，农民开始准备越冬作物。古代有"贺冬"和"补冬"的习俗。'
 },
@@ -1149,7 +1260,7 @@ desc: '立冬标志着冬季的开始，气温明显下降。此时水始冰地�
 name: '小雪',
 month: 10,
 day: 22,
-color: '#a1a1a5',
+color: '#b3aab8', // 雪前灰紫
 image: '小雪.png',
 desc: '小雪时节天气寒冷降雪开始。此时阴气下降阳气上升，农事进入冬闲时期。古人有腌制腊肉和观赏雪景的习俗。'
 },
@@ -1157,7 +1268,7 @@ desc: '小雪时节天气寒冷降雪开始。此时阴气下降阳气上升，�
 name: '大雪',
 month: 11,
 day: 7,
-color: '#bbc8d4',
+color: '#b3c1d6', // 落雪苍青
 image: '大雪.png',
 desc: '大雪时节降雪量增加天气更加寒冷。此时鹖鸟不鸣虎始交，农事基本结束进入农闲。古人有赏雪和制作腊肉的习俗。'
 },
@@ -1165,7 +1276,7 @@ desc: '大雪时节降雪量增加天气更加寒冷。此时鹖鸟不鸣虎始�
 name: '冬至',
 month: 11,
 day: 21,
-color: '#d5e0e6',
+color: '#9db9d9', // 冬至冰蓝
 image: '冬至.png',
 desc: '冬至日北半球白昼最短标志着寒冬到来。此时蚯蚓结麋角解水泉动，古代有"冬至大如年"的说法和祭祀活动。'
 },
@@ -1173,7 +1284,7 @@ desc: '冬至日北半球白昼最短标志着寒冬到来。此时蚯蚓结麋�
 name: '小寒',
 month: 12,
 day: 6,
-color: '#f1f3f2',
+color: '#aec8d2', // 小寒霜青
 image: '小寒.png',
 desc: '小寒时节天气寒冷但未达极点。此时雁北乡鹊始巢雉雊鸲，农事基本停止进入农闲。古人有"数九消寒"的习俗。'
 },
@@ -1181,11 +1292,12 @@ desc: '小寒时节天气寒冷但未达极点。此时雁北乡鹊始巢雉雊�
 name: '大寒',
 month: 12,
 day: 20,
-color: '#dde8d8',
+color: '#abc6bd', // 大寒冻青
 image: '大寒.png',
 desc: '大寒是一年中最冷时节标志着冬季尾声。此时鸡乳泽腹水泉动，农事全部结束准备过年。古人有"除旧布新"的习俗迎接新春到来。'
 }
 ];
+
 
 ```
 
@@ -1276,14 +1388,126 @@ window.App.Timers = {
 ## 8 `js/features/01_utils.js`
 ```js
 window.App.Utils = {
+    // 轻量刷新的时间节流（毫秒）：拖动时最多每 80ms 执行一次
+    _refreshThrottle: 80,
+    _lastRefresh: 0,
+    _pendingRefreshTimer: null,
+
     timeToMinutes(time) {
         if (time instanceof Date) return time.getHours() * 60 + time.getMinutes();
         if (time === '23:59') return 1439;
         const [h, m] = time.split(':').map(Number);
         return h * 60 + m;
+    },
+
+    // 返回当前"业务时间"：真实时间 + 用户设置的偏移量
+    // 所有需要"当前日期/时间"的业务逻辑都应当使用此方法，
+    // 而不是直接 new Date()，这样才能支持设置里改时间
+    now() {
+        const offset = this.getTimeOffset();
+        return new Date(Date.now() + offset);
+    },
+
+    getTimeOffset() {
+        if (!window.App.Store) return 0;
+        const v = window.App.Store.getSetting('timeOffset');
+        const n = Number(v);
+        return Number.isFinite(n) ? n : 0;
+    },
+
+    // options.persist === false 时只改内存，不触发写盘（预览滑动时用）
+    setTimeOffset(ms, options) {
+        if (!window.App.Store) return;
+        const n = Number(ms);
+        const value = Number.isFinite(n) ? n : 0;
+        window.App.Store.setSetting('timeOffset', value, options || {});
+    },
+
+    // ============================================================
+    // 时间预览相关：拖动时实时刷新（轻量）
+    // - 只做"文本/颜色/进度"级别的更新，不重建 DOM 结构
+    // - 带时间节流，保证高频拖动时不会卡死
+    // - 节流窗口内的最后一次调用会被补执行，避免漏掉终点值
+    // ============================================================
+    refreshAll() {
+        const now = performance.now();
+        const elapsed = now - this._lastRefresh;
+
+        if (elapsed >= this._refreshThrottle) {
+            this._lastRefresh = now;
+            this._runLightRefresh();
+            return;
+        }
+
+        // 节流窗口内：安排一次尾部执行
+        if (this._pendingRefreshTimer) return;
+
+        this._pendingRefreshTimer = setTimeout(() => {
+            this._pendingRefreshTimer = null;
+            this._lastRefresh = performance.now();
+            this._runLightRefresh();
+        }, this._refreshThrottle - elapsed);
+    },
+
+    // ============================================================
+    // 松手时调用：一次性做完整刷新（轻量 + 重量）
+    // - 会先清掉挂起的节流定时器，避免重复
+    // - 包含 A 档全部 + B 档（节气标记重建、课表 HTML 重建、编辑器重建）
+    // ============================================================
+    refreshAllFull() {
+        if (this._pendingRefreshTimer) {
+            clearTimeout(this._pendingRefreshTimer);
+            this._pendingRefreshTimer = null;
+        }
+
+        this._lastRefresh = performance.now();
+
+        const safe = fn => {
+            try { fn(); }
+            catch (e) { console.warn('[refreshAllFull]', e); }
+        };
+
+        // A 档：与轻量刷新一致
+        safe(() => window.App.ExamCountdown?.update?.());
+        safe(() => window.App.SchoolSchedule?.updateDisplay?.());   // 默认含 renderTimetable
+        safe(() => window.App.SchoolSchedule?.updateCountdownDisplay?.());
+        safe(() => window.App.Timeline?.updateColor?.());
+        safe(() => window.App.ThemeBackground?.update?.());
+
+        // B 档：重量级 DOM 重建
+        // 节气标记必须重建：isPast = termDate < now 依赖"当前业务时间"，
+        // 拖动到不同日期后，哪些节气算"已过去"会变，颜色也要跟着变
+        safe(() => window.App.Timeline?.generateMarkers?.());
+        safe(() => window.App.ModalTimetable?.render?.());
+    },
+
+    // ---------- 内部：A 档轻量刷新 ----------
+    _runLightRefresh() {
+        const safe = fn => {
+            try { fn(); }
+            catch (e) { console.warn('[refreshAll]', e); }
+        };
+
+        // 1. 高考倒计时天数
+        safe(() => window.App.ExamCountdown?.update?.());
+
+        // 2 & 4. 当前/下节课文字 + 作息倒计时秒数
+        //        传 renderTimetable:false 跳过课表 HTML 重建（B 档）
+        safe(() => window.App.SchoolSchedule?.updateDisplay?.({ renderTimetable: false }));
+        safe(() => window.App.SchoolSchedule?.updateCountdownDisplay?.());
+
+        // 6. 时间轴进度条
+        safe(() => window.App.Timeline?.updateColor?.());
+
+        // 7. 主题色相 + 背景色
+        safe(() => window.App.ThemeBackground?.update?.());
+
+        // 注意：不调用 Timeline.generateMarkers()
+        // 它涉及 24 个标记 + 24 张卡片 + 24 个 <img> 的 DOM 重建，
+        // 放在滑动链里会严重拖慢拖动；改成松手后一次重建（见 refreshAllFull）。
+        // 更不调用 ModalTimetable.render()，那也是 B 档。
     }
 };
-
 
 ```
 
@@ -1332,7 +1556,7 @@ window.App.Clock = (() => {
         },
 
         update() {
-            const d = new Date();
+            const d = window.App.Utils.now();
             const html =
                 `<div class="time-section">${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}</div>` +
                 `<div class="date-section">${d.getFullYear()}/${pad(d.getMonth() + 1)}/${pad(d.getDate())} 周${'日一二三四五六'[d.getDay()]}</div>`;
@@ -1347,7 +1571,6 @@ window.App.Clock = (() => {
         }
     };
 })();
-
 
 ```
 
@@ -1422,23 +1645,37 @@ window.App.DailyImage = {
 ## 12 `js/features/exam_countdown.js`
 ```js
 window.App.ExamCountdown = {
+    _timer: null,
+
     init() {
         this.update();
     },
 
     update() {
+        // 先清掉旧定时器，避免拖动预览时反复叠加
+        if (this._timer) {
+            clearTimeout(this._timer);
+            this._timer = null;
+        }
+
+        const now = window.App.Utils.now();
         const target = new Date(2028, 5, 7);
-        const diff = target - new Date();
+        const diff = target - now;
         const days = Math.max(0, Math.ceil(diff / 86400000));
 
         const el = document.getElementById('daysUntil');
         if (el) el.textContent = `${days}天`;
 
-        const now = new Date();
-        setTimeout(() => this.update(), 86400000 - (now % 86400000));
+        // 下一个"业务时间"的午夜
+        const nextMidnight = new Date(
+            now.getFullYear(),
+            now.getMonth(),
+            now.getDate() + 1
+        );
+
+        this._timer = setTimeout(() => this.update(), nextMidnight - now);
     }
 };
-
 
 ```
 
@@ -2356,6 +2593,8 @@ window.App.ModalSettings = {
         this.bindProbability();
         this.bindInterval();
         this.bindSwitches();
+        this.bindVirtualTime();
+        this.bindPreviewSlider();
 
         window.resetProbability = () => this.setProbability(50);
         window.resetInterval = () => this.setIntervalDuration(15);
@@ -2484,6 +2723,185 @@ window.App.ModalSettings = {
         // clickRefresh / autoRefresh 的持久化分别在 golden_phrase.js / auto_refresh.js 中完成
         document.getElementById('clickRefreshSwitch')?.addEventListener('change', e => {
             saveSetting('clickRefreshSwitch', e.target.checked);
+        });
+    },
+
+    // ---------- 虚拟时间 ----------
+
+    // 把 Date 转成 <input type="datetime-local"> 需要的本地时间字符串
+    toLocalInputValue(date) {
+        const pad = n => String(n).padStart(2, '0');
+        return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` +
+               `T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+    },
+
+    formatOffset(ms) {
+        const abs = Math.abs(ms);
+        const sign = ms >= 0 ? '+' : '-';
+        const days = Math.floor(abs / 86400000);
+        const hours = Math.floor((abs % 86400000) / 3600000);
+        const mins = Math.floor((abs % 3600000) / 60000);
+        const parts = [];
+        if (days) parts.push(`${days}天`);
+        if (hours) parts.push(`${hours}小时`);
+        if (mins) parts.push(`${mins}分`);
+        if (!parts.length) parts.push('不到1分钟');
+        return sign + parts.join('');
+    },
+
+    bindVirtualTime() {
+        const input = document.getElementById('virtualTimeInput');
+        const applyBtn = document.getElementById('applyVirtualTime');
+        const resetBtn = document.getElementById('resetVirtualTime');
+        const statusEl = document.getElementById('timeOffsetStatus');
+        const hintEl = document.getElementById('timeOffsetHint');
+        if (!input) return;
+
+        const currentOffset = window.App.Utils.getTimeOffset();
+
+        // 输入框初值 = 当前"业务时间"
+        input.value = this.toLocalInputValue(window.App.Utils.now());
+
+        if (statusEl) {
+            statusEl.textContent = currentOffset === 0
+                ? '当前跟随系统时间'
+                : `已偏移 ${this.formatOffset(currentOffset)}`;
+        }
+
+        if (hintEl) {
+            hintEl.textContent = currentOffset === 0
+                ? ''
+                : `实际系统时间：${new Date().toLocaleString('zh-CN')}`;
+        }
+
+        applyBtn?.addEventListener('click', () => {
+            const val = input.value;
+            if (!val) return;
+
+            const target = new Date(val);
+            if (isNaN(target.getTime())) {
+                if (hintEl) hintEl.textContent = '时间格式无效';
+                return;
+            }
+
+            const offset = target.getTime() - Date.now();
+            window.App.Utils.setTimeOffset(offset);
+
+            // 直接刷新页面，让所有模块按新时间重新初始化
+            location.reload();
+        });
+
+        resetBtn?.addEventListener('click', () => {
+            window.App.Utils.setTimeOffset(0);
+            location.reload();
+        });
+    },
+
+    // ---------- 时间预览滑动条 ----------
+
+    bindPreviewSlider() {
+        const zone = document.getElementById('previewSliderZone');
+        const slider = document.getElementById('previewSlider');
+        const labelStart = document.getElementById('previewSliderLabelStart');
+        const labelEnd = document.getElementById('previewSliderLabelEnd');
+        const currentEl = document.getElementById('previewSliderCurrent');
+        const modal = document.getElementById('settingsModal');
+        if (!zone || !slider || !modal) return;
+
+        // 以"当前虚拟时间"所在的年份作为滑动范围：1/1 ~ 12/31
+        const now = window.App.Utils.now();
+        const year = now.getFullYear();
+        const startDate = new Date(year, 0, 1);
+        const endDate = new Date(year, 11, 31);
+        const totalDays = Math.round((endDate - startDate) / 86400000);
+
+        slider.min = 0;
+        slider.max = totalDays;
+
+        // 初始滑块位置 = 当前业务时间在一年中的第几天
+        const initialOffset = Math.round((now - startDate) / 86400000);
+        slider.value = Math.max(0, Math.min(totalDays, initialOffset));
+
+        if (labelStart) labelStart.textContent = `${year}/1/1`;
+        if (labelEnd) labelEnd.textContent = `${year}/12/31`;
+
+        const DAY_NAMES = '日一二三四五六';
+
+        // 把滑块位置换算成预览日期（时分秒继承当前业务时间，这样作息状态也直观）
+        const getPreviewDate = () => {
+            const dayIndex = Number(slider.value) || 0;
+            const base = new Date(year, 0, 1 + dayIndex);
+            const vNow = window.App.Utils.now();
+            base.setHours(
+                vNow.getHours(),
+                vNow.getMinutes(),
+                vNow.getSeconds(),
+                0
+            );
+            return base;
+        };
+
+        const refreshLabel = () => {
+            const date = getPreviewDate();
+            if (currentEl) {
+                currentEl.textContent =
+                    `预览：${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()} 周${DAY_NAMES[date.getDay()]}`;
+            }
+        };
+
+        // 拖动过程：只改内存偏移 + 轻量实时刷新（A 档，80ms 节流）
+        const applyPreviewLight = () => {
+            const preview = getPreviewDate();
+            const offset = preview.getTime() - Date.now();
+
+            window.App.Utils.setTimeOffset(offset, { persist: false });
+            window.App.Utils.refreshAll();   // 轻量：文本/颜色/进度
+            refreshLabel();
+        };
+
+        // 松手：持久化 + 完整刷新（A 档 + B 档）
+        const applyPreviewFull = () => {
+            const preview = getPreviewDate();
+            const offset = preview.getTime() - Date.now();
+
+            window.App.Utils.setTimeOffset(offset, { persist: true });
+            window.App.Utils.refreshAllFull();   // 完整：含课表 HTML 重建
+            refreshLabel();
+        };
+
+        // 拖动过程：实时应用 + 淡化模态框
+        slider.addEventListener('input', () => {
+            modal.classList.add('previewing');
+            applyPreviewLight();
+        });
+
+        // 松手：完整刷新一次 + 恢复模态框
+        slider.addEventListener('change', () => {
+            applyPreviewFull();
+            modal.classList.remove('previewing');
+        });
+
+        // 鼠标离开/失焦时兜底，避免 previewing 卡住
+        slider.addEventListener('mouseleave', () => {
+            if (slider.matches(':active')) return;
+            modal.classList.remove('previewing');
+        });
+
+        // 键盘操作时（方向键），input 和 change 会同时触发，
+        // 用 rAF 稍微延后移除 previewing，避免视觉闪烁
+        slider.addEventListener('keyup', () => {
+            requestAnimationFrame(() => {
+                if (!slider.matches(':active')) {
+                    modal.classList.remove('previewing');
+                }
+            });
+        });
+
+        refreshLabel();
+
+        // 关闭设置面板时也要清掉 previewing 状态
+        document.getElementById('closeSettings')?.addEventListener('click', () => {
+            modal.classList.remove('previewing');
         });
     }
 };
@@ -2764,7 +3182,7 @@ window.App.ModalTimetable = {
             });
     },
 
-    getDateKey(date = new Date()) {
+    getDateKey(date = window.App.Utils.now()) {
         const pad = value =>
             String(value).padStart(2, '0');
 
@@ -2775,7 +3193,7 @@ window.App.ModalTimetable = {
         ].join('-');
     },
 
-    getDateLabel(date = new Date()) {
+    getDateLabel(date = window.App.Utils.now()) {
         const dayNames = [
             '日',
             '一',
@@ -2884,7 +3302,7 @@ window.App.ModalTimetable = {
 
         if (!editor) return;
 
-        const date = new Date();
+        const date = window.App.Utils.now();
         const day = date.getDay();
 
         const originalCourses =
@@ -2967,7 +3385,7 @@ window.App.ModalTimetable = {
             return;
         }
 
-        const date = new Date();
+        const date = window.App.Utils.now();
         const day = date.getDay();
 
         const inputs = [
@@ -3069,7 +3487,7 @@ window.App.SchoolSchedule = {
             : {};
     },
 
-    getDateKey(date = new Date()) {
+    getDateKey(date = window.App.Utils.now()) {
         const pad = value => String(value).padStart(2, '0');
 
         return [
@@ -3079,7 +3497,7 @@ window.App.SchoolSchedule = {
         ].join('-');
     },
 
-    getTemporaryTimetableOverride(day = new Date().getDay()) {
+    getTemporaryTimetableOverride(day = window.App.Utils.now().getDay()) {
         const store = window.App.Store;
 
         if (!store) return null;
@@ -3102,7 +3520,7 @@ window.App.SchoolSchedule = {
         return override;
     },
 
-    getEffectiveCourses(day = new Date().getDay()) {
+    getEffectiveCourses(day = window.App.Utils.now().getDay()) {
         const override = this.getTemporaryTimetableOverride(day);
 
         if (override) {
@@ -3178,7 +3596,7 @@ window.App.SchoolSchedule = {
     },
 
     getCurrentSchedule() {
-        const now = new Date();
+        const now = window.App.Utils.now();
         const day = now.getDay();
         const currentMinutes =
             now.getHours() * 60 + now.getMinutes();
@@ -3298,8 +3716,10 @@ window.App.SchoolSchedule = {
         );
     },
 
-    updateDisplay() {
-        const day = new Date().getDay();
+    // options.renderTimetable === false 时只更新文字，
+    // 跳过课表 HTML 重建（时间预览滑动时用，避免高频 DOM 重建）
+    updateDisplay(options) {
+        const day = window.App.Utils.now().getDay();
         const result = this.getCurrentSchedule();
 
         const currentElement =
@@ -3325,7 +3745,9 @@ window.App.SchoolSchedule = {
                     : this.getCourseDisplayName(day, next);
         }
 
-        this.renderTimetable(day);
+        if (!options || options.renderTimetable !== false) {
+            this.renderTimetable(day);
+        }
     },
 
     renderTimetable(day) {
@@ -3335,11 +3757,7 @@ window.App.SchoolSchedule = {
         if (!container) return;
 
         const centered = text =>
-            `<div class="timetable-item" style="
-                font-family:STZhongSong,cursive;
-                font-size:24px;
-                text-align:center;
-            ">${text}</div>`;
+            `<div class="timetable-item">${text}</div>`;
 
         if (day === 6) {
             container.innerHTML = centered('周末无课表');
@@ -3373,40 +3791,14 @@ window.App.SchoolSchedule = {
                     label = `晚${index - 8}`;
                 }
 
-                let itemStyle =
-                    'display:flex;' +
-                    'align-items:center;' +
-                    'font-family:STZhongSong,cursive;' +
-                    'font-size:24px;' +
-                    'line-height:1;' +
-                    'padding:2px 0;';
-
-                if (showDivider) {
-                    itemStyle +=
-                        'border-bottom:2px dashed #ddd;' +
-                        'margin-bottom:6px;' +
-                        'padding-bottom:6px;';
-                }
+                const rowClass = showDivider
+                    ? 'timetable-row timetable-row-divider'
+                    : 'timetable-row';
 
                 return `
-                    <div style="${itemStyle}">
-                        <div style="
-                            width:42%;
-                            text-align:right;
-                            padding-right:15px;
-                            color:#8bc34a;
-                            font-weight:bold;
-                        ">
-                            ${label}
-                        </div>
-                        <div style="
-                            width:58%;
-                            text-align:left;
-                            padding-left:5px;
-                            color:#333;
-                        ">
-                            ${course}
-                        </div>
+                    <div class="${rowClass}">
+                        <div class="timetable-label">${label}</div>
+                        <div class="timetable-course">${course}</div>
                     </div>
                 `;
             })
@@ -3414,7 +3806,7 @@ window.App.SchoolSchedule = {
     },
 
     getNextScheduleInfo() {
-        const now = new Date();
+        const now = window.App.Utils.now();
         const day = now.getDay();
         const currentMinutes =
             now.getHours() * 60 + now.getMinutes();
@@ -3514,7 +3906,7 @@ window.App.SchoolSchedule = {
 
     updateCountdownDisplay() {
         const result = this.getNextScheduleInfo();
-        const now = new Date();
+        const now = window.App.Utils.now();
 
         let target;
 
@@ -3596,7 +3988,10 @@ window.App.Store = {
             notificationFontSize: 16,
 
             // 今日课表临时覆盖，不修改 timetable 原始数据
-            temporaryTimetable: null
+            temporaryTimetable: null,
+
+            // 虚拟时间偏移量（毫秒），0 表示跟随系统时间
+            timeOffset: 0
         },
 
         timetable: {},
@@ -3764,7 +4159,8 @@ window.App.Store = {
         return settings[key];
     },
 
-    setSetting(key, value) {
+    // options.persist === false 时只改内存，不触发写盘
+    setSetting(key, value, options) {
         if (!this.cache.settings) {
             this.cache.settings = this._clone(
                 this.defaults.settings
@@ -3772,7 +4168,10 @@ window.App.Store = {
         }
 
         this.cache.settings[key] = value;
-        this._scheduleWrite('settings');
+
+        if (!options || options.persist !== false) {
+            this._scheduleWrite('settings');
+        }
     },
 
     _scheduleWrite(name) {
@@ -3860,13 +4259,8 @@ window.addEventListener('beforeunload', () => {
 window.App = window.App || {};
 
 window.App.ThemeBackground = {
-    // 背景色和白色的混合比例：数值越大背景越浅
-    // 0.78 / 0.90 是做对角渐变用的两端
-    LIGHTEN_START: 0.78,
-    LIGHTEN_END:   0.90,
-
-    // 刷新间隔（毫秒）——30 分钟一次足够了，跨天时会自动切换
-    REFRESH_INTERVAL: 30 * 60 * 1000,
+    // 刷新间隔（毫秒）——10 分钟一次，让整套配色跟着时间缓缓流动
+    REFRESH_INTERVAL: 10 * 60 * 1000,
 
     init() {
         this.update();
@@ -3884,34 +4278,54 @@ window.App.ThemeBackground = {
         const terms = this.getTerms();
         if (!terms.length) return;
 
-        const color = this.getCurrentColor(terms);
-        this.applyBackground(color);
+        const base = this.getCurrentColor(terms);
+        if (!base) return;
+
+        this.applyTheme(base);
     },
 
-    // 找出当前日期落在哪两个节气之间，按进度插值
+    // 兼容旧接口：返回当前插值出的色相（0~360，OKLCH 色相角）
+    getCurrentHue(terms) {
+        const base = this.getCurrentColor(terms || this.getTerms());
+        return base ? base.H : null;
+    },
+
+    // 兼容旧接口：返回某个颜色的色相（新版本为 OKLCH 色相角）
+    hexToHue(hex) {
+        const c = this.hexToOklch(hex);
+        return c ? c.H : null;
+    },
+
+    // 找出当前日期落在哪两个节气色之间，对整份颜色（明度/彩度/色相）做插值
     getCurrentColor(terms) {
-        const now = new Date();
+        const now = window.App.Utils.now();
         const year = now.getFullYear();
 
         const entries = terms
-            .filter(t => t.month && t.day)
-            .map(t => ({
-                color: t.color,
-                date: new Date(year, t.month - 1, t.day)
-            }))
+            .filter(t => t.month && t.day && t.color)
+            .map(t => {
+                const c = this.hexToOklch(t.color);
+                return c ? { L: c.L, C: c.C, H: c.H, date: new Date(year, t.month - 1, t.day) } : null;
+            })
+            .filter(Boolean)
             .sort((a, b) => a.date - b.date);
 
-        if (!entries.length) return '#e8f5e9';
+        if (!entries.length) return null;
+
+        // 接近无彩色的颜色没有稳定色相，让它们沿用上一个有效色相，避免色相乱跳
+        const firstDefined = entries.find(e => e.C >= 0.004);
+        let lastH = firstDefined ? firstDefined.H : 0;
+        for (const e of entries) {
+            if (e.C >= 0.004) lastH = e.H;
+            else e.H = lastH;
+        }
 
         let prev, next;
 
         if (now < entries[0].date) {
             // 早于今年第一个节气 → 用去年最后一个和今年第一个
             const last = entries[entries.length - 1];
-            prev = {
-                color: last.color,
-                date: new Date(year - 1, last.date.getMonth(), last.date.getDate())
-            };
+            prev = { L: last.L, C: last.C, H: last.H, date: new Date(year - 1, last.date.getMonth(), last.date.getDate()) };
             next = entries[0];
         } else {
             for (let i = 0; i < entries.length; i++) {
@@ -3922,85 +4336,148 @@ window.App.ThemeBackground = {
                     } else {
                         // 晚于今年最后一个 → 用今年最后一个和明年第一个
                         const first = entries[0];
-                        next = {
-                            color: first.color,
-                            date: new Date(year + 1, first.date.getMonth(), first.date.getDate())
-                        };
+                        next = { L: first.L, C: first.C, H: first.H, date: new Date(year + 1, first.date.getMonth(), first.date.getDate()) };
                     }
                 }
             }
+            if (!prev) return entries[0];
         }
 
         const span = next.date - prev.date;
-        if (span <= 0) return prev.color;
+        if (span <= 0) return prev;
 
         const t = Math.max(0, Math.min(1, (now - prev.date) / span));
-        return this.interpolateColor(prev.color, next.color, t);
+        return this.mixOklch(prev, next, t);
     },
 
-    interpolateColor(c1, c2, t) {
-        const a = this.hexToRgb(c1);
-        const b = this.hexToRgb(c2);
-        if (!a || !b) return c1;
+    // 在 OKLCH 空间插值：明度、彩度线性过渡，色相走最短弧
+    mixOklch(a, b, t) {
+        let dh = b.H - a.H;
+        if (dh > 180) dh -= 360;
+        if (dh < -180) dh += 360;
 
-        return this.rgbToHex({
-            r: a.r + (b.r - a.r) * t,
-            g: a.g + (b.g - a.g) * t,
-            b: a.b + (b.b - a.b) * t
-        });
+        let H = a.H + dh * t;
+        if (H < 0) H += 360;
+        if (H >= 360) H -= 360;
+
+        return {
+            L: a.L + (b.L - a.L) * t,
+            C: a.C + (b.C - a.C) * t,
+            H
+        };
     },
 
-    hexToRgb(hex) {
+    // ===== 由插值颜色生成整套主题色 =====
+    // 明度结构全年统一：无论什么季节，按钮白字、正文、背景的对比度都稳定，
+    // 不再出现“黄色刺眼、蓝绿发闷”的问题；彩度随季节轻微起伏（冬素雅、夏明快）。
+    applyTheme(base) {
+        const H = base.H;
+        const C0 = base.C;
+        const root = document.documentElement;
+        const set = (name, value) => root.style.setProperty(name, value);
+        const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+        const color = (L, C, alpha) => this.cssOklch(L, Math.max(0, C), H, alpha);
+
+        const primaryC = clamp(0.060 + C0 * 0.75, 0.095, 0.148);
+        const darkC    = clamp(0.018 + C0 * 0.20, 0.018, 0.048);
+
+        // 主色：按钮、滑块、开关、加号按钮、进度条（亮度压低一点，白字更清楚）
+        const primaryRgb = this.cssOklchRgb(0.63, primaryC, H);
+        set('--theme-primary',        `rgb(${primaryRgb.join(', ')})`);
+        set('--theme-primary-hover',  color(0.575, primaryC));
+        set('--theme-primary-active', color(0.52, primaryC));
+        set('--theme-primary-rgb',    primaryRgb.join(', '));
+
+        // 深色标题 / 大数字
+        set('--theme-dark', color(0.30, darkC));
+
+        // 正文 / 次要文字
+        set('--theme-text',  color(0.34, 0.018));
+        set('--theme-muted', color(0.57, 0.020));
+
+        // 背景渐变两端
+        set('--theme-bg-start', color(0.985, clamp(0.006 + C0 * 0.12, 0.006, 0.020)));
+        set('--theme-bg-end',   color(0.955, clamp(0.012 + C0 * 0.30, 0.012, 0.050)));
+
+        // 卡片表面
+        set('--theme-surface',       color(0.990, 0.006, 0.9));
+        set('--theme-surface-solid', color(0.995, 0.004));
+        set('--theme-surface-soft',  color(0.975, clamp(0.008 + C0 * 0.15, 0.008, 0.024)));
+        set('--theme-surface-hover', color(0.943, clamp(0.012 + C0 * 0.25, 0.012, 0.045)));
+
+        // 边框 / 分隔线
+        set('--theme-border', color(0.918, clamp(0.010 + C0 * 0.16, 0.010, 0.032)));
+    },
+
+    // 把 OKLCH 转成 CSS 颜色字符串（超出 sRGB 色域会自动降低彩度）
+    cssOklch(L, C, H, alpha) {
+        const [r, g, b] = this.cssOklchRgb(L, C, H);
+        return alpha === undefined || alpha >= 1
+            ? `rgb(${r}, ${g}, ${b})`
+            : `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    },
+
+    cssOklchRgb(L, C, H) {
+        const rad = H * Math.PI / 180;
+        let c = C;
+        for (let i = 0; i < 16; i++) {
+            const rgb = this.oklabToRgb(L, c * Math.cos(rad), c * Math.sin(rad));
+            if (Math.min(rgb[0], rgb[1], rgb[2]) >= -0.001 && Math.max(rgb[0], rgb[1], rgb[2]) <= 1.001) {
+                return rgb.map(v => Math.round(Math.min(1, Math.max(0, v)) * 255));
+            }
+            c *= 0.95; // 越界就退一点彩度再试
+        }
+        return this.oklabToRgb(L, 0, 0).map(v => Math.round(Math.min(1, Math.max(0, v)) * 255));
+    },
+
+    // ===== 颜色空间转换（OKLab / OKLCH，Björn Ottosson 公式）=====
+    hexToOklch(hex) {
         if (typeof hex !== 'string') return null;
         const h = hex.replace('#', '');
-        const full = h.length === 3
-            ? h.split('').map(c => c + c).join('')
-            : h;
+        const full = h.length === 3 ? h.split('').map(c => c + c).join('') : h;
         if (full.length !== 6) return null;
 
         const num = parseInt(full, 16);
         if (isNaN(num)) return null;
 
-        return {
-            r: (num >> 16) & 255,
-            g: (num >> 8) & 255,
-            b: num & 255
-        };
+        const lin = v => v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+        const R = lin(((num >> 16) & 255) / 255);
+        const G = lin(((num >> 8) & 255) / 255);
+        const B = lin((num & 255) / 255);
+
+        const l = Math.cbrt(0.4122214708 * R + 0.5363325363 * G + 0.0514459929 * B);
+        const m = Math.cbrt(0.2119034982 * R + 0.6806995451 * G + 0.1073969566 * B);
+        const s = Math.cbrt(0.0883024619 * R + 0.2817188376 * G + 0.6299787005 * B);
+
+        const L = 0.2104542553 * l + 0.7936177850 * m - 0.0040720468 * s;
+        const A = 1.9779984951 * l - 2.4285922050 * m + 0.4505937099 * s;
+        const B2 = 0.0259040371 * l + 0.7827717662 * m - 0.8086757660 * s;
+
+        const C = Math.sqrt(A * A + B2 * B2);
+        let H = Math.atan2(B2, A) * 180 / Math.PI;
+        if (H < 0) H += 360;
+
+        return { L, C, H };
     },
 
-    rgbToHex({ r, g, b }) {
-        const toHex = v => Math.round(Math.max(0, Math.min(255, v)))
-            .toString(16).padStart(2, '0');
-        return '#' + toHex(r) + toHex(g) + toHex(b);
-    },
+    oklabToRgb(L, a, b) {
+        const l_ = L + 0.3963377774 * a + 0.2158037573 * b;
+        const m_ = L - 0.1055613458 * a - 0.0638541728 * b;
+        const s_ = L - 0.0894841775 * a - 1.2914855480 * b;
 
-    // 和白色混合：amount 越大越浅
-    blendWhite(hex, amount) {
-        const rgb = this.hexToRgb(hex);
-        if (!rgb) return hex;
+        const l = l_ * l_ * l_;
+        const m = m_ * m_ * m_;
+        const s = s_ * s_ * s_;
 
-        const f = v => Math.round(v + (255 - v) * amount);
+        const R = 4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s;
+        const G = -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s;
+        const B = -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s;
 
-        return this.rgbToHex({
-            r: f(rgb.r),
-            g: f(rgb.g),
-            b: f(rgb.b)
-        });
-    },
-
-    // 用同一个色相做两级调浅，模拟原先那种对角渐变
-    applyBackground(color) {
-        const start = this.blendWhite(color, this.LIGHTEN_START);
-        const end   = this.blendWhite(color, this.LIGHTEN_END);
-
-        const gradient =
-            `linear-gradient(to bottom right, ${start}, ${end})`;
-
-        if (document.body) {
-            document.body.style.background = gradient;
-        }
+        const srgb = v => v <= 0.0031308 ? 12.92 * v : 1.055 * Math.pow(v, 1 / 2.4) - 0.055;
+        return [srgb(R), srgb(G), srgb(B)];
     }
 };
+
 
 ```
 
@@ -4008,7 +4485,7 @@ window.App.ThemeBackground = {
 ```js
 window.App.Timeline = {
     init() {
-        const currentYear = new Date().getFullYear();
+        const currentYear = window.App.Utils.now().getFullYear();
         this.updateSolarTermsDates(currentYear);
         this.generateMarkers();
         this.updateColor();
@@ -4021,7 +4498,7 @@ window.App.Timeline = {
         setInterval(() => this.updateColor(), 1000);
 
         setInterval(() => {
-            this.updateSolarTermsDates(new Date().getFullYear());
+            this.updateSolarTermsDates(window.App.Utils.now().getFullYear());
             this.generateMarkers();
         }, 86400000);
     },
@@ -4047,7 +4524,8 @@ window.App.Timeline = {
         const terms = this.getSolarTerms();
         if (!terms.length) return;
 
-        const currentYear = new Date().getFullYear();
+        const now = window.App.Utils.now();
+        const currentYear = now.getFullYear();
         const { startDate, endDate, isGradYear } = this.getTimelineRange(currentYear);
 
         const endMarkerEl = document.querySelector('.end-marker');
@@ -4071,7 +4549,7 @@ window.App.Timeline = {
             if (termDate < startDate || termDate > endDate) return;
 
             const position = ((termDate - startDate) / 86400000 / totalDays) * 100;
-            const isPast = termDate < new Date();
+            const isPast = termDate < now;
             const isTop = index % 2 === 0;
             const topPosition = isTop ? '-45px' : '25px';
 
@@ -4130,10 +4608,11 @@ window.App.Timeline = {
         const terms = this.getSolarTerms();
         if (!terms.length) return;
 
-        const currentYear = new Date().getFullYear();
+        const now = window.App.Utils.now();
+        const currentYear = now.getFullYear();
         const { startDate, endDate } = this.getTimelineRange(currentYear);
 
-        const progress = Math.min(1, Math.max(0, (new Date() - startDate) / (endDate - startDate)));
+        const progress = Math.min(1, Math.max(0, (now - startDate) / (endDate - startDate)));
         const timeline = document.getElementById('timeline');
         if (timeline) timeline.style.setProperty('--progress-percent', `${progress * 100}%`);
     },
