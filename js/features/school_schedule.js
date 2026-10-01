@@ -307,11 +307,7 @@ window.App.SchoolSchedule = {
         if (!container) return;
 
         const centered = text =>
-            `<div class="timetable-item" style="
-                font-family:STZhongSong,cursive;
-                font-size:24px;
-                text-align:center;
-            ">${text}</div>`;
+            `<div class="timetable-item">${text}</div>`;
 
         if (day === 6) {
             container.innerHTML = centered('周末无课表');
@@ -345,40 +341,14 @@ window.App.SchoolSchedule = {
                     label = `晚${index - 8}`;
                 }
 
-                let itemStyle =
-                    'display:flex;' +
-                    'align-items:center;' +
-                    'font-family:STZhongSong,cursive;' +
-                    'font-size:24px;' +
-                    'line-height:1;' +
-                    'padding:2px 0;';
-
-                if (showDivider) {
-                    itemStyle +=
-                        'border-bottom:2px dashed #ddd;' +
-                        'margin-bottom:6px;' +
-                        'padding-bottom:6px;';
-                }
+                const rowClass = showDivider
+                    ? 'timetable-row timetable-row-divider'
+                    : 'timetable-row';
 
                 return `
-                    <div style="${itemStyle}">
-                        <div style="
-                            width:42%;
-                            text-align:right;
-                            padding-right:15px;
-                            color:#8bc34a;
-                            font-weight:bold;
-                        ">
-                            ${label}
-                        </div>
-                        <div style="
-                            width:58%;
-                            text-align:left;
-                            padding-left:5px;
-                            color:#333;
-                        ">
-                            ${course}
-                        </div>
+                    <div class="${rowClass}">
+                        <div class="timetable-label">${label}</div>
+                        <div class="timetable-course">${course}</div>
                     </div>
                 `;
             })
