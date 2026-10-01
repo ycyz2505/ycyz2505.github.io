@@ -2,11 +2,15 @@ window.App.ModalCore = {
     init() {
         // 注意：金句选择弹窗由 ModalPhrase 独立处理
         const modals = [
-            { btn: 'settingsButton', modal: 'settingsModal', close: 'closeSettings' },
-            { btn: 'changelogButton', modal: 'changelogModal', close: 'closeChangelog' },
-            { btn: 'announcementButton', modal: 'announcementModal', close: 'closeAnnouncement' },
-            { btn: 'lostAndFoundButton', modal: 'lostAndFoundModal', close: 'closeLostAndFound' },
-            { btn: 'notificationButton', modal: 'notificationModal', close: 'closeNotification' }
+            { btn: 'settingsButton',       modal: 'settingsModal',     close: 'closeSettings' },
+            { btn: 'changelogButton',      modal: 'changelogModal',    close: 'closeChangelog' },
+            { btn: 'announcementButton',   modal: 'announcementModal', close: 'closeAnnouncement' },
+            { btn: 'lostAndFoundButton',   modal: 'lostAndFoundModal', close: 'closeLostFound' },
+            { btn: 'notificationButton',   modal: 'notificationModal', close: 'closeNotification' },
+
+            // 设置面板内部的两个子面板入口
+            { btn: 'openVirtualTimeModal', modal: 'virtualTimeModal',  close: 'closeVirtualTime' },
+            { btn: 'openTimetableModal',   modal: 'timetableModal',    close: 'closeTimetable' }
         ];
 
         modals.forEach(({ btn, modal, close }) => {

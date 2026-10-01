@@ -35,6 +35,18 @@ body,html{overflow:hidden;margin:0;padding:0;width:100%;height:100%;font-family:
 .settings-body{display:flex;flex-direction:column;gap:10px;padding:20px;overflow-y:auto;height:calc(100% - 60px)}
 .text-content{padding:15px;white-space:pre-wrap;overflow-y:auto;height:calc(100% - 50px)}
 
+/* ===== 设置模态框内的子面板入口 ===== */
+.settings-entries{display:flex;flex-direction:column;gap:10px;margin-bottom:6px}
+.settings-entry{display:flex;align-items:center;gap:14px;width:100%;padding:14px 16px;background:var(--theme-surface-soft);border:1px solid var(--theme-border);border-radius:8px;cursor:pointer;font-family:inherit;text-align:left;color:var(--theme-text);transition:all .2s}
+.settings-entry:hover{background:var(--theme-surface-hover);border-color:var(--theme-primary);transform:translateY(-1px);box-shadow:0 3px 10px rgba(var(--theme-primary-rgb),.12)}
+.settings-entry:active{transform:translateY(0)}
+.settings-entry-icon{font-size:22px;line-height:1;flex-shrink:0}
+.settings-entry-info{flex:1;display:flex;flex-direction:column;gap:3px;min-width:0}
+.settings-entry-title{font-size:15px;font-weight:600;color:var(--theme-dark);font-family:STZhongsong,serif}
+.settings-entry-desc{font-size:12px;color:var(--theme-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.settings-entry-arrow{font-size:20px;color:var(--theme-muted);flex-shrink:0;transition:transform .2s}
+.settings-entry:hover .settings-entry-arrow{color:var(--theme-primary);transform:translateX(3px)}
+
 /* ===== 时间预览滑动条 ===== */
 .preview-slider-zone{position:absolute;left:50%;bottom:24px;transform:translateX(-50%);width:min(1440px,calc(100% - 60px));padding:14px 26px 12px;background:var(--theme-surface-solid);border-radius:12px;box-shadow:0 6px 28px rgba(0,0,0,.22),0 0 0 1px var(--theme-border);display:none;opacity:0;transition:opacity .25s ease,box-shadow .25s ease;z-index:5;font-family:'Microsoft YaHei',sans-serif}
 .settings-modal.active .preview-slider-zone{display:block;opacity:1}

@@ -15,10 +15,11 @@ window.App.ModalTimetable = {
     },
 
     bindEvents() {
+        // 入口按钮在设置面板里，点击后打开独立的课表编辑模态框
         document
-            .getElementById('settingsButton')
+            .getElementById('openTimetableModal')
             ?.addEventListener('click', () => {
-                // 设置弹窗打开时重新读取一次，确保跨天后界面同步
+                // 让 ModalCore 先加好 active，再重新读取一次数据（跨天同步）
                 window.setTimeout(() => this.render(), 0);
             });
 

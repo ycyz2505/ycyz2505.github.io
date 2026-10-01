@@ -81,34 +81,26 @@
                 </div>
 
                 <div class="settings-body">
-                    <!-- 虚拟时间 -->
-                    <section class="time-offset-panel" id="virtualTimePanel">
-                        <div class="time-offset-header">
-                            <h4 class="time-offset-title">虚拟时间</h4>
-                            <span class="time-offset-meta" id="timeOffsetStatus">当前跟随系统时间</span>
-                        </div>
+                    <!-- 子面板入口 -->
+                    <div class="settings-entries">
+                        <button type="button" class="settings-entry" id="openVirtualTimeModal">
+                            <span class="settings-entry-icon">🕒</span>
+                            <span class="settings-entry-info">
+                                <span class="settings-entry-title">虚拟时间</span>
+                                <span class="settings-entry-desc">修改网站显示的日期和时间</span>
+                            </span>
+                            <span class="settings-entry-arrow">›</span>
+                        </button>
 
-                        <p class="time-offset-note">
-                            设置后，网站的所有时间判断（时钟、高考倒计时、作息、课表、节气）都会按此时间计算。设置会被保存，点击"恢复系统时间"即可关闭。
-                        </p>
-
-                        <div class="time-offset-actions">
-                            <input
-                                type="datetime-local"
-                                id="virtualTimeInput"
-                                class="virtual-time-input"
-                                step="1"
-                            >
-                            <button type="button" class="timetable-save-btn" id="applyVirtualTime">
-                                应用
-                            </button>
-                            <button type="button" class="timetable-reset-btn" id="resetVirtualTime">
-                                恢复系统时间
-                            </button>
-                        </div>
-
-                        <div class="time-offset-hint" id="timeOffsetHint"></div>
-                    </section>
+                        <button type="button" class="settings-entry" id="openTimetableModal">
+                            <span class="settings-entry-icon">📝</span>
+                            <span class="settings-entry-info">
+                                <span class="settings-entry-title">今日课表临时编辑</span>
+                                <span class="settings-entry-desc">修改只在今天生效，第二天自动恢复</span>
+                            </span>
+                            <span class="settings-entry-arrow">›</span>
+                        </button>
+                    </div>
 
                     <div class="switch-container">
                         <label class="switch">
@@ -165,11 +157,73 @@
                             <span class="slider"></span>
                         </label>
                     </div>
+                </div>
+            </div>
+        </div>
 
-                    <!-- 今日课表临时编辑 -->
+        <!-- 虚拟时间模态框 -->
+        <div class="settings-modal" id="virtualTimeModal">
+            <div class="settings-content">
+                <div class="settings-header">
+                    <h3>虚拟时间</h3>
+                    <span class="close-btn" id="closeVirtualTime">&times;</span>
+                </div>
+
+                <div class="settings-body">
+                    <section class="time-offset-panel" id="virtualTimePanel">
+                        <div class="time-offset-header">
+                            <h4 class="time-offset-title">设置网站时间</h4>
+                            <span class="time-offset-meta" id="timeOffsetStatus">当前跟随系统时间</span>
+                        </div>
+
+                        <p class="time-offset-note">
+                            设置后，网站的所有时间判断（时钟、高考倒计时、作息、课表、节气）都会按此时间计算。设置会被保存，点击"恢复系统时间"即可关闭。
+                        </p>
+
+                        <div class="time-offset-actions">
+                            <input
+                                type="datetime-local"
+                                id="virtualTimeInput"
+                                class="virtual-time-input"
+                                step="1"
+                            >
+                            <button type="button" class="timetable-save-btn" id="applyVirtualTime">
+                                应用
+                            </button>
+                            <button type="button" class="timetable-reset-btn" id="resetVirtualTime">
+                                恢复系统时间
+                            </button>
+                        </div>
+
+                        <div class="time-offset-hint" id="timeOffsetHint"></div>
+                    </section>
+                </div>
+            </div>
+
+            <!-- 时间预览滑动条（拖动时会浮到最上层） -->
+            <div class="preview-slider-zone" id="previewSliderZone">
+                <div class="preview-slider-header">
+                    <span class="preview-slider-label" id="previewSliderLabelStart">--</span>
+                    <span class="preview-slider-current" id="previewSliderCurrent">--</span>
+                    <span class="preview-slider-label" id="previewSliderLabelEnd">--</span>
+                </div>
+                <input type="range" class="preview-slider" id="previewSlider" min="0" max="365" value="0" step="1">
+                <div class="preview-slider-hint">左右拖动预览不同日期的网站效果，松开鼠标保存</div>
+            </div>
+        </div>
+
+        <!-- 今日课表临时编辑模态框 -->
+        <div class="settings-modal" id="timetableModal">
+            <div class="settings-content">
+                <div class="settings-header">
+                    <h3>今日课表临时编辑</h3>
+                    <span class="close-btn" id="closeTimetable">&times;</span>
+                </div>
+
+                <div class="settings-body">
                     <section class="timetable-editor" id="temporaryTimetablePanel">
                         <div class="timetable-editor-header">
-                            <h4 class="timetable-editor-title">今日课表临时编辑</h4>
+                            <h4 class="timetable-editor-title">今日课表</h4>
                             <span class="timetable-editor-meta" id="temporaryTimetableDate">加载中...</span>
                         </div>
 
@@ -192,17 +246,6 @@
                         </div>
                     </section>
                 </div>
-            </div>
-
-            <!-- 时间预览滑动条（拖动时会浮到最上层） -->
-            <div class="preview-slider-zone" id="previewSliderZone">
-                <div class="preview-slider-header">
-                    <span class="preview-slider-label" id="previewSliderLabelStart">--</span>
-                    <span class="preview-slider-current" id="previewSliderCurrent">--</span>
-                    <span class="preview-slider-label" id="previewSliderLabelEnd">--</span>
-                </div>
-                <input type="range" class="preview-slider" id="previewSlider" min="0" max="365" value="0" step="1">
-                <div class="preview-slider-hint">左右拖动预览不同日期的网站效果，松开鼠标保存</div>
             </div>
         </div>
 
@@ -233,6 +276,7 @@
                     12. 修复周日返校倒计时在临近返校时显示“距离周日返校还有 23 小时”的 bug；
                     13. 修复节气卡片指向错误的 bug；
                     14. 将金句字号增大 1px；
+                    15. 将“虚拟时间”和“今日课表临时编辑”从设置模态框中拆出，改为独立模态框，设置面板只保留入口按钮；
 
                     2026.9.27
                     1. 修复金句不正常更新的 bug，优化金句轮播逻辑；
@@ -400,6 +444,7 @@
 
     <script src="js/features/modal_core.js"></script>
     <script src="js/features/modal_settings.js"></script>
+    <script src="js/features/modal_virtual_time.js"></script>
     <script src="js/features/modal_timetable.js"></script>
     <script src="js/features/modal_lost_found.js"></script>
     <script src="js/features/modal_notification.js"></script>
