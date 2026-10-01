@@ -131,6 +131,8 @@ window.App.SchoolSchedule = {
         );
     },
 
+    // ★ 修复：周日返校目标时间若已过去（如周日 17:40 之后），自动跳到下一个周日，
+    //   避免出现"距离周日返校 23 小时"或"00:00"的错误显示。
     getNextSchoolDayTime(now) {
         const target = new Date(now);
         const day = target.getDay();
@@ -141,7 +143,11 @@ window.App.SchoolSchedule = {
             0;
 
         target.setDate(target.getDate() + daysUntilSunday);
-        target.setHours(17, 30, 0, 0);
+        target.setHours(17, 40, 0, 0);
+
+        if (target <= now) {
+            target.setDate(target.getDate() + 7);
+        }
 
         return {
             endTime: target,
@@ -164,9 +170,10 @@ window.App.SchoolSchedule = {
             };
         }
 
+        // ★ 修复：作息表中"周末"到 17:40 才结束，原阈值 17:30 会让 17:30~17:40 落入通用分支
         if (
             day === 0 &&
-            currentMinutes < utils.timeToMinutes('17:30')
+            currentMinutes < utils.timeToMinutes('17:40')
         ) {
             return {
                 current: '周末',
@@ -282,14 +289,13 @@ window.App.SchoolSchedule = {
         const nextElement =
             document.getElementById('nextSchedule');
 
+        // ★ 修复：'当前'只显示作息名称（第一节课 / 课间 / 早餐 等），
+        //        不再替换为科目名。
         if (currentElement) {
-            currentElement.textContent =
-                this.getCourseDisplayName(
-                    day,
-                    result.current
-                );
+            currentElement.textContent = result.current;
         }
 
+        // '下节课'仍显示科目名称
         if (nextElement) {
             const next = result.nextLesson;
 
@@ -383,16 +389,6 @@ window.App.SchoolSchedule = {
             (day === 0 && current === '周末')
         ) {
             return this.getNextSchoolDayTime(now);
-        }
-
-        if (current === '午休') {
-            const firstPart =
-                currentMinutes < utils.timeToMinutes('13:10');
-
-            return {
-                endTime: firstPart ? '13:10' : '13:40',
-                label: firstPart ? '熄灯' : '起床'
-            };
         }
 
         const currentIndex = todaySchedule.findIndex(

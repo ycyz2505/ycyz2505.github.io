@@ -95,6 +95,8 @@ window.App.Timeline = {
                 card.style.bottom = '100%';
                 card.style.marginBottom = '20px';
                 card.style.transformOrigin = 'bottom center';
+                // ★ 卡片位于标记上方，箭头改为指向下方
+                card.classList.add('solar-card--above');
             }
 
             card.innerHTML = `

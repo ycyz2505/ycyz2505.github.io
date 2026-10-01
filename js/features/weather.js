@@ -1,13 +1,25 @@
 window.App.Weather = {
+    _retryTimer: null,
+    _isRetrying: false,
+
+    // 最近一次成功获取到的行政区划名（用于 tooltip）
+    location: '',
+
     init() {
         this.fetch();
+
         clearInterval(window.App.Timers.weather);
         window.App.Timers.weather = setInterval(() => this.fetch(), 60000);
+
+        this.bindLocationTip();
     },
 
-    async fetch() {
+    async fetch(retryCount = 0) {
         const el = document.getElementById('weatherInfo');
         if (!el) return;
+
+        // 定时器触发的 fetch 如果撞上正在进行的重试链，就跳过这一次
+        if (retryCount === 0 && this._isRetrying) return;
 
         try {
             const locRes = await fetch('https://ipwho.is/');
@@ -17,6 +29,13 @@ window.App.Weather = {
             if (loc.success !== true || typeof loc.latitude !== 'number' || typeof loc.longitude !== 'number') {
                 throw new Error(loc.message || '地理位置数据无效');
             }
+
+            // 记录行政区划，去重相邻重复项（例如 country/region/city 都是 Beijing）
+            const pieces = [];
+            [loc.country, loc.region, loc.city].forEach(v => {
+                if (v && v !== pieces[pieces.length - 1]) pieces.push(v);
+            });
+            this.location = pieces.join(' ') || '位置未知';
 
             const tz = loc.timezone?.id || 'auto';
             const url =
@@ -36,9 +55,33 @@ window.App.Weather = {
 
             const temp = this.formatTemperature(current.temperature_2m);
             el.textContent = `${this.getWeatherName(current.weather_code)} ${temp}℃`;
+
+            // 成功 → 结束重试状态
+            this._isRetrying = false;
+            if (this._retryTimer) {
+                clearTimeout(this._retryTimer);
+                this._retryTimer = null;
+            }
         } catch (err) {
             console.error('天气加载失败:', err);
-            el.textContent = '天气暂不可用';
+
+            if (retryCount < 3) {
+                // 指数退避：2s → 4s → 8s
+                this._isRetrying = true;
+                const delay = 2000 * Math.pow(2, retryCount);
+
+                if (this._retryTimer) clearTimeout(this._retryTimer);
+                this._retryTimer = setTimeout(() => {
+                    this._retryTimer = null;
+                    this.fetch(retryCount + 1);
+                }, delay);
+
+                // 只在第一次失败时改文案，避免后续重试闪烁
+                if (retryCount === 0) el.textContent = '天气加载中...';
+            } else {
+                this._isRetrying = false;
+                el.textContent = '天气暂不可用';
+            }
         }
     },
 
@@ -58,5 +101,44 @@ window.App.Weather = {
             95: '雷雨', 96: '雷雨伴冰雹', 99: '强雷雨伴冰雹'
         };
         return map[code] || '未知天气';
+    },
+
+    // ---------- 位置提示 ----------
+    bindLocationTip() {
+        const weatherInfo = document.getElementById('weatherInfo');
+        if (!weatherInfo) return;
+
+        // 把 tooltip 插入到"天气"所在那一行（.schedule-item 已设置 position:relative）
+        const row = weatherInfo.closest('.schedule-item') || weatherInfo.parentNode;
+        if (row && !row.querySelector('#weatherLocationTip')) {
+            const tip = document.createElement('div');
+            tip.id = 'weatherLocationTip';
+            tip.className = 'weather-location-tip';
+            row.appendChild(tip);
+        }
+
+        weatherInfo.style.cursor = 'pointer';
+
+        weatherInfo.addEventListener('click', () => {
+            const tip = document.getElementById('weatherLocationTip');
+            if (!tip) return;
+
+            // 再次点击相同位置 → 收起
+            if (tip.classList.contains('active')) {
+                tip.classList.remove('active');
+                return;
+            }
+
+            if (!this.location) return;
+
+            tip.textContent = this.location;
+            tip.classList.add('active');
+        });
+
+        // 点击其他位置 → 消失
+        document.addEventListener('click', e => {
+            if (e.target.closest('#weatherInfo')) return;
+            document.getElementById('weatherLocationTip')?.classList.remove('active');
+        });
     }
 };
