@@ -30,7 +30,10 @@ window.App.Store = {
             temporaryTimetable: null,
 
             // 虚拟时间偏移量（毫秒），0 表示跟随系统时间
-            timeOffset: 0
+            timeOffset: 0,
+
+            // 首页当前展示的倒计日 id
+            activeCountdownId: 'gaokao'
         },
 
         timetable: {},
@@ -38,7 +41,10 @@ window.App.Store = {
         phrases: {},
         solarterms: [],
         lostfound: [],
-        notifications: []
+        notifications: [],
+
+        // 自定义倒计日列表
+        countdowns: []
     },
 
     init() {
@@ -60,6 +66,11 @@ window.App.Store = {
 
         this.defaults.solarterms =
             typeof solarTerms !== 'undefined' ? solarTerms : [];
+
+        this.defaults.countdowns =
+            typeof defaultCountdowns !== 'undefined'
+                ? defaultCountdowns
+                : [];
 
         await this._detectPort();
         await this._loadAll();
@@ -128,7 +139,8 @@ window.App.Store = {
             'phrases',
             'solarterms',
             'lostfound',
-            'notifications'
+            'notifications',
+            'countdowns'
         ];
 
         for (const name of names) {

@@ -416,3 +416,45 @@ input:checked~.switch-text{color:var(--theme-primary)}
 .music-volume{display:none}
 .music-bar{--music-bar-h:186px}
 }
+/* ===== 首页倒计日区域（支持左右滑动切换） ===== */
+.countdown-area{position:relative;display:block;width:100%;user-select:none;-webkit-user-select:none;cursor:grab}
+.countdown-area:active{cursor:grabbing}
+.countdown-content{display:block;width:100%}
+.countdown-dots{display:flex;justify-content:center;align-items:center;gap:7px;margin-top:-6px;margin-bottom:10px;min-height:10px}
+.countdown-dots:empty{display:none}
+.countdown-dot{width:8px;height:8px;border-radius:50%;background:var(--theme-border);cursor:pointer;transition:all .22s ease;border:none;padding:0;outline:none;-webkit-tap-highlight-color:transparent}
+.countdown-dot:hover{background:var(--theme-surface-hover);transform:scale(1.25)}
+.countdown-dot:focus-visible{outline:2px solid var(--theme-primary);outline-offset:2px}
+.countdown-dot.active{background:var(--theme-primary);width:22px;border-radius:4px;box-shadow:0 1px 4px rgba(var(--theme-primary-rgb),.4)}
+
+/* ===== 自定义倒计日模态框 ===== */
+.countdown-editor{margin-top:8px;padding:18px;border:1px solid var(--theme-border);border-radius:8px;background:var(--theme-surface-soft);box-shadow:0 2px 8px rgba(var(--theme-primary-rgb),.06)}
+.countdown-editor-header{display:flex;align-items:center;justify-content:space-between;gap:15px;margin-bottom:6px}
+.countdown-editor-title{margin:0;color:var(--theme-dark);font-size:19px;font-family:STZhongsong,serif;font-weight:600}
+.countdown-add-btn{padding:7px 14px;border:none;border-radius:5px;background:var(--theme-primary);color:#fff;font-family:inherit;font-size:13px;cursor:pointer;transition:all .2s;box-shadow:0 2px 5px rgba(var(--theme-primary-rgb),.25);white-space:nowrap}
+.countdown-add-btn:hover{background:var(--theme-primary-hover);transform:translateY(-1px)}
+.countdown-add-btn:active{transform:translateY(0)}
+.countdown-editor-note{margin:0 0 15px;color:var(--theme-muted);font-size:13px;line-height:1.6}
+.countdown-list{display:flex;flex-direction:column;gap:10px;max-height:340px;overflow-y:auto;padding:2px}
+.countdown-list::-webkit-scrollbar{width:6px}
+.countdown-list::-webkit-scrollbar-track{background:var(--theme-surface-soft);border-radius:3px}
+.countdown-list::-webkit-scrollbar-thumb{background:var(--theme-border);border-radius:3px}
+.countdown-list::-webkit-scrollbar-thumb:hover{background:var(--theme-primary)}
+.countdown-row{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--theme-surface-solid);border:1px solid var(--theme-border);border-radius:8px;transition:border-color .2s,box-shadow .2s}
+.countdown-row:hover{border-color:var(--theme-primary);box-shadow:0 2px 8px rgba(var(--theme-primary-rgb),.1)}
+.countdown-row.active{border-color:var(--theme-primary);box-shadow:0 0 0 2px rgba(var(--theme-primary-rgb),.18)}
+.countdown-name-input{flex:1;min-width:0;height:34px;box-sizing:border-box;padding:5px 9px;border:1px solid var(--theme-border);border-radius:5px;outline:none;color:var(--theme-text);background:var(--theme-surface-solid);font-family:'Microsoft YaHei',sans-serif;font-size:14px;transition:border-color .2s,box-shadow .2s}
+.countdown-name-input:focus{border-color:var(--theme-primary);box-shadow:0 0 0 3px rgba(var(--theme-primary-rgb),.15)}
+.countdown-name-input[readonly],.countdown-date-input[readonly]{background:var(--theme-surface-soft);color:var(--theme-muted);cursor:not-allowed}
+.countdown-date-input{flex:0 0 150px;height:34px;box-sizing:border-box;padding:5px 9px;border:1px solid var(--theme-border);border-radius:5px;outline:none;color:var(--theme-text);background:var(--theme-surface-solid);font-family:'Microsoft YaHei',sans-serif;font-size:14px;transition:border-color .2s,box-shadow .2s}
+.countdown-date-input:focus{border-color:var(--theme-primary);box-shadow:0 0 0 3px rgba(var(--theme-primary-rgb),.15)}
+.countdown-del-btn{flex-shrink:0;height:34px;padding:0 14px;border:none;border-radius:5px;background:#f44;color:#fff;font-family:inherit;font-size:13px;cursor:pointer;transition:all .2s;white-space:nowrap}
+.countdown-del-btn:hover{background:#e53935}
+.countdown-del-btn:active{transform:scale(.96)}
+.countdown-locked{flex-shrink:0;font-size:12px;color:var(--theme-muted);padding:0 8px;white-space:nowrap;font-family:STZhongsong,serif}
+.countdown-empty{text-align:center;padding:20px;color:var(--theme-muted);font-size:13px;font-style:italic}
+@media(max-width:700px){
+.countdown-editor-header{flex-direction:column;align-items:flex-start}
+.countdown-row{flex-wrap:wrap}
+.countdown-date-input{flex:1 1 100%}
+}

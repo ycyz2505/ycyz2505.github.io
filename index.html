@@ -45,8 +45,14 @@
             <div class="timetable" id="todayTimetable"></div>
         </div>
 
-        <div class="small-title">距离2028年高考仅剩</div>
-        <div id="daysUntil" class="big-title"></div>
+        <!-- 首页倒计日区域：左右滑动切换 -->
+        <div class="countdown-area" id="countdownArea">
+            <div class="countdown-content" id="countdownContent">
+                <div class="small-title" id="countdownTitle">距离2028年高考仅剩</div>
+                <div id="daysUntil" class="big-title"></div>
+            </div>
+            <div class="countdown-dots" id="countdownDots"></div>
+        </div>
 
         <div class="timeline-container">
             <div class="timeline-progress" id="timeline">
@@ -140,6 +146,15 @@
                     </div>
                     <!-- 子面板入口 -->
                     <div class="settings-entries">
+                        <button type="button" class="settings-entry" id="openCountdownModal">
+                            <span class="settings-entry-icon">⏳</span>
+                            <span class="settings-entry-info">
+                                <span class="settings-entry-title">自定义倒计日</span>
+                                <span class="settings-entry-desc">添加/修改多个倒计日，首页左右滑动切换</span>
+                            </span>
+                            <span class="settings-entry-arrow">›</span>
+                        </button>
+
                         <button type="button" class="settings-entry" id="openVirtualTimeModal">
                             <span class="settings-entry-icon">🕒</span>
                             <span class="settings-entry-info">
@@ -158,6 +173,33 @@
                             <span class="settings-entry-arrow">›</span>
                         </button>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 自定义倒计日模态框 -->
+        <div class="settings-modal" id="countdownModal">
+            <div class="settings-content">
+                <div class="settings-header">
+                    <h3>自定义倒计日</h3>
+                    <span class="close-btn" id="closeCountdown">&times;</span>
+                </div>
+
+                <div class="settings-body">
+                    <section class="countdown-editor" id="countdownEditorPanel">
+                        <div class="countdown-editor-header">
+                            <h4 class="countdown-editor-title">倒计日列表</h4>
+                            <button type="button" class="countdown-add-btn" id="addCountdown">
+                                + 添加倒计日
+                            </button>
+                        </div>
+
+                        <p class="countdown-editor-note">
+                            修改名称或日期会自动保存；点击首页倒计日区域并左右滑动（或点击下方圆点）可以切换展示哪个倒计日。高考倒计日已锁定，不可修改或删除。
+                        </p>
+
+                        <div class="countdown-list" id="countdownList"></div>
+                    </section>
                 </div>
             </div>
         </div>
@@ -513,7 +555,7 @@
                         <div class="music-tree" id="musicTree"></div>
                     </div>
 
-                                        <div class="music-settings-panel" id="musicSettingsPanel">
+                    <div class="music-settings-panel" id="musicSettingsPanel">
                         <div class="music-settings-head">
                             <span>播放器设置</span>
                             <span class="music-settings-close" id="musicSettingsClose">&times;</span>
@@ -616,6 +658,7 @@
     <script src="js/data/timetable.js"></script>
     <script src="js/data/schedule.js"></script>
     <script src="js/data/phrases.js"></script>
+    <script src="js/data/countdowns.js"></script>
 
     <script src="js/features/00_state.js"></script>
     <script src="js/features/01_utils.js"></script>
@@ -625,7 +668,7 @@
     <script src="js/features/weather.js"></script>
     <script src="js/features/daily_image.js"></script>
     <script src="js/features/timeline.js"></script>
-    <script src="js/features/exam_countdown.js"></script>
+    <script src="js/features/countdown.js"></script>
     <script src="js/features/school_schedule.js"></script>
     <script src="js/features/golden_phrase.js"></script>
     <script src="js/features/auto_refresh.js"></script>
@@ -635,6 +678,7 @@
     <script src="js/features/modal_settings.js"></script>
     <script src="js/features/modal_virtual_time.js"></script>
     <script src="js/features/modal_timetable.js"></script>
+    <script src="js/features/modal_countdown.js"></script>
     <script src="js/features/modal_lost_found.js"></script>
     <script src="js/features/modal_notification.js"></script>
     <script src="js/features/modal_phrase.js"></script>
