@@ -426,8 +426,8 @@ window.App = window.App || {};
         const btn = $('musicStopButton');
         if (!btn) return;
 
-        // 有歌曲被选中就显示（无论正在播放还是暂停），方便随时清掉
-        const show = S.index >= 0;
+        // 只在真正播放时显示
+        const show = !!(audio && !audio.paused && S.index >= 0);
         btn.style.display = show ? '' : 'none';
     }
 
