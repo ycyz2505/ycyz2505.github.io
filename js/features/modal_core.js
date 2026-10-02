@@ -7,6 +7,7 @@ window.App.ModalCore = {
             { btn: 'announcementButton',   modal: 'announcementModal', close: 'closeAnnouncement' },
             { btn: 'lostAndFoundButton',   modal: 'lostAndFoundModal', close: 'closeLostFound' },
             { btn: 'notificationButton',   modal: 'notificationModal', close: 'closeNotification' },
+            { btn: 'calculatorButton',     modal: 'calculatorModal',   close: 'closeCalculator' },
 
             // 设置面板内部的两个子面板入口
             { btn: 'openVirtualTimeModal', modal: 'virtualTimeModal',  close: 'closeVirtualTime' },

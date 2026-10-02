@@ -39,6 +39,7 @@ window.onload = async function () {
     safeInit('ModalLostFound', () => window.App.ModalLostFound?.init());
     safeInit('ModalNotification', () => window.App.ModalNotification?.init());
     safeInit('ModalPhrase', () => window.App.ModalPhrase?.init());
+    safeInit('Calculator', () => window.App.Calculator?.init());
     safeInit('ModalTimer', () => window.App.ModalTimer?.init());
 
     const loadingOverlay =

@@ -70,6 +70,7 @@
             <button id="phraseSelectButton" class="action-button">📜 选择金句</button>
             <button id="lostAndFoundButton" class="action-button">🔍 寻物</button>
             <button id="notificationButton" class="action-button">🔔 通知</button>
+            <button id="calculatorButton" class="action-button">🧮 计算器</button>
         </div>
 
         <!-- 设置模态框 -->
@@ -260,6 +261,9 @@
 
                     待添加的新功能：自定义倒计时（不只是高考倒计时，如一月考倒计时、期末倒计时等）、智能的座位表（支持快捷搜索等）、老虎机（随机抽人）、方便地统计需要讲的题目（课前统计好，课上老师直接讲）、数据本地存储（目的是增加普适性，让所有班级都能用上这个网站，而不是仅 22 班）等。欢迎提建议。
 
+                    2026.10.2
+                    1. 新增计算器功能，为日后加入【？】功能打基础；
+
                     2026.10.1
                     1. 重新设计全部 24 节气的配色，改为贴合四季氛围的多色方案；
                     2. 新增"主题跟随节气"功能：背景、按钮、标题、边框等整站 UI 的颜色会随日期在一年中缓缓变化；
@@ -420,6 +424,65 @@
                 </div>
             </div>
         </div>
+
+                <!-- 计算器模态框 -->
+        <div class="settings-modal calculator-modal" id="calculatorModal">
+            <div class="settings-content calculator-content">
+                <div class="settings-header">
+                    <h3>计算器</h3>
+                    <span class="close-btn" id="closeCalculator">&times;</span>
+                </div>
+
+                <div class="calculator-body">
+                    <div class="calculator-screen">
+                        <div class="calc-expression" id="calcExpression">0</div>
+                        <div class="calc-preview" id="calcPreview"></div>
+                    </div>
+
+                    <div class="calc-pad" id="calcPad">
+                        <button type="button" class="calc-key calc-key-fn" data-action="second" id="calcSecondKey">2nd</button>
+                        <button type="button" class="calc-key calc-key-fn" data-action="angle" id="calcAngleKey">DEG</button>
+                        <button type="button" class="calc-key calc-key-fn" data-insert="(">(</button>
+                        <button type="button" class="calc-key calc-key-fn" data-insert=")">)</button>
+                        <button type="button" class="calc-key calc-key-clear" data-action="clear">C</button>
+
+                        <button type="button" class="calc-key calc-key-fn" data-insert="sin(" data-insert2="asin(" data-label2="sin⁻¹">sin</button>
+                        <button type="button" class="calc-key calc-key-fn" data-insert="cos(" data-insert2="acos(" data-label2="cos⁻¹">cos</button>
+                        <button type="button" class="calc-key calc-key-fn" data-insert="tan(" data-insert2="atan(" data-label2="tan⁻¹">tan</button>
+                        <button type="button" class="calc-key calc-key-fn" data-insert="ln("  data-insert2="exp("  data-label2="eˣ">ln</button>
+                        <button type="button" class="calc-key calc-key-del" data-action="backspace">⌫</button>
+
+                        <button type="button" class="calc-key calc-key-fn" data-insert="log(" data-insert2="10^(" data-label2="10ˣ">log</button>
+                        <button type="button" class="calc-key calc-key-fn" data-insert="√("   data-insert2="∛("   data-label2="∛">√</button>
+                        <button type="button" class="calc-key calc-key-fn" data-insert="^"    data-insert2="^2"   data-label2="x²">xʸ</button>
+                        <button type="button" class="calc-key calc-key-fn" data-insert="π">π</button>
+                        <button type="button" class="calc-key calc-key-op" data-insert="÷">÷</button>
+
+                        <button type="button" class="calc-key" data-insert="7">7</button>
+                        <button type="button" class="calc-key" data-insert="8">8</button>
+                        <button type="button" class="calc-key" data-insert="9">9</button>
+                        <button type="button" class="calc-key calc-key-fn" data-insert="e">e</button>
+                        <button type="button" class="calc-key calc-key-op" data-insert="×">×</button>
+
+                        <button type="button" class="calc-key" data-insert="4">4</button>
+                        <button type="button" class="calc-key" data-insert="5">5</button>
+                        <button type="button" class="calc-key" data-insert="6">6</button>
+                        <button type="button" class="calc-key calc-key-fn" data-insert="%">%</button>
+                        <button type="button" class="calc-key calc-key-op" data-insert="−">−</button>
+
+                        <button type="button" class="calc-key" data-insert="1">1</button>
+                        <button type="button" class="calc-key" data-insert="2">2</button>
+                        <button type="button" class="calc-key" data-insert="3">3</button>
+                        <button type="button" class="calc-key calc-key-fn" data-insert="!">n!</button>
+                        <button type="button" class="calc-key calc-key-op" data-insert="+">+</button>
+
+                        <button type="button" class="calc-key calc-key-wide" data-insert="0">0</button>
+                        <button type="button" class="calc-key" data-insert=".">.</button>
+                        <button type="button" class="calc-key calc-key-eq" data-action="equals">=</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="js/data/solarterms.js"></script>
@@ -449,6 +512,7 @@
     <script src="js/features/modal_notification.js"></script>
     <script src="js/features/modal_phrase.js"></script>
     <script src="js/features/modal_timer.js"></script>
+    <script src="js/features/modal_calculator.js"></script>
 
     <script>
         (function () {

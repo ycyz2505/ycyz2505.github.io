@@ -270,3 +270,37 @@ input:checked~.switch-text{color:var(--theme-primary)}
 .modal-timer-custom button:hover{background:var(--theme-primary-hover)}
 .modal-timer-hint{margin-top:8px;font-size:11px;color:var(--theme-muted);text-align:center}
 .settings-header-actions{display:flex;align-items:center}
+/* ===== 计算器 ===== */
+/* ===== 计算器 ===== */
+.calculator-modal .settings-content{width:460px;height:auto;max-height:92%;padding:18px 18px 20px}
+.calculator-modal .settings-header{margin-bottom:14px;padding-bottom:10px}
+.calculator-modal .settings-header h3{font-size:20px;font-family:STZhongsong,serif}
+.calculator-body{display:flex;flex-direction:column;min-height:0;overflow-y:auto}
+.calculator-screen{display:flex;flex-direction:column;justify-content:flex-end;gap:4px;min-height:104px;padding:14px 16px 12px;border:1px solid var(--theme-border);border-radius:14px;background:linear-gradient(160deg,var(--theme-surface-soft) 0%,var(--theme-surface-hover) 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,.9),inset 0 -2px 6px rgba(0,0,0,.03);overflow:hidden}
+.calc-expression{font-family:'Microsoft YaHei',Consolas,monospace;font-size:30px;font-weight:600;line-height:1.25;color:var(--theme-dark);text-align:right;white-space:nowrap;overflow-x:auto;overflow-y:hidden;padding-bottom:2px;scrollbar-width:none;transition:font-size .15s ease,color .2s ease}
+.calc-expression::-webkit-scrollbar{display:none}
+.calc-expression.calc-small{font-size:23px}
+.calc-expression.calc-tiny{font-size:18px}
+.calc-preview{min-height:22px;font-family:'Microsoft YaHei',sans-serif;font-size:17px;font-weight:600;line-height:1.3;color:var(--theme-primary);text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:.95}
+@keyframes calcShake{0%,100%{transform:translateX(0)}20%{transform:translateX(-7px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(3px)}}
+.calc-expression.calc-shake{animation:calcShake .35s ease;color:#e53935}
+.calc-pad{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:14px}
+.calc-key{display:flex;align-items:center;justify-content:center;height:48px;padding:0;border:1px solid var(--theme-border);border-radius:12px;background:var(--theme-surface-solid);color:var(--theme-text);font-family:'Microsoft YaHei',sans-serif;font-size:19px;font-weight:500;line-height:1;cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent;transition:transform .1s ease,background .16s ease,border-color .16s ease,box-shadow .16s ease,color .16s ease}
+.calc-key:hover{background:var(--theme-surface-hover);border-color:var(--theme-primary);color:var(--theme-dark);box-shadow:0 3px 10px rgba(var(--theme-primary-rgb),.14)}
+.calc-key:active{transform:scale(.93);box-shadow:none}
+.calc-key:focus-visible{outline:2px solid var(--theme-primary);outline-offset:2px}
+.calc-key-fn{font-size:15px;background:var(--theme-surface-soft);color:var(--theme-muted)}
+.calc-key-fn:hover{color:var(--theme-dark)}
+.calc-key-op{font-size:23px;font-weight:700;color:var(--theme-primary);background:var(--theme-surface-soft)}
+.calc-key-del{font-size:19px;background:var(--theme-surface-soft);color:var(--theme-muted)}
+.calc-key-clear{font-size:18px;background:var(--theme-surface-soft);color:var(--theme-muted)}
+.calc-key-clear:hover{background:var(--theme-surface-hover);color:var(--theme-dark);border-color:var(--theme-primary)}
+.calc-key.active{color:#fff;background:var(--theme-primary);border-color:transparent;box-shadow:0 3px 10px rgba(var(--theme-primary-rgb),.3)}
+.calc-key-wide{grid-column:span 2}
+.calc-key-eq{grid-column:span 2;color:#fff;font-size:24px;font-weight:700;border:none;background:linear-gradient(135deg,var(--theme-primary) 0%,var(--theme-primary-hover) 100%);box-shadow:0 4px 14px rgba(var(--theme-primary-rgb),.38)}
+.calc-key-eq:hover{color:#fff;background:linear-gradient(135deg,var(--theme-primary-hover) 0%,var(--theme-primary-active) 100%);box-shadow:0 6px 18px rgba(var(--theme-primary-rgb),.5)}
+.calc-key-eq:active{transform:scale(.95)}
+@media(max-width:700px){
+.calculator-modal .settings-content{width:calc(100% - 24px);padding:14px}
+.calc-key{height:44px;font-size:17px}
+}
