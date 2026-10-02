@@ -5,8 +5,9 @@
 // - 歌曲来源：data/music/ 目录（通过 LocalDataServer 读取）
 // - 树形目录展示，自动识别同目录图片作为封面
 // - 歌词支持逐行 / 逐字两种 LRC 格式
-// - 没有歌词文件的歌照样能播：播放器里显示“歌词缺失”，金句继续轮播
-// - 有歌曲在播放时，首页按钮区右侧出现“关闭音乐”按钮
+// - 没有歌词文件的歌照样能播：播放器里显示"歌词缺失"，金句继续轮播
+// - 有歌曲在播放时，首页按钮区右侧出现"关闭"按钮
+// - 设置面板里集成了"输出设备管理"（需要管理员运行 LocalDataServer）
 // ============================================================
 
 window.App = window.App || {};
@@ -60,6 +61,12 @@ window.App = window.App || {};
 
         expanded: new Set(),
         pathToIndex: new Map()
+    };
+
+    // 音频设备管理状态
+    const DEV = {
+        list: [],
+        loading: false
     };
 
     let audio = null;
@@ -197,7 +204,6 @@ window.App = window.App || {};
         return imageFiles[0].path;
     }
 
-    // parents：从根到当前分类目录的层级路径
     function flattenTree(nodes, parents, out) {
         if (!Array.isArray(nodes)) return;
 
@@ -227,9 +233,7 @@ window.App = window.App || {};
                         parents: parents.slice(),
                         chain: parents.concat(node.name),
                         audio: af.path,
-                        // 没有 lrc 就是 null，后续按“歌词缺失”处理
                         lyric: lyricFile ? lyricFile.path : null,
-                        // 没有封面图片就是 null，播放时用 “♪” 兜底
                         cover: coverPath,
                         key: af.path
                     });
@@ -338,7 +342,6 @@ window.App = window.App || {};
 
     function renderSongNode(song, idx) {
         const active = (idx === S.index);
-        // 没封面时用音符字符兜底
         const cover = song.cover
             ? '<img src="' + mediaUrl(song.cover) + '" alt="">'
             : '♪';
@@ -420,15 +423,142 @@ window.App = window.App || {};
     }
 
     // ------------------------------------------------------------
-    // 首页“关闭音乐”按钮：随播放状态显隐
+    // 首页"关闭"按钮：只在真正播放时显示
     // ------------------------------------------------------------
     function updateHomeButton() {
         const btn = $('musicStopButton');
         if (!btn) return;
 
-        // 只在真正播放时显示
         const show = !!(audio && !audio.paused && S.index >= 0);
         btn.style.display = show ? '' : 'none';
+    }
+
+    // ------------------------------------------------------------
+    // 音频设备管理
+    // ------------------------------------------------------------
+    function renderAudioDevices() {
+        const wrap = $('musicDevices');
+        const status = $('musicDevicesStatus');
+        if (!wrap) return;
+
+        if (DEV.loading) {
+            wrap.innerHTML = '<div class="music-device-empty">正在加载…</div>';
+            if (status) status.textContent = '';
+            return;
+        }
+
+        if (!DEV.list.length) {
+            wrap.innerHTML = '<div class="music-device-empty">没有找到输出设备</div>';
+            if (status) status.textContent = '';
+            return;
+        }
+
+        wrap.innerHTML = DEV.list.map((dev, i) => {
+            const on = !!dev.active;
+            return '' +
+                '<div class="music-device-item">' +
+                    '<span class="music-device-name" title="' + esc(dev.name || '') + '">' +
+                        esc(dev.name || '(未命名设备)') +
+                    '</span>' +
+                    '<span class="music-device-toggle' + (on ? ' on' : '') +
+                        '" data-index="' + i + '" title="' +
+                        (on ? '点击禁用' : '点击启用') + '"></span>' +
+                '</div>';
+        }).join('');
+    }
+
+    function loadAudioDevices() {
+        const wrap = $('musicDevices');
+        if (!wrap) return;
+
+        const base = baseUrl();
+        if (!base) {
+            wrap.innerHTML = '<div class="music-device-empty">本地服务未启动</div>';
+            return;
+        }
+
+        if (DEV.loading) return;
+        DEV.loading = true;
+        renderAudioDevices();
+
+        fetch(base + '/api/audio/devices', { cache: 'no-store' })
+            .then(res => {
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                return res.json();
+            })
+            .then(list => {
+                DEV.list = Array.isArray(list) ? list : [];
+                DEV.loading = false;
+                renderAudioDevices();
+
+                const status = $('musicDevicesStatus');
+                if (status) {
+                    status.textContent = '共 ' + DEV.list.length + ' 个输出设备';
+                }
+            })
+            .catch(err => {
+                console.warn('[Audio] 加载设备失败：', err);
+                DEV.loading = false;
+                DEV.list = [];
+
+                const wrapEl = $('musicDevices');
+                if (wrapEl) {
+                    wrapEl.innerHTML =
+                        '<div class="music-device-empty">设备列表加载失败</div>';
+                }
+            });
+    }
+
+    function toggleAudioDevice(index) {
+        const dev = DEV.list[index];
+        if (!dev) return;
+
+        const next = !dev.active;
+        const status = $('musicDevicesStatus');
+        const base = baseUrl();
+
+        // 乐观更新 UI
+        dev.active = next;
+        renderAudioDevices();
+        if (status) status.textContent = next ? '正在启用…' : '正在禁用…';
+
+        if (!base) return;
+
+        fetch(base + '/api/audio/device', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: dev.id, enable: next })
+        })
+            .then(res => {
+                if (res.status === 403) {
+                    throw new Error('need admin');
+                }
+                if (!res.ok) {
+                    throw new Error('HTTP ' + res.status);
+                }
+                return res.json();
+            })
+            .then(() => {
+                if (status) {
+                    status.textContent = next ? '已启用' : '已禁用';
+                }
+                // 稍后拉一次真实状态
+                setTimeout(() => loadAudioDevices(), 500);
+            })
+            .catch(err => {
+                console.warn('[Audio] 切换设备失败：', err);
+
+                // 回滚 UI
+                dev.active = !next;
+                renderAudioDevices();
+
+                if (status) {
+                    status.textContent =
+                        (err && err.message === 'need admin')
+                            ? '需要以管理员身份运行 LocalDataServer'
+                            : '切换失败';
+                }
+            });
     }
 
     // ------------------------------------------------------------
@@ -463,7 +593,6 @@ window.App = window.App || {};
             p.catch(err => console.warn('[Music] 播放失败：', err));
         }
 
-        // 无 lrc 时 loadLyric 直接返回，S.lyrics 保持空，金句继续轮播
         loadLyric(song.lyric, S.lyricToken);
         renderTree();
     }
@@ -533,7 +662,7 @@ window.App = window.App || {};
     // ------------------------------------------------------------
     // 完全停止并清空当前播放
     // ------------------------------------------------------------
-        function stopMusic() {
+    function stopMusic() {
         if (audio) {
             try { audio.pause(); } catch (e) {}
             try { audio.currentTime = 0; } catch (e) {}
@@ -544,7 +673,6 @@ window.App = window.App || {};
         S.lyricIndex = -1;
         S.lyricToken++;
 
-        // 交还金句控制权
         window.App.GoldenPhrase?.clearMusicLyric();
 
         updateLyricUI();
@@ -552,7 +680,6 @@ window.App = window.App || {};
         renderTree();
         updateHomeButton();
 
-        // 关闭音乐后立刻刷新一条金句，不用等下一个轮播周期
         window.App.GoldenPhrase?.refreshNow?.();
     }
 
@@ -560,7 +687,6 @@ window.App = window.App || {};
     // 歌词
     // ------------------------------------------------------------
     function loadLyric(relPath, token) {
-        // 没有歌词文件：保持空数组，播放条显示“歌词缺失”，金句照常轮播
         if (!relPath) {
             if (token === S.lyricToken) updateLyricUI();
             return;
@@ -608,7 +734,6 @@ window.App = window.App || {};
     }
 
     function syncLyric(t) {
-        // 没有歌词：直接返回，不接管金句，让金句继续轮播
         if (!S.lyrics.length) return;
 
         const i = findLyricIndex(t);
@@ -635,7 +760,6 @@ window.App = window.App || {};
 
         if (!arr.length) {
             if (prevEl) prevEl.textContent = '';
-            // 选中歌曲但没有歌词 → 显示“歌词缺失”
             curEl.textContent = S.index >= 0
                 ? '歌词缺失'
                 : '♪ 选择一首歌开始播放';
@@ -671,7 +795,6 @@ window.App = window.App || {};
                 coverEl.innerHTML =
                     '<img src="' + mediaUrl(song.cover) + '" alt="">';
             } else {
-                // 没封面 → “♪” 兜底
                 coverEl.textContent = '♪';
             }
         }
@@ -944,7 +1067,6 @@ window.App = window.App || {};
             renderTree();
             updateHomeButton();
 
-            // 有歌词才接管金句；无歌词则什么都不做，让金句继续轮播
             if (S.lyrics.length &&
                 S.lyricIndex >= 0 &&
                 S.lyrics[S.lyricIndex]) {
@@ -1007,7 +1129,7 @@ window.App = window.App || {};
         $('musicNextBtn')?.addEventListener('click', () => playNext(false));
         $('musicPrevBtn')?.addEventListener('click', playPrev);
 
-        // ---- 首页“关闭音乐”按钮 ----
+        // ---- 首页"关闭"按钮 ----
         $('musicStopButton')?.addEventListener('click', () => {
             stopMusic();
         });
@@ -1048,6 +1170,11 @@ window.App = window.App || {};
             if (!panel) return;
             const open = panel.classList.toggle('open');
             fab.classList.toggle('active', open);
+
+            // 展开时自动加载音频设备列表
+            if (open && !DEV.list.length && !DEV.loading) {
+                loadAudioDevices();
+            }
         });
 
         $('musicSettingsClose')?.addEventListener('click', e => {
@@ -1114,6 +1241,21 @@ window.App = window.App || {};
             }
         });
 
+        // ---- 音频设备 ----
+        $('musicDevicesRefresh')?.addEventListener('click', () => {
+            loadAudioDevices();
+        });
+
+        $('musicDevices')?.addEventListener('click', e => {
+            const toggle = e.target.closest('.music-device-toggle');
+            if (!toggle) return;
+
+            const i = Number(toggle.dataset.index);
+            if (isNaN(i)) return;
+
+            toggleAudioDevice(i);
+        });
+
         // ---- 关闭 / 最大化 ----
         $('closeMusic')?.addEventListener('click', () => {
             closePanel();
@@ -1147,7 +1289,6 @@ window.App = window.App || {};
             applyMode('order');
             loadTree(false);
 
-            // 初始状态：首页关闭按钮隐藏
             updateHomeButton();
         },
 
@@ -1169,7 +1310,6 @@ window.App = window.App || {};
             return !!(audio && !audio.paused && S.index >= 0);
         },
 
-        // 供外部调用：完全停止播放
         stop() {
             stopMusic();
         }
