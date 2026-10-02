@@ -1,4 +1,14 @@
 window.App.Utils = {
+    // HTML 转义：把用户输入安全地插入 innerHTML 时使用
+    escapeHtml(value) {
+        return String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    },
+
     // 轻量刷新的时间节流（毫秒）：拖动时最多每 80ms 执行一次
     _refreshThrottle: 80,
     _lastRefresh: 0,

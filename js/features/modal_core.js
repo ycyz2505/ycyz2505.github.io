@@ -11,7 +11,8 @@ window.App.ModalCore = {
 
             // 设置面板内部的两个子面板入口
             { btn: 'openVirtualTimeModal', modal: 'virtualTimeModal',  close: 'closeVirtualTime' },
-            { btn: 'openTimetableModal',   modal: 'timetableModal',    close: 'closeTimetable' }
+            { btn: 'openTimetableModal',   modal: 'timetableModal',    close: 'closeTimetable' },
+            { btn: 'openCountdownModal',   modal: 'countdownModal',    close: 'closeCountdown' }
         ];
 
         modals.forEach(({ btn, modal, close }) => {

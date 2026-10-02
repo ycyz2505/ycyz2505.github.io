@@ -45,8 +45,14 @@
             <div class="timetable" id="todayTimetable"></div>
         </div>
 
-        <div class="small-title">距离2028年高考仅剩</div>
-        <div id="daysUntil" class="big-title"></div>
+        <!-- 倒计日切换区：左右滑动切换 -->
+        <div class="countdown-zone" id="countdownZone">
+            <div class="small-title" id="countdownTitle">距离2028年高考仅剩</div>
+            <div id="daysUntil" class="big-title"></div>
+            <div class="countdown-nav" id="countdownNav">
+                <div class="countdown-dots" id="countdownDots"></div>
+            </div>
+        </div>
 
         <div class="timeline-container">
             <div class="timeline-progress" id="timeline">
@@ -157,6 +163,15 @@
                             </span>
                             <span class="settings-entry-arrow">›</span>
                         </button>
+
+                        <button type="button" class="settings-entry" id="openCountdownModal">
+                            <span class="settings-entry-icon">📅</span>
+                            <span class="settings-entry-info">
+                                <span class="settings-entry-title">自定义倒计日</span>
+                                <span class="settings-entry-desc">添加多个倒计日，首页左右滑动切换</span>
+                            </span>
+                            <span class="settings-entry-arrow">›</span>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -250,6 +265,43 @@
             </div>
         </div>
 
+        <!-- 自定义倒计日模态框 -->
+        <div class="settings-modal" id="countdownModal">
+            <div class="settings-content">
+                <div class="settings-header">
+                    <h3>自定义倒计日</h3>
+                    <span class="close-btn" id="closeCountdown">&times;</span>
+                </div>
+
+                <div class="settings-body">
+                    <section class="countdown-editor">
+                        <div class="countdown-editor-header">
+                            <h4 class="countdown-editor-title">倒计日列表</h4>
+                            <span class="countdown-editor-meta" id="countdownEditorMeta">加载中...</span>
+                        </div>
+
+                        <p class="countdown-editor-note">
+                            首页在倒计日区域左右滑动即可切换；也可以点击下方列表项，直接设为首页展示。高考倒计日为固定项，不可删除或修改。
+                        </p>
+
+                        <div class="countdown-list" id="countdownList"></div>
+
+                        <div class="countdown-editor-actions">
+                            <button type="button" class="timetable-save-btn" id="countdownAddBtn">＋ 添加倒计日</button>
+                            <span class="countdown-editor-status" id="countdownStatus"></span>
+                        </div>
+
+                        <div class="countdown-add-form" id="countdownAddForm">
+                            <input type="text" class="countdown-input countdown-name-input" id="countdownNewName" maxlength="20" placeholder="名称，如：期末考试">
+                            <input type="date" class="countdown-input countdown-date-input" id="countdownNewDate">
+                            <button type="button" class="timetable-save-btn" id="countdownAddConfirm">添加</button>
+                            <button type="button" class="timetable-reset-btn" id="countdownAddCancel">取消</button>
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </div>
+
         <!-- 更新日志模态框 -->
         <div class="settings-modal" id="changelogModal">
             <div class="settings-content">
@@ -276,6 +328,7 @@
                     11. 修复音乐暂停/停止时关闭按钮未消失的 bug；
                     12. 音乐播放器设置面板里新增“输出设备”区块，可以查看并开关每一台音频输出设备。本地数据服务新增 GET /api/audio/devices（列出输出设备）和 POST /api/audio/device（启用 / 禁用某台设备）两个接口，底层调用 Windows IPolicyConfig::SetEndpointVisibility，效果和“声音”控制面板里手动禁用一致；
                     13. 音乐无歌词文件时播放条显示“歌词缺失”，金句区不再被音乐接管、继续轮播；
+                    14. 新增自定义倒计日功能，可添加/修改/删除多个倒计日，首页倒计日区域左右滑动即可切换展示；
 
                     2026.10.1
                     1. 重新设计全部 24 节气的配色，改为贴合四季氛围的多色方案；
@@ -635,6 +688,7 @@
     <script src="js/features/modal_settings.js"></script>
     <script src="js/features/modal_virtual_time.js"></script>
     <script src="js/features/modal_timetable.js"></script>
+    <script src="js/features/modal_countdown.js"></script>
     <script src="js/features/modal_lost_found.js"></script>
     <script src="js/features/modal_notification.js"></script>
     <script src="js/features/modal_phrase.js"></script>

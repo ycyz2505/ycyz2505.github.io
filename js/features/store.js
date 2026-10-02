@@ -30,7 +30,20 @@ window.App.Store = {
             temporaryTimetable: null,
 
             // 虚拟时间偏移量（毫秒），0 表示跟随系统时间
-            timeOffset: 0
+            timeOffset: 0,
+
+            // 自定义倒计日列表（第一项为固定的高考倒计日，不可删除/修改）
+            countdowns: [
+                {
+                    id: 'gaokao',
+                    name: '2028年高考',
+                    date: '2028-06-07'
+                }
+            ],
+
+            // 首页当前展示的倒计日 id
+            activeCountdownId: 'gaokao'
+
         },
 
         timetable: {},

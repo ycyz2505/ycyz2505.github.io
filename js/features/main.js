@@ -36,6 +36,7 @@ window.onload = async function () {
     safeInit('ModalSettings', () => window.App.ModalSettings?.init());
     safeInit('ModalVirtualTime', () => window.App.ModalVirtualTime?.init());
     safeInit('ModalTimetable', () => window.App.ModalTimetable?.init());
+    safeInit('ModalCountdown', () => window.App.ModalCountdown?.init());
     safeInit('ModalLostFound', () => window.App.ModalLostFound?.init());
     safeInit('ModalNotification', () => window.App.ModalNotification?.init());
     safeInit('ModalPhrase', () => window.App.ModalPhrase?.init());
