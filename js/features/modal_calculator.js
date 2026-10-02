@@ -5,8 +5,7 @@
 // - 支持 sin/cos/tan/asin/acos/atan/ln/log/√/∛/exp/abs 等
 // - 角度制 / 弧度制切换、2nd 第二功能切换
 // - 实时预览结果，回车 / = 求值，支持物理键盘
-// - 打开 / 关闭由 ModalCore 统一挂载
-// - 度数模式下识别特殊角：tan(90°)=未定义、sin(180°)=0、cos(90°)=0 等
+// - 隐藏功能：连续输入暗码可打开音乐播放器
 // ============================================================
 
 window.App = window.App || {};
@@ -17,7 +16,6 @@ window.App = window.App || {};
     const toRad   = deg => (deg ? Math.PI / 180 : 1);
     const fromRad = deg => (deg ? 180 / Math.PI : 1);
 
-    // 判断度数是否（在极小容差内）是 angle 的整数倍
     const isMultipleOf = (deg, angle) => {
         const r = ((deg % angle) + angle) % angle;
         return r < 1e-9 || Math.abs(r - angle) < 1e-9;
@@ -33,8 +31,8 @@ window.App = window.App || {};
             return Math.cos(x * toRad(d));
         },
         tan: (x, d) => {
-            if (d && isMultipleOf(x - 90, 180)) return NaN;   // 90° + k·180° 无定义
-            if (d && isMultipleOf(x, 180))       return 0;    // 0° + k·180° = 0
+            if (d && isMultipleOf(x - 90, 180)) return NaN;
+            if (d && isMultipleOf(x, 180))       return 0;
             return Math.tan(x * toRad(d));
         },
         asin: (x, d) => Math.asin(x) * fromRad(d),
@@ -70,6 +68,9 @@ window.App = window.App || {};
             second: false
         },
 
+        // ---------- 暗码缓冲区 ----------
+        _secretBuffer: '',
+
         // ==================== 初始化 ====================
         init() {
             this.bindPad();
@@ -77,8 +78,6 @@ window.App = window.App || {};
             this.syncAngleKey();
             this.updateDisplay();
 
-            // 打开时再刷新一次显示（首次打开也要正确渲染）
-            // 打开/关闭动作本身由 ModalCore 负责
             document.getElementById('calculatorButton')?.addEventListener('click', () => {
                 window.setTimeout(() => this.updateDisplay(), 0);
             });
@@ -111,13 +110,35 @@ window.App = window.App || {};
             if (insert !== undefined) this.insert(insert);
         },
 
+        // ==================== 暗码检测 ====================
+        _recordSecret(token) {
+            const code = (window.App.Music && window.App.Music.SECRET_CODE) || '';
+            if (!code) return;
+
+            // 统一运算符写法，让暗码可以用 ASCII 书写
+            const norm = String(token)
+                .replace(/÷/g, '/')
+                .replace(/[−–—]/g, '-')
+                .replace(/×/g, '*');
+
+            this._secretBuffer = (this._secretBuffer + norm)
+                .slice(-code.length * 3);
+
+            if (this._secretBuffer.endsWith(code)) {
+                this._secretBuffer = '';
+                this.clear();
+                window.App.Music?.open();
+            }
+        },
+
         // ==================== 输入 ====================
         insert(text) {
+            this._recordSecret(text);
+
             const s = this.state;
 
             if (s.justEvaluated) {
                 s.justEvaluated = false;
-                // 只有运算符 / 后缀才接在结果后面继续算
                 const continues = /^[+\-−×÷^%!]/.test(text);
                 if (!continues) s.expr = '';
             }
@@ -138,7 +159,6 @@ window.App = window.App || {};
 
             if (!s.expr) return;
 
-            // 函数名 + "(" 整块删除，体验更好
             const m = /(?:asin|acos|atan|sqrt|cbrt|sin|cos|tan|log|ln|exp|abs)\($/.exec(s.expr);
             s.expr = m
                 ? s.expr.slice(0, -m[0].length)
@@ -152,6 +172,7 @@ window.App = window.App || {};
             s.expr = '';
             s.result = null;
             s.justEvaluated = false;
+            this._secretBuffer = '';
             this.updateDisplay();
         },
 
@@ -170,7 +191,6 @@ window.App = window.App || {};
                 return;
             }
 
-            // 数学上"无定义"（如 tan 90°、√-1、ln 负数、0/0…）
             if (Number.isNaN(value)) {
                 const el = document.getElementById('calcExpression');
                 if (el) el.textContent = '未定义';
@@ -181,7 +201,6 @@ window.App = window.App || {};
                 return;
             }
 
-            // 溢出：如 1/0、e^1000
             if (!Number.isFinite(value)) {
                 this.flashError();
                 return;
@@ -202,7 +221,6 @@ window.App = window.App || {};
                 .replace(/[−–—]/g, '-')
                 .replace(/％/g, '%');
 
-            // 自动补全缺失的右括号
             let depth = 0;
             for (const ch of s) {
                 if (ch === '(') depth++;
@@ -242,7 +260,6 @@ window.App = window.App || {};
                     const c = s[pos];
                     if (c === '*') { pos++; v *= parseUnary(); }
                     else if (c === '/') { pos++; v /= parseUnary(); }
-                    // 隐式乘法：2π、3(4+5)、2sin(30)…
                     else if (c && /[0-9.a-zA-Z(π√∛]/.test(c)) { v *= parseUnary(); }
                     else break;
                 }
@@ -264,7 +281,7 @@ window.App = window.App || {};
                 skip();
                 if (s[pos] === '^') {
                     pos++;
-                    return Math.pow(base, parseUnary());   // 右结合
+                    return Math.pow(base, parseUnary());
                 }
                 return base;
             }
@@ -356,7 +373,6 @@ window.App = window.App || {};
                     .replace('e+', 'e');
             }
 
-            // 抹掉 0.1 + 0.2 这类浮点误差
             return String(parseFloat(value.toPrecision(12)));
         },
 

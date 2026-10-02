@@ -71,6 +71,7 @@
             <button id="lostAndFoundButton" class="action-button">🔍 寻物</button>
             <button id="notificationButton" class="action-button">🔔 通知</button>
             <button id="calculatorButton" class="action-button">🧮 计算器</button>
+            <button id="musicStopButton" class="action-button" style="display:none;">⏹ 关闭</button>
         </div>
 
         <!-- 设置模态框 -->
@@ -263,6 +264,15 @@
 
                     2026.10.2
                     1. 新增计算器功能，为日后加入【？】功能打基础；
+                    2. 新增【？】，带歌词显示；
+                    3. 本地数据服务（LocalDataServer.exe）新增音乐目录与流媒体接口，支持 Range 请求，可拖动进度条；
+                    4. 歌曲列表改为保留原始目录层级的树形式，可折叠展开，分类文件夹右侧显示歌曲数量；
+                    5. 自动识别歌曲文件夹内的图片作为封面，无封面时以 ♪ 字符兜底；
+                    6. 播放时把当前歌词同步显示到首页金句位置，暂停或停止后恢复原金句轮播；音乐接管金句期间，点击刷新与自动轮播暂时挂起；
+                    7. 新增播放模式设置（顺序/列表循环/单曲循环/随机），点击循环切换；
+                    8. 新增音量条，音量图标可点击静音/恢复上次音量；
+                    9. 首页按钮区最右侧新增“关闭”按钮，仅在选中歌曲时显示，点击即可停止播放、清空当前歌曲并恢复金句轮播；
+                    10. 修复寻物模态框关闭按钮点击无效的 bug；
 
                     2026.10.1
                     1. 重新设计全部 24 节气的配色，改为贴合四季氛围的多色方案；
@@ -425,7 +435,7 @@
             </div>
         </div>
 
-                <!-- 计算器模态框 -->
+        <!-- 计算器模态框 -->
         <div class="settings-modal calculator-modal" id="calculatorModal">
             <div class="settings-content calculator-content">
                 <div class="settings-header">
@@ -483,6 +493,106 @@
                 </div>
             </div>
         </div>
+
+        <!-- 音乐播放器模态框（隐藏入口） -->
+        <div class="settings-modal music-modal" id="musicModal">
+            <div class="settings-content music-content">
+                <div class="settings-header">
+                    <h3>音乐</h3>
+                    <div style="display:flex;align-items:center;">
+                        <span class="maximize-btn" id="maximizeMusic">⛶</span>
+                        <span class="close-btn" id="closeMusic">&times;</span>
+                    </div>
+                </div>
+
+                <div class="music-body" id="musicBody">
+                    <div class="music-scroll" id="musicScroll">
+                        <div class="music-tree" id="musicTree"></div>
+                    </div>
+
+                    <div class="music-settings-panel" id="musicSettingsPanel">
+                        <div class="music-settings-head">
+                            <span>播放器设置</span>
+                            <span class="music-settings-close" id="musicSettingsClose">&times;</span>
+                        </div>
+
+                        <div class="music-setting-section">
+                            <div class="music-setting-title">定时关闭</div>
+
+                            <div class="music-sleep-quick" id="musicSleepQuick">
+                                <button type="button" data-sec="0" class="off">关闭</button>
+                                <button type="button" data-sec="300">5 分</button>
+                                <button type="button" data-sec="600">10 分</button>
+                                <button type="button" data-sec="900">15 分</button>
+                                <button type="button" data-sec="1800">30 分</button>
+                                <button type="button" data-sec="3600">1 小时</button>
+                            </div>
+
+                            <div class="music-sleep-row">
+                                <span>自定义</span>
+                                <input type="number" id="musicSleepCustom" min="1" max="86400" step="1" placeholder="秒数">
+                                <button type="button" id="musicSleepCustomStart">开始</button>
+                            </div>
+
+                            <div class="music-sleep-row">
+                                <span>到点关</span>
+                                <input type="time" id="musicSleepTime" step="1">
+                                <button type="button" id="musicSleepTimeStart">开始</button>
+                            </div>
+
+                            <div class="music-settings-status" id="musicSleepStatus"></div>
+                        </div>
+                    </div>
+
+                    <div class="music-bar" id="musicBar">
+                        <button type="button" class="music-settings-fab" id="musicSettingsFab" title="播放器设置">⚙</button>
+
+                        <div class="music-lyric-box">
+                            <div class="music-lyric-line" id="musicLyricPrev"></div>
+                            <div class="music-lyric-line current" id="musicLyricCur">♪ 选择一首歌开始播放</div>
+                            <div class="music-lyric-line" id="musicLyricNext"></div>
+                        </div>
+
+                        <div class="music-progress-row">
+                            <span class="music-time" id="musicTimeCur">0:00</span>
+                            <div class="music-progress" id="musicProgress">
+                                <div class="music-progress-buffer" id="musicBuffer"></div>
+                                <div class="music-progress-played" id="musicPlayed">
+                                    <span class="music-progress-thumb"></span>
+                                </div>
+                            </div>
+                            <span class="music-time" id="musicTimeTotal">0:00</span>
+                        </div>
+
+                        <div class="music-controls">
+                            <div class="music-now">
+                                <div class="music-cover" id="musicCover">♪</div>
+                                <div class="music-now-text">
+                                    <div class="music-now-title" id="musicNowTitle">未播放</div>
+                                    <div class="music-now-sub" id="musicNowSub">—</div>
+                                </div>
+                            </div>
+
+                            <div class="music-buttons">
+                                <button type="button" class="music-btn" id="musicPrevBtn" title="上一首">⏮</button>
+                                <button type="button" class="music-btn primary" id="musicPlayBtn" title="播放/暂停">▶</button>
+                                <button type="button" class="music-btn" id="musicNextBtn" title="下一首">⏭</button>
+                            </div>
+
+                            <div class="music-extra">
+                                <button type="button" class="music-btn" id="musicModeBtn" title="播放模式">🔁</button>
+                                <div class="music-volume">
+                                    <span class="music-volume-icon" id="musicVolumeIcon">🔊</span>
+                                    <input type="range" id="musicVolume" min="0" max="100" value="80">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <audio id="musicAudio" preload="metadata"></audio>
+            </div>
+        </div>
     </div>
 
     <script src="js/data/solarterms.js"></script>
@@ -513,6 +623,7 @@
     <script src="js/features/modal_phrase.js"></script>
     <script src="js/features/modal_timer.js"></script>
     <script src="js/features/modal_calculator.js"></script>
+    <script src="js/features/modal_music.js"></script>
 
     <script>
         (function () {

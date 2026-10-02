@@ -5,7 +5,7 @@ window.App.ModalCore = {
             { btn: 'settingsButton',       modal: 'settingsModal',     close: 'closeSettings' },
             { btn: 'changelogButton',      modal: 'changelogModal',    close: 'closeChangelog' },
             { btn: 'announcementButton',   modal: 'announcementModal', close: 'closeAnnouncement' },
-            { btn: 'lostAndFoundButton',   modal: 'lostAndFoundModal', close: 'closeLostFound' },
+            { btn: 'lostAndFoundButton',   modal: 'lostAndFoundModal', close: 'closeLostAndFound' },
             { btn: 'notificationButton',   modal: 'notificationModal', close: 'closeNotification' },
             { btn: 'calculatorButton',     modal: 'calculatorModal',   close: 'closeCalculator' },
 
