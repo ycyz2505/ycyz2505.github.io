@@ -1,5 +1,3 @@
-// 此文件已废弃
-
 window.App.ExamCountdown = {
     _timer: null,
 
