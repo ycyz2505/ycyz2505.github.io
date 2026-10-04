@@ -317,11 +317,13 @@
 
                     2026.10.4
                 1. 首页按钮区新增“🪑 座位表”，页面分左右两栏：左侧是位置固定的座位区（宽度只随模态框 / 窗口变化），右侧是搜索、随机抽取、编辑工具与积木盒；座位表是一张固定格子表（每行格数一致），每个位置从一开始就存在，只需要决定放什么；
-                2. 编辑改为积木式拖放：把人名块（2 格）/ 过道块（1 格）/ 讲台块（2 格）从积木盒直接拖到格子里，块可任意拖动、跨行移动，讲台不再固定居中；点击人名可就地改名，块右上角“×”删除，每行末尾可整行上移 / 下移 / 删除，还可以增减每行格数、一键快速生成或载入示例；
+                2. 编辑改为积木式拖放：把人名块（2 格）/ 讲台块（2 格）从积木盒直接拖到格子里，块可任意拖动、跨行移动，讲台不再固定居中；点击人名可就地改名，把块拖到右侧垃圾桶即可删除，每行末尾可整行上移 / 下移 / 删除，还可以增减每行格数、一键快速生成或载入示例；
                 3. 支持 CSV 导入 / 导出，模态框内附格式教程与示例（空字段 = 待决定的空位，兼容中英文逗号、制表符，可直接从 Excel / WPS 复制粘贴）；
-                4. 新增人名搜索：输入中文或拼音首字母即时高亮所有前缀匹配的座位（如 cyn 可搜到车一诺），回车可滚动定位到第一个结果；
+                4. 新增人名搜索：输入中文或拼音首字母即时高亮所有前缀匹配的座位（如 cyn 可搜到车一诺），回车可滚动定位到第一个结果；搜索框下方附带 26 键屏幕键盘，无需系统输入法即可直接打字；
                 5. 新增随机抽人：点击“🎲 随机抽取”后连续随机高亮，两次高亮的间隔先快后慢、依次拉长（约 45ms → 300ms），总时长 6 秒，最后一次高亮的人即结果，并以弹窗动画展示；
-                6. 座位表数据保存在本地 data/settings.json（settings.seating），旧版数据会自动迁移；另含 js/data/pinyin.js 汉字首字母表，全部功能离线可用。
+                6. 新增 180° 翻转：一键把座位表上下左右同时翻转，便于面向教室不同方向的大屏展示；
+                7. 右侧控制区采用“从下到上”排列：主操作（模式切换 / 搜索 / 键盘 / 抽取）永远贴在面板底部，方便大屏伸手触达；
+                8. 座位表数据保存在本地 data/settings.json（settings.seating），旧版数据会自动迁移；另含 js/data/pinyin.js 汉字首字母表，全部功能离线可用。
 
                     2026.10.2
                     1. 新增计算器功能，为日后加入【？】功能打基础；
@@ -672,6 +674,7 @@
                 <audio id="musicAudio" preload="metadata"></audio>
             </div>
         </div>
+
         <!-- 座位表模态框 -->
         <div class="settings-modal seating-modal" id="seatingModal">
             <div class="settings-content">
@@ -693,7 +696,7 @@
                         </div>
                         <div class="seat-empty" id="seatEmpty">
                             <div class="seat-empty-title">还没有座位表</div>
-                            <div class="seat-empty-sub">座位表是一张固定的格子表：每个格子从一开始就存在，只是待决定放什么（人名块 / 过道块 / 讲台块）。<br>可以先用「📄 载入 CSV」批量填，或「⚡ 快速生成」一张表，再到编辑模式里拖积木调整。</div>
+                            <div class="seat-empty-sub">座位表是一张固定的格子表：每个格子从一开始就存在，只是待决定放什么（人名块 / 讲台块）。<br>可以先用「📄 载入 CSV」批量填，或「⚡ 快速生成」一张表，再到编辑模式里拖积木调整。</div>
                             <div class="seat-empty-btns">
                                 <button type="button" class="seat-btn" id="seatEmptyCsv">📄 载入 CSV</button>
                                 <button type="button" class="seat-btn" id="seatEmptyGen">⚡ 快速生成</button>
@@ -702,31 +705,59 @@
                         </div>
                     </div>
 
-                    <!-- 右：控制区（搜索 / 抽取 / 编辑工具 / 积木盒 / 面板） -->
+                    <!-- 右：控制区
+                         注意：使用 flex-direction: column-reverse 后
+                         DOM 中靠前的元素会渲染在【下方】，
+                         所以这里按“最下面 → 最上面”的顺序排列：
+                         底部栏（模式切换 / 随机抽取 / 翻转）→ 状态 → 垃圾桶 →
+                         展示工具栏（键盘 → 搜索框）→ 编辑
+                         编辑工具栏（每行格数 → 工具按钮）→ 积木盒 → 生成面板 → CSV 面板；
+                         统计信息（seat-count-row）用绝对定位悬浮在控制区右上角。 -->
                     <aside class="seat-side">
+
+                        <!-- 统计信息：绝对定位悬浮在控制区右上角 -->
+                        <div class="seat-count-row">
+                            <span class="seat-count" id="seatCount">座位表还是空的</span>
+                        </div>
+
+                        <!-- 底部栏：左下角 = 展示 / 编辑切换；右下角 = 随机抽取 + 翻转 -->
                         <div class="seat-bar">
                             <div class="seat-mode-switch" id="seatModeSwitch">
                                 <button type="button" class="seat-mode-btn active" data-mode="view">👀 展示</button>
                                 <button type="button" class="seat-mode-btn" data-mode="edit">✏️ 编辑</button>
                             </div>
-                            <span class="seat-count" id="seatCount">座位表还是空的</span>
+                            <div class="seat-bar-actions">
+                                <button type="button" class="seat-btn primary seat-pick-btn" id="seatPickBtn">🎲 随机抽取</button>
+                                <button type="button" class="seat-btn seat-rotate-btn" id="seatRotate" title="把座位表上下左右同时翻转 180°">🔄 翻转</button>
+                            </div>
                         </div>
+
                         <div class="seat-status" id="seatStatus"></div>
 
-                        <div class="seat-toolbar" id="seatViewToolbar">
-                            <div class="seat-search">
-                                <span class="seat-search-icon">🔍</span>
-                                <input type="text" id="seatSearchInput" placeholder="搜索人名：中文或拼音首字母（如 cyn = 车一诺）" autocomplete="off">
-                                <button type="button" class="seat-search-clear" id="seatSearchClear" style="display:none;">✕</button>
-                            </div>
-                            <div class="seat-search-foot">
-                                <span class="seat-search-hint" id="seatSearchHint"></span>
-                                <button type="button" class="seat-btn primary" id="seatPickBtn">🎲 随机抽取</button>
-                            </div>
+                        <!-- 垃圾桶：编辑模式显示，位于底部栏上方 -->
+                        <div class="seat-trash" id="seatTrash">
+                            <span class="seat-trash-icon">🗑</span>
+                            <span class="seat-trash-text">拖到这里删除</span>
                         </div>
 
+                        <!-- 展示工具栏（从下往上：键盘 → 搜索框） -->
+                        <div class="seat-toolbar" id="seatViewToolbar">
+                            <div class="seat-search-row">
+                                <div class="seat-search">
+                                    <span class="seat-search-icon">🔍</span>
+                                    <input type="text" id="seatSearchInput" placeholder="搜索人名：中文或拼音首字母（如 cyn = 车一诺）" autocomplete="off">
+                                    <button type="button" class="seat-search-clear" id="seatSearchClear" style="display:none;">✕</button>
+                                </div>
+                                <button type="button" class="seat-kb-fn" id="seatKbBack" title="退格">⌫</button>
+                                <button type="button" class="seat-kb-fn seat-kb-fn-clear" id="seatKbClear" title="清空搜索">清空</button>
+                            </div>
+                            <div class="seat-search-hint" id="seatSearchHint" style="display:none;"></div>
+                            <div class="seat-keyboard" id="seatKeyboard"></div>
+                        </div>
+
+                        <!-- 编辑工具栏（从下往上：每行格数 → 工具按钮） -->
                         <div class="seat-toolbar" id="seatEditToolbar" style="display:none;">
-                            <div class="seat-btn-row">
+                            <div class="seat-btn-row seat-btn-row-fit">
                                 <button type="button" class="seat-btn" id="seatAddRow">＋ 添加行</button>
                                 <button type="button" class="seat-btn" id="seatGenToggle">⚡ 快速生成</button>
                                 <button type="button" class="seat-btn" id="seatCsvToggle">📄 CSV 导入 / 导出</button>
@@ -741,21 +772,21 @@
                             </div>
                         </div>
 
+                        <!-- 积木盒（编辑模式） -->
                         <div class="seat-palette" id="seatPalette">
                             <div class="seat-palette-title">🧱 积木盒 —— 按住拖到左侧的格子里</div>
                             <div class="seat-palette-list">
                                 <button type="button" class="seat-chip" data-type="n"><span class="seat-chip-icon">👤</span><span class="seat-chip-main">人名块</span><span class="seat-chip-sub">占 2 格</span></button>
-                                <button type="button" class="seat-chip" data-type="a"><span class="seat-chip-icon">🚪</span><span class="seat-chip-main">过道块</span><span class="seat-chip-sub">占 1 格</span></button>
                                 <button type="button" class="seat-chip" data-type="p"><span class="seat-chip-icon">🎤</span><span class="seat-chip-main">讲台块</span><span class="seat-chip-sub">占 2 格</span></button>
                             </div>
-                            <div class="seat-palette-hint">拖动时左侧会高亮将要放下的位置；放不下时先挪走 / 删除原来的块。点座位可以改名字。</div>
+                            <div class="seat-palette-hint">拖动时左侧会高亮将要放下的位置；放不下时先挪走原来的块。点座位可以改名字，把块拖到右侧的垃圾桶即可删除。</div>
                         </div>
 
+                        <!-- 快速生成面板 -->
                         <div class="seat-panel" id="seatGenPanel">
                             <div class="seat-gen-grid">
                                 <label>行数 <input type="number" id="seatGenRows" value="6" min="1" max="40"></label>
                                 <label>每行人数 <input type="number" id="seatGenPerRow" value="6" min="1" max="15"></label>
-                                <label>每几人后加过道 <input type="number" id="seatGenGroup" value="0" min="0" max="12" title="0 表示不加过道"></label>
                                 <label class="seat-gen-check"><input type="checkbox" id="seatGenPodium" checked> 顶部加讲台</label>
                             </div>
                             <div class="seat-btn-row">
@@ -764,15 +795,14 @@
                             <div class="seat-panel-hint">生成后每个座位都能点击填名字；也可以用积木盒继续调整。</div>
                         </div>
 
+                        <!-- CSV 面板 -->
                         <div class="seat-panel" id="seatCsvPanel">
                             <textarea id="seatCsvText" spellcheck="false" placeholder="在这里粘贴 CSV，或点开下面的教程…"></textarea>
                             <div class="seat-csv-actions">
-                                <button type="button" class="seat-btn primary" id="seatCsvApply">✅ 导入到座位表</button>
-                                <button type="button" class="seat-btn" id="seatCsvCopy">📋 复制</button>
                                 <button type="button" class="seat-btn" id="seatCsvDownload">⬇️ 下载 CSV</button>
                                 <label class="seat-btn" for="seatCsvFile">📂 载入文件<input type="file" id="seatCsvFile" accept=".csv,.txt" style="display:none;"></label>
                             </div>
-                            <div class="seat-panel-hint">文本框内容 = 当前座位表（打开面板时自动刷新）；改完点「导入到座位表」。</div>
+                            <div class="seat-panel-hint">文本框与左侧座位表实时同步：在这里编辑会自动更新座位表；座位表有改动，这里也会立刻刷新。</div>
                             <details class="seat-csv-help">
                                 <summary>📖 CSV 格式教程（点开查看）</summary>
                                 <div class="seat-csv-doc">
@@ -780,19 +810,20 @@
                                         <li>一行 CSV = 座位表的一行，<b>第一行在教室最前方</b>（讲台一侧），后面依次向后。</li>
                                         <li>字段之间用英文逗号分隔；也支持中文逗号、制表符（可直接从 Excel / WPS 里复制粘贴）。</li>
                                         <li>普通文字 = <b>人名块</b>：横向占 2 个格子。</li>
-                                        <li><code>-</code> = <b>过道块</b>（占 1 格）；<code>讲台</code> = <b>讲台块</b>（占 2 格）。</li>
+                                        <li><code>讲台</code> = <b>讲台块</b>（占 2 格）。</li>
                                         <li><b>空字段 = 待决定的空位</b>（占 1 格）：想留一个还没想好的位置就留空。</li>
                                         <li><code>_</code> = <b>空人名块</b>：占 2 格、还没有名字的座位（导出的未命名座位会写成 <code>_</code>）。</li>
                                         <li>以 <code>#</code> 开头的行是注释，导入时忽略；人名里带逗号时用英文双引号包起来，如 <code>"王,小明"</code>。</li>
-                                        <li>导入会替换当前座位表，行与行自动对齐到统一格数。</li>
+                                        <li>文本框内容会实时应用到座位表（相当于替换式导入），行与行自动对齐到统一格数；只写注释或留空时不会改动座位表。</li>
                                     </ul>
-                                    <pre># 示例：第一行讲台居中，下面一行 6 人、中间留一条过道
+                                    <pre># 示例：第一行讲台居中，下面一行 6 人、中间留一些空位
 # 空字段 = 待决定的空位
 ,,,,,讲台,,,,,,
-张三,李四,王五,-,赵六,钱七,周九</pre>
+张三,李四,王五,,赵六,钱七,周九</pre>
                                 </div>
                             </details>
                         </div>
+
                     </aside>
                 </div>
 

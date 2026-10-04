@@ -1,14 +1,20 @@
 // ============================================================
 // js/features/modal_seating.js
 // 座位表：展示 / 积木式编辑（拖动积木盒里的块到格子）、
-//        CSV 导入导出、人名搜索（中文 + 拼音首字母）、随机抽取。
+//        CSV 导入导出（文本框与座位表实时双向同步）、
+//        人名搜索（中文 + 拼音首字母 + 屏幕键盘）、
+//        180° 翻转、随机抽取。
+//
+// 布局：右侧控制区使用 column-reverse（DOM 靠前 → 渲染在下方）：
+//   底部栏（模式切换 / 随机抽取 / 翻转）→ 状态 → 垃圾桶 →
+//   展示工具栏（键盘 → 搜索框）/ 编辑工具栏（每行格数 → 工具按钮）→
+//   积木盒 → 面板（生成 / CSV）；统计信息绝对定位在控制区右上角。
 //
 // 数据：settings.seating = { version: 2, cols, rows }
 //   cols  每行格数（全局，所有行一致）
 //   rows  每行是一个长度为 cols 的数组，格子（cell）取值：
 //     null                  待决定的空位（占 1 格）
 //     { t: 'n', n: '张三' } 人名块（占 2 格）
-//     { t: 'a' }            过道块（占 1 格）
 //     { t: 'p' }            讲台块（占 2 格）
 //     { t: 's' }            续格：前一个 2 格块的第二个格子（渲染时被块覆盖）
 // ============================================================
@@ -20,18 +26,19 @@ window.App = window.App || {};
 
     var App = window.App;
 
-    var SPAN = { n: 2, a: 1, p: 2 };
-    var TYPE_LABEL = { n: '人名块', a: '过道块', p: '讲台块' };
-    var TYPE_TAG = { n: '人名', a: '过道', p: '讲台' };
+    var SPAN = { n: 2, p: 2 };
+    var TYPE_LABEL = { n: '人名块', p: '讲台块' };
+    var TYPE_TAG = { n: '人名', p: '讲台' };
 
     var MIN_COLS = 4;
     var MAX_COLS = 40;
     var MAX_ROWS = 40;
     var MAX_NAME = 12;
     var DEFAULT_COLS = 12;
-    var TOOLS_W = 84;            // 行工具列宽（与 CSS --seat-tools-w 保持一致）
+    var TOOLS_W = 100;           // 行工具列宽（与 CSS --seat-tools-w 保持一致）
     var PICK_TOTAL = 6000;       // 随机抽取总时长（毫秒）
     var PICK_STEPS = 34;         // 中间抽取次数
+    var CSV_LIVE_DELAY = 180;    // CSV 文本框输入 → 座位表实时应用的防抖时长（毫秒）
 
     App.ModalSeating = {
         KEY: 'seating',
@@ -50,7 +57,7 @@ window.App = window.App || {};
         pendingDrag: null,
         rolling: false,
         timers: [],
-        metrics: { cell: 60, gap: 6, rowH: 60 },
+        metrics: { cell: 64, gap: 8, rowH: 64 },
 
         el: {},
         _inited: false,
@@ -74,6 +81,7 @@ window.App = window.App || {};
                 this.el.content.classList.remove('seat-edit');
             }
 
+            this.buildKeyboard();
             this.render();
             this._inited = true;
         },
@@ -97,7 +105,11 @@ window.App = window.App || {};
                 search: id('seatSearchInput'),
                 searchClear: id('seatSearchClear'),
                 searchHint: id('seatSearchHint'),
+                keyboard: id('seatKeyboard'),
+                kbBack: id('seatKbBack'),
+                kbClear: id('seatKbClear'),
                 pickBtn: id('seatPickBtn'),
+                rotateBtn: id('seatRotate'),
                 addRow: id('seatAddRow'),
                 colsMinus: id('seatColsMinus'),
                 colsPlus: id('seatColsPlus'),
@@ -106,16 +118,14 @@ window.App = window.App || {};
                 genToggle: id('seatGenToggle'),
                 csvToggle: id('seatCsvToggle'),
                 palette: id('seatPalette'),
+                trash: id('seatTrash'),
                 genPanel: id('seatGenPanel'),
                 genRows: id('seatGenRows'),
                 genPerRow: id('seatGenPerRow'),
-                genGroup: id('seatGenGroup'),
                 genPodium: id('seatGenPodium'),
                 genApply: id('seatGenApply'),
                 csvPanel: id('seatCsvPanel'),
                 csvText: id('seatCsvText'),
-                csvApply: id('seatCsvApply'),
-                csvCopy: id('seatCsvCopy'),
                 csvDownload: id('seatCsvDownload'),
                 csvFile: id('seatCsvFile'),
                 overlay: id('seatPickOverlay'),
@@ -148,6 +158,9 @@ window.App = window.App || {};
                 setTimeout(function () { self.layout(); }, 320);
             });
 
+            // 180° 翻转
+            on(this.el.rotateBtn, 'click', function () { self.rotate180(); });
+
             // 搜索
             on(this.el.search, 'input', function () { self.applySearch(self.el.search.value); });
             on(this.el.search, 'keydown', function (ev) {
@@ -161,6 +174,23 @@ window.App = window.App || {};
             on(this.el.searchClear, 'click', function () {
                 if (self.el.search) { self.el.search.value = ''; self.el.search.focus(); }
                 self.applySearch('');
+            });
+
+            // 搜索框右侧的退格 / 清空键：操作对象始终是搜索框
+            on(this.el.kbBack, 'pointerdown', function (ev) { ev.preventDefault(); });
+            on(this.el.kbBack, 'click', function () { self.onVirtualKey('__back'); });
+            on(this.el.kbClear, 'pointerdown', function (ev) { ev.preventDefault(); });
+            on(this.el.kbClear, 'click', function () { self.onVirtualKey('__clear'); });
+
+            // 26 键屏幕键盘（事件委托）
+            on(this.el.keyboard, 'pointerdown', function (ev) {
+                // 阻止按键抢走输入框焦点
+                if (ev.target.closest('.seat-kb-key')) ev.preventDefault();
+            });
+            on(this.el.keyboard, 'click', function (ev) {
+                var key = ev.target.closest('.seat-kb-key');
+                if (!key) return;
+                self.onVirtualKey(key.dataset.key);
             });
 
             // 随机抽取
@@ -179,17 +209,28 @@ window.App = window.App || {};
             on(this.el.genToggle, 'click', function () { self.togglePanel('gen'); });
             on(this.el.csvToggle, 'click', function () { self.togglePanel('csv'); });
             on(this.el.genApply, 'click', function () { self.generate(); });
-            on(this.el.csvApply, 'click', function () { self.applyCsv(); });
-            on(this.el.csvCopy, 'click', function () { self.copyCsv(); });
             on(this.el.csvDownload, 'click', function () { self.downloadCsv(); });
             on(this.el.csvFile, 'change', function () { self.importFile(); });
+
+            // CSV 文本框：与左侧座位表实时双向同步
+            // 输入 → 防抖后应用到座位表；输入法组词期间暂不应用，组词结束后再同步
+            on(this.el.csvText, 'input', function () { self.scheduleCsvLive(); });
+            on(this.el.csvText, 'compositionstart', function () { self._csvComposing = true; });
+            on(this.el.csvText, 'compositionend', function () {
+                self._csvComposing = false;
+                self.scheduleCsvLive();
+            });
+            // 失焦后把文本框刷新成标准格式（与座位表完全一致）
+            on(this.el.csvText, 'blur', function () {
+                setTimeout(function () { self.refreshCsvPreview(true); }, 0);
+            });
 
             // 空状态按钮
             on(this.el.emptyGen, 'click', function () { self.setMode('edit'); self.togglePanel('gen'); });
             on(this.el.emptyCsv, 'click', function () { self.setMode('edit'); self.togglePanel('csv'); });
             on(this.el.emptyDemo, 'click', function () { self.loadDemo(); });
 
-            // 座位区：拖动块 / 点空位提示 / 点击处理
+            // 座位区：拖动块 / 点击处理
             on(this.el.grid, 'pointerdown', function (ev) { self.onGridPointerDown(ev); });
             on(this.el.grid, 'click', function (ev) { self.onGridClick(ev); });
             on(this.el.palette, 'pointerdown', function (ev) { self.onPalettePointerDown(ev); });
@@ -244,6 +285,7 @@ window.App = window.App || {};
 
             this.hideOverlay();
             this.closePanels();
+            this.setTrashHot(false);
             this.setMode('view');
             this.status('');
 
@@ -257,9 +299,12 @@ window.App = window.App || {};
 
         close: function () {
             this._opened = false;
+            clearTimeout(this._csvTimer);
+            this._csvComposing = false;
             this.pendingDrag = null;
             this.drag = null;
             this.detachDragListeners();
+            this.setTrashHot(false);
             this.cancelPick(true);
             this.hideOverlay();
             if (this.edit) {
@@ -304,12 +349,12 @@ window.App = window.App || {};
         },
 
         // 单元格 → 内部形式（null / 块；续格与非法内容视为空位，续格随后重建）
+        // 注：旧版本里的"过道块"（t:'a'）在解析时自动退化为待决定的空位
         parseCell: function (cell) {
             if (!cell || typeof cell !== 'object') return null;
             if (cell.t === 'n') return { t: 'n', n: this.cleanName(cell.n) };
-            if (cell.t === 'a') return { t: 'a' };
             if (cell.t === 'p') return { t: 'p' };
-            if (cell.t === 's') return { t: 's' };   // 续格：打包时跳过、不占新格子
+            if (cell.t === 's') return { t: 's' };
             return null;
         },
 
@@ -320,7 +365,6 @@ window.App = window.App || {};
             row.forEach(function (b) {
                 if (!b || typeof b !== 'object') return;
                 if (b.t === 'n') cells.push({ t: 'n', n: self.cleanName(b.n) });
-                else if (b.t === 'a') cells.push({ t: 'a' });
                 else if (b.t === 'p') cells.push({ t: 'p' });
             });
             return cells;
@@ -517,15 +561,6 @@ window.App = window.App || {};
                 el.appendChild(tag);
             }
 
-            if (this.mode === 'edit') {
-                var del = document.createElement('button');
-                del.type = 'button';
-                del.className = 'seat-block-del';
-                del.textContent = '×';
-                del.title = '删除这个块（恢复成待决定的位置）';
-                el.appendChild(del);
-            }
-
             return el;
         },
 
@@ -602,6 +637,7 @@ window.App = window.App || {};
 
             this.pendingDrag = null;
             this.endDrag(false);
+            this.setTrashHot(false);
             if (this.edit) this.endEdit(false);
 
             this.mode = m;
@@ -685,16 +721,16 @@ window.App = window.App || {};
                 labelH += el.offsetHeight || 0;
             });
 
-            var availH = Math.max(100, (stage.clientHeight || 0) - padY - labelH - 40);
+            var availH = Math.max(100, (stage.clientHeight || 0) - padY - labelH - 44);
 
             // 列宽：先估计，再按 gap 修正
             var cell = ((availW - TOOLS_W) / cols) * 0.95;
-            var gap = Math.max(3, Math.min(8, Math.round(cell * 0.1)));
+            var gap = Math.max(4, Math.min(10, Math.round(cell * 0.12)));
             cell = (availW - TOOLS_W - cols * gap) / cols;
             cell = Math.max(14, cell);
 
             var rowH = cell * 1.06;
-            var rowGap = Math.max(5, Math.round(rowH * 0.24));
+            var rowGap = Math.max(6, Math.round(rowH * 0.24));
             var maxRowH = (availH - rowGap * (rows - 1)) / rows;
 
             if (maxRowH > 12 && rowH > maxRowH) {
@@ -703,7 +739,7 @@ window.App = window.App || {};
                 rowH = Math.max(14, maxRowH);
             }
 
-            var font = Math.max(10, Math.min(24, Math.round(rowH * 0.42)));
+            var font = Math.max(11, Math.min(30, Math.round(rowH * 0.42)));
 
             grid.style.setProperty('--seat-cell', cell.toFixed(2) + 'px');
             grid.style.setProperty('--seat-gap', gap.toFixed(2) + 'px');
@@ -726,18 +762,11 @@ window.App = window.App || {};
         },
 
         // ------------------------------------------------------
-        // 空格子提示 / 编辑名字 / 行操作
+        // 编辑名字 / 行操作
         // ------------------------------------------------------
 
         onGridClick: function (ev) {
             if (this.mode !== 'edit') return;
-
-            var del = ev.target.closest('.seat-block-del');
-            if (del) {
-                var blockEl = del.closest('.seat-block');
-                if (blockEl) this.deleteBlock(parseInt(blockEl.dataset.row, 10), parseInt(blockEl.dataset.col, 10));
-                return;
-            }
 
             var tool = ev.target.closest('.seat-row-tools button');
             if (tool) {
@@ -822,18 +851,6 @@ window.App = window.App || {};
             this.render();
         },
 
-        deleteBlock: function (r, c) {
-            var block = this.blockAt(r, c);
-            if (!block) return;
-
-            this.clearCells(r, c);
-            this.save();
-            this.render();
-
-            var extra = (block.t === 'n' && block.n) ? '（' + block.n + '）' : '';
-            this.status('已删除' + (TYPE_LABEL[block.t] || '块') + extra + '，位置恢复成「待决定」');
-        },
-
         rowAction: function (act, r) {
             var rows = this.data.rows;
             if (!rows[r]) return;
@@ -907,17 +924,58 @@ window.App = window.App || {};
         },
 
         // ------------------------------------------------------
+        // 180° 翻转
+        // ------------------------------------------------------
+
+        // 把一行左右镜像（块的位置对称翻转，续格重建）
+        mirrorRow: function (cells, cols) {
+            var out = new Array(cols).fill(null);
+
+            for (var c = 0; c < cols; c++) {
+                var cell = cells[c];
+                if (!cell || cell.t === 's') continue;
+
+                var span = SPAN[cell.t] || 1;
+                var start = cols - (c + span);
+                if (start < 0) continue;
+
+                out[start] = cell;
+                for (var k = 1; k < span; k++) {
+                    if (start + k < cols) out[start + k] = { t: 's' };
+                }
+            }
+
+            return out;
+        },
+
+        rotate180: function () {
+            var rows = this.data.rows;
+            if (!rows.length) { this.status('座位表还是空的', true); return; }
+
+            var cols = this.cols();
+            var self = this;
+
+            var mirrored = rows.slice().reverse().map(function (cells) {
+                return self.mirrorRow(cells, cols);
+            });
+
+            this.data.rows = mirrored;
+            this.save();
+            this.render();
+            this.scheduleLayout();
+            this.status('已把座位表旋转 180°');
+        },
+
+        // ------------------------------------------------------
         // 快速生成 / 示例
         // ------------------------------------------------------
 
         generate: function () {
             var rowCount = this._intVal(this.el.genRows, 6, 1, MAX_ROWS);
             var perRow = this._intVal(this.el.genPerRow, 6, 1, 15);
-            var group = this._intVal(this.el.genGroup, 0, 0, 15);
             var withPodium = !!(this.el.genPodium && this.el.genPodium.checked);
 
-            var aisles = group > 0 ? Math.floor((perRow - 1) / group) : 0;
-            var cols = Math.max(MIN_COLS, Math.min(MAX_COLS, perRow * 2 + aisles));
+            var cols = Math.max(MIN_COLS, Math.min(MAX_COLS, perRow * 2));
             var rows = [];
 
             if (withPodium) {
@@ -932,10 +990,6 @@ window.App = window.App || {};
                 var cells = new Array(cols).fill(null);
                 var ci = 0;
                 for (var i = 0; i < perRow; i++) {
-                    if (group > 0 && i > 0 && i % group === 0) {
-                        if (ci < cols) cells[ci] = { t: 'a' };
-                        ci += 1;
-                    }
                     if (ci + 2 > cols) break;
                     cells[ci] = { t: 'n', n: '' };
                     cells[ci + 1] = { t: 's' };
@@ -959,7 +1013,7 @@ window.App = window.App || {};
                 ['吴青禾', '徐鹿鸣', '何星野', '罗照野', '高雨眠', '梁望舒', '叶知秋', '钟离']
             ];
 
-            var cols = 2 * 8 + 3;      // 每行 8 人（2 人一组） + 3 条过道
+            var cols = 2 * 8;          // 每行 8 人，每人占 2 格
             var rows = [];
 
             var podiumRow = new Array(cols).fill(null);
@@ -971,11 +1025,7 @@ window.App = window.App || {};
             demoRows.forEach(function (names) {
                 var cells = new Array(cols).fill(null);
                 var ci = 0;
-                names.forEach(function (name, i) {
-                    if (i === 2 || i === 4 || i === 6) {
-                        cells[ci] = { t: 'a' };
-                        ci += 1;
-                    }
+                names.forEach(function (name) {
                     cells[ci] = { t: 'n', n: name };
                     cells[ci + 1] = { t: 's' };
                     ci += 2;
@@ -996,6 +1046,81 @@ window.App = window.App || {};
             var v = el ? parseInt(el.value, 10) : NaN;
             if (!isFinite(v)) v = dflt;
             return Math.max(min, Math.min(max, v));
+        },
+
+        // ------------------------------------------------------
+        // 26 键屏幕键盘（标准键盘布局：等宽键帽，逐行向中间错位半格）
+        // ------------------------------------------------------
+
+        buildKeyboard: function () {
+            var el = this.el.keyboard;
+            if (!el || el.dataset.built === '1') return;
+
+            // 20 个半格列：第一行 1 起；第二行错半格 2 起；第三行再错 1 格 4 起
+            var layout = [
+                { row: 1, start: 1, keys: 'qwertyuiop'.split('') },
+                { row: 2, start: 2, keys: 'asdfghjkl'.split('') },
+                { row: 3, start: 4, keys: 'zxcvbnm'.split('') }
+            ];
+
+            var html = layout.map(function (line) {
+                return line.keys.map(function (ch, i) {
+                    var col = line.start + i * 2;
+                    return '<button type="button" class="seat-kb-key" data-key="' + ch +
+                        '" style="grid-column:' + col + ' / span 2;grid-row:' + line.row + '">' +
+                        ch.toUpperCase() + '</button>';
+                }).join('');
+            }).join('');
+
+            el.innerHTML = html;
+            el.dataset.built = '1';
+        },
+
+        // 键盘始终作用于搜索框：无论输入框是否处于激活状态，
+        // 点一下键盘（或右侧的 ⌫ / 清空键）都会先把搜索框激活，再操作
+        onVirtualKey: function (key) {
+            var input = this.el.search;
+            if (!input) return;
+
+            if (key === '__clear') {
+                input.value = '';
+                input.focus();
+                this.applySearch('');
+                return;
+            }
+
+            if (key === '__back') {
+                var v = input.value;
+                if (!v) { input.focus(); return; }
+
+                var focusedBack = document.activeElement === input;
+                var backPos = (focusedBack && typeof input.selectionStart === 'number')
+                    ? input.selectionStart
+                    : v.length;
+                if (backPos <= 0) backPos = v.length;
+
+                input.value = v.slice(0, backPos - 1) + v.slice(backPos);
+                input.focus();
+                try { input.setSelectionRange(backPos - 1, backPos - 1); } catch (e) { /* 忽略 */ }
+
+                this.applySearch(input.value);
+                return;
+            }
+
+            var ch = String(key || '');
+            if (!/^[a-z]$/.test(ch)) return;
+
+            var value = input.value;
+            var focused = document.activeElement === input;
+            var caret = (focused && typeof input.selectionStart === 'number')
+                ? input.selectionStart
+                : value.length;
+
+            input.value = value.slice(0, caret) + ch + value.slice(caret);
+            input.focus();
+            try { input.setSelectionRange(caret + 1, caret + 1); } catch (e) { /* 忽略 */ }
+
+            this.applySearch(input.value);
         },
 
         // ------------------------------------------------------
@@ -1028,9 +1153,17 @@ window.App = window.App || {};
             if (this.el.searchClear) this.el.searchClear.style.display = q ? 'block' : 'none';
 
             if (this.el.searchHint) {
-                if (!q) this.el.searchHint.textContent = '';
-                else if (!hits) this.el.searchHint.textContent = '没有匹配的人';
-                else this.el.searchHint.textContent = '匹配 ' + hits + ' 人（回车跳到第一个）';
+                var hint = this.el.searchHint;
+                if (!q) {
+                    hint.textContent = '';
+                    hint.style.display = 'none';
+                } else if (!hits) {
+                    hint.style.display = '';
+                    hint.textContent = '没有匹配的人';
+                } else {
+                    hint.style.display = '';
+                    hint.textContent = '匹配 ' + hits + ' 人（回车跳到第一个）';
+                }
             }
         },
 
@@ -1247,7 +1380,7 @@ window.App = window.App || {};
         },
 
         // ------------------------------------------------------
-        // 拖动（积木盒 → 格子 / 格子 → 格子）
+        // 拖动（积木盒 → 格子 / 格子 → 格子 / 格子 → 垃圾桶）
         // ------------------------------------------------------
 
         onPalettePointerDown: function (ev) {
@@ -1275,7 +1408,7 @@ window.App = window.App || {};
         onGridPointerDown: function (ev) {
             if (this.mode !== 'edit' || this.rolling || this.drag || this.pendingDrag) return;
             if (ev.pointerType === 'mouse' && ev.button !== 0) return;
-            if (ev.target.closest('.seat-block-del') || ev.target.closest('.seat-row-tools')) return;
+            if (ev.target.closest('.seat-row-tools')) return;
 
             if (this.edit) this.endEdit(true);
 
@@ -1361,7 +1494,8 @@ window.App = window.App || {};
                 grabX: p.grabX,
                 grabY: p.grabY,
                 target: null,
-                inStage: false
+                inStage: false,
+                overTrash: false
             };
 
             this.updateDrag(ev.clientX, ev.clientY);
@@ -1377,7 +1511,7 @@ window.App = window.App || {};
             ghost.className = 'seat-drag-ghost seat-block t-' + p.type;
             ghost.style.width = w + 'px';
             ghost.style.height = h + 'px';
-            ghost.style.fontSize = Math.max(10, Math.min(24, Math.round(m.rowH * 0.42)) * z) + 'px';
+            ghost.style.fontSize = Math.max(11, Math.min(30, Math.round(m.rowH * 0.42)) * z) + 'px';
 
             if (p.type === 'n') {
                 var label = document.createElement('span');
@@ -1405,7 +1539,8 @@ window.App = window.App || {};
                 grabX: w / 2,
                 grabY: h / 2,
                 target: null,
-                inStage: false
+                inStage: false,
+                overTrash: false
             };
 
             this.updateDrag(ev.clientX, ev.clientY);
@@ -1420,6 +1555,27 @@ window.App = window.App || {};
                 d.ghost.style.top = (y - d.grabY) + 'px';
             }
 
+            // 垃圾桶命中检测（只有从座位区拖起来的块可以删除）
+            var overTrash = false;
+            if (d.kind === 'move' && this.mode === 'edit' && this.el.trash) {
+                var tr = this.el.trash.getBoundingClientRect();
+                if (tr.width > 0 && tr.height > 0 &&
+                    x >= tr.left && x <= tr.right &&
+                    y >= tr.top && y <= tr.bottom) {
+                    overTrash = true;
+                }
+            }
+
+            d.overTrash = overTrash;
+            this.setTrashHot(overTrash);
+
+            if (overTrash) {
+                d.inStage = false;
+                d.target = null;
+                this.paintDropMarks();
+                return;
+            }
+
             var stage = this.el.stage;
             var rect = stage ? stage.getBoundingClientRect() : null;
 
@@ -1427,6 +1583,10 @@ window.App = window.App || {};
             d.target = d.inStage ? this.findTarget(x, y) : null;
 
             this.paintDropMarks();
+        },
+
+        setTrashHot: function (on) {
+            if (this.el.trash) this.el.trash.classList.toggle('hot', !!on);
         },
 
         // 找到指针附近最合适的落点：{ r, start }
@@ -1552,11 +1712,31 @@ window.App = window.App || {};
             this.drag = null;
             this._lastDragEnd = Date.now();
             this.clearDropMarks();
+            this.setTrashHot(false);
 
             if (d.ghost && d.ghost.parentNode) d.ghost.parentNode.removeChild(d.ghost);
             if (d.srcEl) d.srcEl.classList.remove('seat-dragging');
 
-            if (!commit || !d.target) return;
+            if (!commit) return;
+
+            // 拖到垃圾桶：删除该块（仅限从座位区拖起来的块）
+            if (d.overTrash) {
+                if (d.kind !== 'move' || !d.from) return;
+
+                var old = this.blockAt(d.from.r, d.from.c);
+                if (!old) return;
+
+                this.clearCells(d.from.r, d.from.c);
+                this.save();
+                this.render();
+                this.scheduleLayout();
+
+                var extra = (old.t === 'n' && old.n) ? '（' + old.n + '）' : '';
+                this.status('已删除' + (TYPE_LABEL[old.t] || '块') + extra + '，位置恢复成「待决定」');
+                return;
+            }
+
+            if (!d.target) return;
 
             var r = d.target.r;
             var start = d.target.start;
@@ -1593,16 +1773,17 @@ window.App = window.App || {};
         // CSV 导入 / 导出
         // 格式：一行 = 座位表的一行（第一行在教室最前方）
         //   文字      人名块（占 2 格）
-        //   -         过道块（占 1 格）
         //   讲台      讲台块（占 2 格）
         //   空字段    待决定的空位（占 1 格）
         //   _         空人名块（占 2 格，还没有名字的座位）
+        // 文本框与座位表实时双向同步：编辑文本框会自动应用；
+        // 座位表有改动时文本框也会自动刷新（输入过程中不打扰光标）。
         // ------------------------------------------------------
 
         rowsToCsv: function (rows) {
             var lines = [];
             lines.push('# 座位表 CSV —— 每行 = 教室的一排，从上到下 = 从教室前方到后方');
-            lines.push('# 字段从左到右 = 座位从左到右：文字 = 人名块（占 2 格）；- = 过道块（占 1 格）；讲台 = 讲台块（占 2 格）');
+            lines.push('# 字段从左到右 = 座位从左到右：文字 = 人名块（占 2 格）；讲台 = 讲台块（占 2 格）');
             lines.push('# 空字段 = 待决定的空位（占 1 格）；_ = 空人名块（还没有名字的座位）');
             lines.push('# 以 # 开头的行是注释，导入时忽略；分隔符支持英文/中文逗号或 Tab（可直接从 Excel 复制）');
 
@@ -1611,7 +1792,6 @@ window.App = window.App || {};
                 (cells || []).forEach(function (cell) {
                     if (!cell) { fields.push(''); return; }
                     if (cell.t === 's') return;
-                    if (cell.t === 'a') { fields.push('-'); return; }
                     if (cell.t === 'p') { fields.push('讲台'); return; }
                     fields.push(cell.n ? cell.n : '_');
                 });
@@ -1662,7 +1842,8 @@ window.App = window.App || {};
                     var v = raw.trim();
 
                     if (!v || v === '　') { cells.push(null); return; }
-                    if (/^[-—–－─]{1,4}$/.test(v) || v === '过道') { cells.push({ t: 'a' }); return; }
+                    // 兼容旧版导出的过道标记：统一退化为"待决定的空位"
+                    if (/^[-—–－─]{1,4}$/.test(v) || v === '过道') { cells.push(null); return; }
                     if (v === '_' || v === '＿') { cells.push({ t: 'n', n: '' }); return; }
                     if (v === '讲台' || v === '講台' || v === '讲桌' || v.toLowerCase() === 'podium') { cells.push({ t: 'p' }); return; }
 
@@ -1675,12 +1856,12 @@ window.App = window.App || {};
             return rows;
         },
 
-        applyCsv: function () {
+        applyCsv: function (live) {
             var text = this.el.csvText ? this.el.csvText.value : '';
             var rows = this.csvToRows(text);
 
             if (!rows.length) {
-                this.status('没有可导入的内容（空文本或全是注释）', true);
+                if (!live) this.status('没有可导入的内容（空文本或全是注释）', true);
                 return;
             }
 
@@ -1688,9 +1869,19 @@ window.App = window.App || {};
             this.save();
             this.render();
             this.scheduleLayout();
-            this.refreshCsvPreview(true);
 
-            this.status('已导入 ' + this.data.rows.length + ' 行 · 每行 ' + this.data.cols + ' 格');
+            if (!live) {
+                this.refreshCsvPreview(true);
+                this.status('已导入 ' + this.data.rows.length + ' 行 · 每行 ' + this.data.cols + ' 格');
+            }
+        },
+
+        // 文本框输入 → 座位表：防抖后实时应用（输入法组词期间跳过）
+        scheduleCsvLive: function () {
+            if (this._csvComposing) return;
+            var self = this;
+            clearTimeout(this._csvTimer);
+            this._csvTimer = setTimeout(function () { self.applyCsv(true); }, CSV_LIVE_DELAY);
         },
 
         refreshCsvPreview: function (force) {
@@ -1700,31 +1891,6 @@ window.App = window.App || {};
             if (!panel.classList.contains('active')) return;
             if (!force && document.activeElement === text) return;
             text.value = this.rowsToCsv(this.data.rows);
-        },
-
-        copyCsv: function () {
-            var text = this.el.csvText;
-            if (!text) return;
-
-            var value = text.value || '';
-
-            var done = function () { App.ModalSeating.status('已复制到剪贴板'); };
-            var fallback = function () {
-                try {
-                    text.focus();
-                    text.select();
-                    document.execCommand('copy');
-                    done();
-                } catch (e) {
-                    App.ModalSeating.status('复制失败，请手动选中复制', true);
-                }
-            };
-
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(value).then(done, fallback);
-            } else {
-                fallback();
-            }
         },
 
         downloadCsv: function () {
