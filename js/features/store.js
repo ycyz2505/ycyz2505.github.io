@@ -289,8 +289,7 @@ window.App.Store = {
             return;
         }
 
-        // 服务不可用：显示提示条（含下载按钮），不再自动淡出，
-        // 否则用户会来不及点下载
+        // 服务不可用：显示提示条（含下载按钮），10 秒后自动淡出
         banner.style.display = 'flex';
         banner.style.opacity = '1';
         banner.style.transition = '';
@@ -299,6 +298,24 @@ window.App.Store = {
         if (textEl) {
             textEl.textContent = '本地服务未启动（修改不会被保存）';
         }
+
+        // 先清掉上一次可能残留的定时器，避免重复计时
+        if (this._bannerTimer) {
+            clearTimeout(this._bannerTimer);
+            this._bannerTimer = null;
+        }
+
+        this._bannerTimer = setTimeout(() => {
+            this._bannerTimer = null;
+            banner.style.transition = 'opacity .5s';
+            banner.style.opacity = '0';
+            // 等淡出动画走完再彻底隐藏
+            setTimeout(() => {
+                if (banner.style.opacity === '0') {
+                    banner.style.display = 'none';
+                }
+            }, 500);
+        }, 10000);
     }
 };
 
