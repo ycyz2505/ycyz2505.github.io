@@ -43,6 +43,7 @@ window.onload = async function () {
     safeInit('Calculator', () => window.App.Calculator?.init());
     safeInit('ModalTimer', () => window.App.ModalTimer?.init());
     safeInit('Music', () => window.App.Music?.init());
+    safeInit('ModalSeating', () => window.App.ModalSeating?.init());
 
     const loadingOverlay =
         document.getElementById('loadingOverlay');

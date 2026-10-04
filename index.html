@@ -77,6 +77,7 @@
             <button id="lostAndFoundButton" class="action-button">🔍 寻物</button>
             <button id="notificationButton" class="action-button">🔔 通知</button>
             <button id="calculatorButton" class="action-button">🧮 计算器</button>
+            <button id="seatingButton" class="action-button">🪑 座位表</button>
             <button id="musicStopButton" class="action-button" style="display:none;">⏹ 关闭</button>
         </div>
 
@@ -312,7 +313,15 @@
                 <div class="text-content" id="changelogContent">
                     本网站是网站作者在初中时做的，稍微改了下就搬过来了。因为整体重构过，所以有一些 bug，且功能不完善的问题。
 
-                    待添加的新功能：自定义倒计时（不只是高考倒计时，如一月考倒计时、期末倒计时等）、智能的座位表（支持快捷搜索等）、老虎机（随机抽人）、方便地统计需要讲的题目（课前统计好，课上老师直接讲）、数据本地存储（目的是增加普适性，让所有班级都能用上这个网站，而不是仅 22 班）等。欢迎提建议。
+                    待添加的新功能：自定义倒计时（不只是高考倒计时，如一月考倒计时、期末倒计时等）、方便地统计需要讲的题目（课前统计好，课上老师直接讲）等。欢迎提建议。
+
+                    2026.10.4
+                    1. 首页按钮区新增“🪑 座位表”，内含「展示 / 编辑」两种模式；座位表由三种块拼成：人名块（横向 2 格）、过道块（1 格）、讲台块（横向 2 格），自上而下即教室从前到后；
+                    2. 支持在网页上直接编辑：拖动块调整位置（可跨行），点击人名就地改名，每行右侧“＋”可添加人名 / 过道 / 讲台块或删除整行，块右上角“×”删除单块，也可按“行数 × 每行人数”一键生成空表；
+                    3. 支持 CSV 导入 / 导出，模态框内附格式教程与示例（兼容中英文逗号、制表符，可直接从 Excel / WPS 复制粘贴）；
+                    4. 新增人名搜索：输入中文或拼音首字母即时高亮所有前缀匹配的座位（如 cyn 可搜到车一诺），回车可滚动定位到第一个结果；
+                    5. 新增随机抽人：点击“🎲 随机抽取”后连续随机高亮，间隔依次变快、总时长 6 秒，最后一次高亮的人即为结果，并以弹窗动画展示；
+                    6. 座位表数据保存在本地 data/settings.json（settings.seating）中，另新增 js/data/pinyin.js 汉字首字母表，全部功能离线可用；
 
                     2026.10.2
                     1. 新增计算器功能，为日后加入【？】功能打基础；
@@ -663,16 +672,143 @@
                 <audio id="musicAudio" preload="metadata"></audio>
             </div>
         </div>
+        <!-- 座位表模态框 -->
+        <div class="settings-modal seating-modal" id="seatingModal">
+            <div class="settings-content">
+                <div class="settings-header">
+                    <h3>座位表</h3>
+                    <div class="settings-header-actions">
+                        <span class="maximize-btn" id="maximizeSeating">⛶</span>
+                        <span class="close-btn" id="closeSeating">&times;</span>
+                    </div>
+                </div>
+
+                <div class="seat-bar">
+                    <div class="seat-mode-switch" id="seatModeSwitch">
+                        <button type="button" class="seat-mode-btn active" data-mode="view">👀 展示</button>
+                        <button type="button" class="seat-mode-btn" data-mode="edit">✏️ 编辑</button>
+                    </div>
+                    <div class="seat-bar-right">
+                        <span class="seat-count" id="seatCount">共 0 人 · 0 行</span>
+                        <span class="seat-status" id="seatStatus"></span>
+                    </div>
+                </div>
+
+                <!-- 展示模式工具条 -->
+                <div class="seat-toolbar" id="seatViewToolbar">
+                    <div class="seat-search">
+                        <span class="seat-search-icon">🔍</span>
+                        <input type="text" id="seatSearchInput" placeholder="搜索人名：中文，或拼音首字母（如 cyn = 车一诺）" autocomplete="off">
+                        <button type="button" class="seat-search-clear" id="seatSearchClear" style="display:none;">✕</button>
+                    </div>
+                    <span class="seat-search-hint" id="seatSearchHint"></span>
+                    <button type="button" class="seat-btn primary" id="seatPickBtn">🎲 随机抽取</button>
+                </div>
+
+                <!-- 编辑模式工具条 -->
+                <div class="seat-toolbar" id="seatEditToolbar" style="display:none;">
+                    <button type="button" class="seat-btn" id="seatAddRow">＋ 添加行</button>
+                    <button type="button" class="seat-btn" id="seatAddPodiumRow">🎤 讲台行</button>
+                    <button type="button" class="seat-btn" id="seatGenToggle">⚡ 快速生成</button>
+                    <button type="button" class="seat-btn" id="seatCsvToggle">📄 CSV 导入 / 导出</button>
+                    <button type="button" class="seat-btn danger" id="seatClear">🗑 清空</button>
+                </div>
+
+                <!-- 快速生成面板 -->
+                <div class="seat-panel" id="seatGenPanel">
+                    <div class="seat-gen-row">
+                        <label>行数 <input type="number" id="seatGenRows" value="6" min="1" max="40"></label>
+                        <label>每行人数 <input type="number" id="seatGenPerRow" value="6" min="1" max="24"></label>
+                        <label>每几人后加过道 <input type="number" id="seatGenGroup" value="0" min="0" max="12" title="0 表示不加过道"></label>
+                        <label><input type="checkbox" id="seatGenPodium" checked> 顶部加讲台</label>
+                        <button type="button" class="seat-btn primary" id="seatGenApply">生成</button>
+                    </div>
+                </div>
+
+                <!-- CSV 面板 -->
+                <div class="seat-panel" id="seatCsvPanel">
+                    <details class="seat-csv-help">
+                        <summary>📖 CSV 格式教程（点开查看）</summary>
+                        <div class="seat-csv-doc">
+                            <ul>
+                                <li>一行 CSV = 座位表的一行，<b>第一行在教室最前方</b>（讲台一侧），后面依次向后。</li>
+                                <li>字段之间用英文逗号分隔；也支持中文逗号、制表符（可直接从 Excel / WPS 里复制粘贴）。</li>
+                                <li>普通文字 = <b>人名块</b>：横向占 2 个格子，显示一个人名。</li>
+                                <li><code>-</code> 或留空 = <b>过道块</b>：占 1 个格子，就是两组座位之间的空当。</li>
+                                <li><code>讲台</code> = <b>讲台块</b>：横向占 2 个格子，一般放在第一行。</li>
+                                <li>以 <code>#</code> 开头的行是注释，导入时会被忽略；人名里含逗号时用英文双引号包起来，如 <code>"王,小明"</code>。</li>
+                                <li>导入会替换当前座位表，建议先点「下载 CSV」备份。</li>
+                            </ul>
+                            <pre># 示例：第一行讲台，下面每行 6 人、中间留一条过道
+讲台
+张三,李四,王五,-,赵六,钱七,
+周九,吴十,郑十一,-,王十二,冯十三,
+褚十四,卫十五,蒋十六,-,沈十七,韩十八,</pre>
+                            <p>导出的 CSV 也是同样的格式，可以用 Excel / WPS 打开批量填写姓名，保存后再导入回来。</p>
+                        </div>
+                    </details>
+                    <textarea class="seat-csv-text" id="seatCsvText" spellcheck="false" placeholder="在这里粘贴 CSV 文本，然后点击下面的「导入到座位表」……"></textarea>
+                    <div class="seat-panel-actions">
+                        <button type="button" class="seat-btn primary" id="seatCsvImport">✅ 导入到座位表</button>
+                        <button type="button" class="seat-btn" id="seatCsvFileBtn">📂 选择 CSV 文件</button>
+                        <button type="button" class="seat-btn" id="seatCsvReload">↺ 载入当前座位表</button>
+                        <button type="button" class="seat-btn" id="seatCsvCopy">📋 复制 CSV</button>
+                        <button type="button" class="seat-btn" id="seatCsvDownload">⬇️ 下载 CSV</button>
+                        <input type="file" id="seatCsvFile" accept=".csv,.txt,text/csv" style="display:none;">
+                    </div>
+                </div>
+
+                <!-- 座位区 -->
+                <div class="seat-stage" id="seatStage">
+                    <div class="seat-front-label">教室前侧 · 黑板 / 讲台</div>
+                    <div class="seat-grid" id="seatGrid"></div>
+                    <div class="seat-empty" id="seatEmpty">
+                        <div class="seat-empty-icon">🪑</div>
+                        <div class="seat-empty-title">还没有座位表数据</div>
+                        <div class="seat-empty-desc">用 CSV 导入，或快速生成一张空表后拖动 / 填写</div>
+                        <div class="seat-empty-actions">
+                            <button type="button" class="seat-btn primary" id="seatEmptyCsv">📄 导入 CSV</button>
+                            <button type="button" class="seat-btn" id="seatEmptyGen">⚡ 快速生成</button>
+                            <button type="button" class="seat-btn" id="seatEmptyDemo">✨ 载入示例</button>
+                        </div>
+                    </div>
+                    <div class="seat-back-label">教室后侧</div>
+                </div>
+
+                <!-- 行操作菜单 -->
+                <div class="seat-row-menu" id="seatRowMenu">
+                    <button type="button" data-act="n">＋ 人名块</button>
+                    <button type="button" data-act="a">＋ 过道块</button>
+                    <button type="button" data-act="p">＋ 讲台块</button>
+                    <button type="button" data-act="delrow">🗑 删除本行</button>
+                </div>
+
+                <!-- 抽中弹窗 -->
+                <div class="seat-pick-overlay" id="seatPickOverlay">
+                    <div class="seat-pick-card">
+                        <div class="seat-confetti"></div>
+                        <div class="seat-pick-title">🎉 恭喜被抽中</div>
+                        <div class="seat-pick-name" id="seatPickName">—</div>
+                        <div class="seat-pick-actions">
+                            <button type="button" class="seat-btn primary" id="seatPickAgain">🔁 再抽一次</button>
+                            <button type="button" class="seat-btn" id="seatPickClose">完成</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="js/data/solarterms.js"></script>
     <script src="js/data/timetable.js"></script>
     <script src="js/data/schedule.js"></script>
     <script src="js/data/phrases.js"></script>
+    <script src="js/data/pinyin.js"></script>
 
     <script src="js/features/00_state.js"></script>
     <script src="js/features/01_utils.js"></script>
     <script src="js/features/store.js"></script>
+    <script src="js/features/pinyin.js"></script>
 
     <script src="js/features/clock.js"></script>
     <script src="js/features/weather.js"></script>
@@ -695,6 +831,7 @@
     <script src="js/features/modal_timer.js"></script>
     <script src="js/features/modal_calculator.js"></script>
     <script src="js/features/modal_music.js"></script>
+    <script src="js/features/modal_seating.js"></script>
 
     <script>
         (function () {

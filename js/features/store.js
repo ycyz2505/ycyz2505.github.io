@@ -28,6 +28,7 @@ window.App.Store = {
 
             // 今日课表临时覆盖，不修改 timetable 原始数据
             temporaryTimetable: null,
+            seating: { version: 1, rows: [] },   // 座位表（见 modal_seating.js）
 
             // 虚拟时间偏移量（毫秒），0 表示跟随系统时间
             timeOffset: 0,
