@@ -710,3 +710,30 @@ input:checked~.switch-text{color:var(--theme-primary)}
     .seat-pick-name{font-size:56px}
     .seat-pick-name.long{font-size:40px}
 }
+/* ===== 本地服务未启动提示条 ===== */
+#serviceBanner{
+    position:fixed;top:10px;right:10px;z-index:99999;
+    display:none;align-items:center;gap:10px;
+    max-width:calc(100vw - 20px);
+    padding:6px 8px 6px 14px;
+    background:#ff9800;color:#fff;
+    border-radius:6px;
+    font-size:12px;
+    font-family:'Microsoft YaHei',sans-serif;
+    box-shadow:0 2px 8px rgba(0,0,0,.2);
+}
+#serviceBannerText{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#serviceBannerDownload{
+    display:inline-flex;align-items:center;gap:4px;
+    padding:4px 10px;
+    background:#fff;color:#e67e00;
+    border-radius:4px;
+    text-decoration:none;font-weight:600;white-space:nowrap;
+    transition:background .2s,transform .2s,box-shadow .2s;
+}
+#serviceBannerDownload:hover{
+    background:#fff8ec;
+    transform:translateY(-1px);
+    box-shadow:0 2px 6px rgba(0,0,0,.15);
+}
+#serviceBannerDownload:active{transform:translateY(0)}

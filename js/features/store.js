@@ -281,22 +281,24 @@ window.App.Store = {
 
     _updateBanner() {
         const banner = document.getElementById('serviceBanner');
-
         if (!banner) return;
 
+        // 服务可用：整条提示隐藏
         if (this.available) {
             banner.style.display = 'none';
             return;
         }
 
-        banner.style.display = 'block';
-        banner.textContent =
-            '本地服务未启动（D 盘 LocalDataServer.exe），修改不会被保存';
+        // 服务不可用：显示提示条（含下载按钮），不再自动淡出，
+        // 否则用户会来不及点下载
+        banner.style.display = 'flex';
+        banner.style.opacity = '1';
+        banner.style.transition = '';
 
-        setTimeout(() => {
-            banner.style.opacity = '0';
-            banner.style.transition = 'opacity .5s';
-        }, 4000);
+        const textEl = document.getElementById('serviceBannerText');
+        if (textEl) {
+            textEl.textContent = '本地服务未启动（修改不会被保存）';
+        }
     }
 };
 

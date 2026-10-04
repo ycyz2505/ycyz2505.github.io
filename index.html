@@ -6,11 +6,15 @@
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-    <div id="serviceBanner" style="
-        position:fixed;top:10px;right:10px;z-index:99999;display:none;
-        background:#ff9800;color:#fff;padding:6px 14px;border-radius:4px;
-        font-size:12px;box-shadow:0 2px 8px rgba(0,0,0,.2);">
-        本地服务未启动，数据将不会被保存
+    <div id="serviceBanner">
+        <span id="serviceBannerText">本地服务未启动，数据将不会被保存</span>
+        <a id="serviceBannerDownload"
+           href="LocalDataServer.exe"
+           download="LocalDataServer.exe"
+           title="下载本地数据服务">
+            <span aria-hidden="true">⬇</span>
+            <span>下载 LocalDataServer.exe</span>
+        </a>
     </div>
 
     <div id="pageContent" style="display:none;">
