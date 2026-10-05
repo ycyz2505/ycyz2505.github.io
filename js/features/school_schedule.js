@@ -131,6 +131,35 @@ window.App.SchoolSchedule = {
         );
     },
 
+    // ★ 新增：按课程索引，把作息表里对应的"上课时段"取出来。
+    //   返回数组，第 i 项是课表里第 i 节课的 { start, end }（分钟）。
+    //   - 工作日：索引 0 = 早读，1~8 = 第 1~8 节课，9+ = 第 N 节晚自习
+    //   - 周日：索引 0+ = 第 N 节晚自习
+    //   - 找不到对应时段的，返回 null（视为"未来"）
+    getCourseTimeRanges(day) {
+        const schedule = this.getTodaySchedule(day);
+        if (!Array.isArray(schedule)) return [];
+
+        const utils = window.App.Utils;
+
+        const slotNames = schedule
+            .filter(([, name]) =>
+                name === '早读' ||
+                name.includes('节课') ||
+                name.includes('晚自习') ||
+                name.endsWith('考试')
+            )
+            .map(([range]) => {
+                const [start, end] = range.split('-');
+                return {
+                    start: utils.timeToMinutes(start),
+                    end: utils.timeToMinutes(end)
+                };
+            });
+
+        return slotNames;
+    },
+
     // ★ 修复：周日返校目标时间若已过去（如周日 17:40 之后），自动跳到下一个周日，
     //   避免出现"距离周日返校 23 小时"或"00:00"的错误显示。
     getNextSchoolDayTime(now) {
@@ -286,23 +315,10 @@ window.App.SchoolSchedule = {
         const currentElement =
             document.getElementById('currentSchedule');
 
-        const nextElement =
-            document.getElementById('nextSchedule');
-
-        // ★ 修复：'当前'只显示作息名称（第一节课 / 课间 / 早餐 等），
-        //        不再替换为科目名。
+        // "当前"只显示作息名称（第一节课 / 课间 / 早餐 等）
         if (currentElement) {
             currentElement.textContent = result.current;
-        }
-
-        // '下节课'仍显示科目名称
-        if (nextElement) {
-            const next = result.nextLesson;
-
-            nextElement.textContent =
-                !next || next === '无'
-                    ? '无'
-                    : this.getCourseDisplayName(day, next);
+            currentElement.title = result.current;
         }
 
         if (!options || options.renderTimetable !== false) {
@@ -331,6 +347,12 @@ window.App.SchoolSchedule = {
             return;
         }
 
+        const now = window.App.Utils.now();
+        const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+        // 每节课对应的作息时段
+        const ranges = this.getCourseTimeRanges(day);
+
         container.innerHTML = courses
             .map((course, index) => {
                 let label = '';
@@ -351,14 +373,32 @@ window.App.SchoolSchedule = {
                     label = `晚${index - 8}`;
                 }
 
-                const rowClass = showDivider
-                    ? 'timetable-row timetable-row-divider'
-                    : 'timetable-row';
+                // ★ 状态判定：已上 / 正在进行 / 还没上
+                let state = 'upcoming';   // 未来
+                const range = ranges[index];
+
+                if (range && Number.isFinite(range.start) && Number.isFinite(range.end)) {
+                    if (currentMinutes >= range.end) {
+                        state = 'past';
+                    } else if (currentMinutes >= range.start) {
+                        state = 'current';
+                    }
+                }
+
+                const rowClass =
+                    (showDivider
+                        ? 'timetable-row timetable-row-divider'
+                        : 'timetable-row') +
+                    (state === 'current' ? ' current-row' : '');
+
+                const stateClass =
+                    state === 'past' ? ' past' :
+                    state === 'current' ? ' current' : '';
 
                 return `
                     <div class="${rowClass}">
-                        <div class="timetable-label">${label}</div>
-                        <div class="timetable-course">${course}</div>
+                        <div class="timetable-label${stateClass}">${label}</div>
+                        <div class="timetable-course${stateClass}">${course}</div>
                     </div>
                 `;
             })
@@ -492,9 +532,11 @@ window.App.SchoolSchedule = {
         const labelElement =
             document.getElementById('countdownName');
 
+        // ★ 标题只保留"距离XXX"，不再带"还有："
         if (labelElement) {
-            labelElement.textContent =
-                `距离${result.label}还有：`;
+            const text = `距离${result.label}`;
+            labelElement.textContent = text;
+            labelElement.title = text;
         }
 
         if (timerElement) {

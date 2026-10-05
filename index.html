@@ -24,27 +24,24 @@
             </nav>
         </header>
 
+        <!-- 时间 / 日期 / 天气 -->
         <div id="currentDateTime">
             <div class="time-section"></div>
             <div class="date-section"></div>
+            <div class="weather-line" id="weatherInfo">加载中...</div>
         </div>
 
+        <!-- 作息 + 课表 -->
         <div id="scheduleContainer" class="schedule-container">
-            <div class="schedule-item">
-                <span class="schedule-title">天气：</span>
-                <span class="schedule-value" id="weatherInfo">加载中...</span>
-            </div>
-            <div class="schedule-item">
-                <span class="schedule-title">当前：</span>
-                <span class="schedule-value" id="currentSchedule">加载中...</span>
-            </div>
-            <div class="schedule-item">
-                <span class="schedule-title">下节课：</span>
-                <span class="schedule-value" id="nextSchedule">加载中...</span>
-            </div>
-            <div class="schedule-item">
-                <span class="schedule-title" id="countdownName">倒计时：</span>
-                <span class="schedule-value" id="countdownTimer" style="font-size:28px;">--:--</span>
+            <div class="schedule-duo">
+                <div class="schedule-card">
+                    <div class="schedule-card-title">当前</div>
+                    <div class="schedule-card-value" id="currentSchedule">加载中...</div>
+                </div>
+                <div class="schedule-card">
+                    <div class="schedule-card-title" id="countdownName">距离--</div>
+                    <div class="schedule-card-value" id="countdownTimer">--:--</div>
+                </div>
             </div>
             <div class="timetable" id="todayTimetable"></div>
         </div>
