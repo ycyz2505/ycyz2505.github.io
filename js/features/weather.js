@@ -104,18 +104,17 @@ window.App.Weather = {
     },
 
     // ---------- 位置提示 ----------
-    // 天气现在位于 #currentDateTime 卡片内，tooltip 挂载到该卡片上。
     bindLocationTip() {
         const weatherInfo = document.getElementById('weatherInfo');
         if (!weatherInfo) return;
 
-        const host = document.getElementById('currentDateTime') || weatherInfo.parentNode;
-
-        if (host && !host.querySelector('#weatherLocationTip')) {
+        // 把 tooltip 插入到"天气"所在那一行（.schedule-item 已设置 position:relative）
+        const row = weatherInfo.closest('.schedule-item') || weatherInfo.parentNode;
+        if (row && !row.querySelector('#weatherLocationTip')) {
             const tip = document.createElement('div');
             tip.id = 'weatherLocationTip';
             tip.className = 'weather-location-tip';
-            host.appendChild(tip);
+            row.appendChild(tip);
         }
 
         weatherInfo.style.cursor = 'pointer';
