@@ -10,7 +10,7 @@
 //   展示工具栏（键盘 → 搜索框）/ 编辑工具栏（每行格数 → 工具按钮）→
 //   积木盒 → 面板（生成 / CSV）；统计信息绝对定位在控制区右上角。
 //
-// 数据：settings.seating = { version: 2, cols, rows }
+// 数据：data/seatmap.json（经 App.Store 读写）= { version: 2, cols, rows }
 //   cols  每行格数（全局，所有行一致）
 //   rows  每行是一个长度为 cols 的数组，格子（cell）取值：
 //     null                  待决定的空位（占 1 格）
@@ -41,7 +41,7 @@ window.App = window.App || {};
     var CSV_LIVE_DELAY = 180;    // CSV 文本框输入 → 座位表实时应用的防抖时长（毫秒）
 
     App.ModalSeating = {
-        KEY: 'seating',
+        KEY: 'seatmap',
         PICK_TOTAL: PICK_TOTAL,
         PICK_STEPS: PICK_STEPS,
         SPAN: SPAN,
@@ -62,6 +62,7 @@ window.App = window.App || {};
         el: {},
         _inited: false,
         _opened: false,
+        _offlineNoticed: false,
         _lastDragEnd: 0,
 
         // ------------------------------------------------------
@@ -75,6 +76,7 @@ window.App = window.App || {};
             this.bind();
             this.loadFromStore();
             this.watchModal();
+            this.watchStore();
 
             if (this.el.content) {
                 this.el.content.classList.add('seat-view');
@@ -321,21 +323,57 @@ window.App = window.App || {};
         loadFromStore: function () {
             var raw = null;
             try {
-                raw = (App.Store && App.Store.getSetting) ? App.Store.getSetting(this.KEY) : null;
+                raw = (App.Store && App.Store.get) ? App.Store.get(this.KEY) : null;
             } catch (e) { raw = null; }
             this.data = this.normalize(raw);
         },
 
+        // 存到 data/seatmap.json（独立文件，保存座位表不会重写其它设置）
         save: function () {
-            if (App.Store && App.Store.setSetting) {
-                try {
-                    App.Store.setSetting(this.KEY, {
-                        version: 2,
-                        cols: this.data.cols,
-                        rows: this.data.rows
-                    });
-                } catch (e) { /* 忽略存储错误 */ }
+            if (!App.Store || !App.Store.set) return;
+
+            // 服务一直没连上时磁盘上的真实座位表还没读到，
+            // 此时写盘会把真实数据覆盖成空表，先挡住
+            if (App.Store.canWrite && !App.Store.canWrite(this.KEY)) {
+                this.status('本地服务未连接，暂时无法保存座位表（请先启动 LocalDataServer）', true);
+                return;
             }
+
+            try {
+                App.Store.set(this.KEY, {
+                    version: 2,
+                    cols: this.data.cols,
+                    rows: this.data.rows
+                });
+                this._offlineNoticed = false;
+            } catch (e) {
+                this.status('保存座位表失败：' + ((e && e.message) || e), true);
+                return;
+            }
+
+            // 本地服务没连上：改动只留在当前页面，这里明确提示一次
+            if (!App.Store.available && !this._offlineNoticed) {
+                this._offlineNoticed = true;
+                this.status('本地服务未连接，改动会先留在页面，服务恢复后自动保存', true);
+            }
+        },
+
+        // 别的窗口改了座位表：自动同步进来（拖动 / 改名 / 抽取过程中不打断）
+        watchStore: function () {
+            var self = this;
+            if (!App.Store || !App.Store.watch) return;
+
+            App.Store.watch(this.KEY, function (value) {
+                if (self.drag || self.pendingDrag || self.edit || self.rolling) return;
+
+                self.data = self.normalize(value);
+
+                if (self._opened) {
+                    self.render();
+                    self.scheduleLayout();
+                    self.refreshCsvPreview();
+                }
+            });
         },
 
         cols: function () {

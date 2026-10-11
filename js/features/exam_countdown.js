@@ -1,13 +1,17 @@
 // ============================================================
 // js/features/exam_countdown.js
 // 首页倒计日：默认高考倒计时，支持多个自定义倒计日
-// - 高考倒计日为固定项，不可删除/修改
+// - 高考倒计日为固定项，不可删除（名称/日期可在数据文件里调整）
 // - 首页在倒计日区域左右滑动（或点击圆点）切换
-// - 列表与“当前展示”均持久化在 App.Store 的 settings 中
+// - 列表与「当前展示」均持久化在 data/countdowns.json：
+//     { version: 2, items: [{ id, name, date }], activeId }
 // ============================================================
 
 window.App.ExamCountdown = {
+    KEY: 'countdowns',
+
     // 固定倒计日：高考
+    // 名称 / 日期默认取下面的值，若存储里已有同 id 的合法值则以存储为准
     FIXED: {
         id: 'gaokao',
         name: '2028年高考',
@@ -21,6 +25,7 @@ window.App.ExamCountdown = {
 
     init() {
         this.syncStore();
+        this.watchStore();
         this.bindSwipe();
         this.update();
         this.renderDots();
@@ -28,13 +33,46 @@ window.App.ExamCountdown = {
 
     // ---------- 数据层 ----------
 
+    // 服务一直没连上时（内存里只是默认值）不允许写盘，避免覆盖磁盘上的真实数据
+    _canPersist() {
+        return !!(window.App.Store && window.App.Store.canWrite &&
+            window.App.Store.canWrite(this.KEY));
+    },
+
+    // 磁盘上的原始结构：{ version, items, activeId }（兼容更早的裸数组格式）
+    _readFile() {
+        const raw = window.App.Store
+            ? window.App.Store.get(this.KEY)
+            : null;
+
+        const out = { items: [], activeId: '' };
+
+        if (Array.isArray(raw)) {
+            out.items = raw;
+        } else if (raw && typeof raw === 'object') {
+            if (Array.isArray(raw.items)) out.items = raw.items;
+            if (typeof raw.activeId === 'string') out.activeId = raw.activeId;
+        }
+
+        return out;
+    },
+
+    _writeFile(list, activeId) {
+        if (!window.App.Store || !window.App.Store.set) return;
+
+        window.App.Store.set(this.KEY, {
+            version: 2,
+            items: this._toStored(list),
+            activeId: this._resolveActiveId(activeId, list)
+        });
+    },
+
     getList() {
-        const raw = window.App.Store ? window.App.Store.getSetting('countdowns') : null;
-        return this._normalize(raw);
+        return this._normalize(this._readFile().items);
     },
 
     getActiveId() {
-        const raw = window.App.Store ? window.App.Store.getSetting('activeCountdownId') : '';
+        const raw = this._readFile().activeId;
         return this._resolveActiveId(raw);
     },
 
@@ -46,15 +84,15 @@ window.App.ExamCountdown = {
 
     // 切换当前展示的倒计日（options.direction 可选，用于播放切换动画）
     setActive(id, options) {
+        if (!this._canPersist()) return;
+
         const list = this.getList();
         if (!list.some(x => x.id === id)) return;
 
         const oldId = this.getActiveId();
         if (oldId === id) return;
 
-        if (window.App.Store) {
-            window.App.Store.setSetting('activeCountdownId', id);
-        }
+        this._writeFile(list, id);
 
         let direction = options && options.direction;
         if (typeof direction !== 'number') {
@@ -87,11 +125,12 @@ window.App.ExamCountdown = {
         if (!cleanName) return { ok: false, error: '请输入名称' };
         if (cleanName.length > 20) return { ok: false, error: '名称最多 20 个字符' };
         if (!isoDate) return { ok: false, error: '请选择正确的日期' };
+        if (!this._canPersist()) return { ok: false, error: '本地服务未连接，暂时无法保存' };
 
         const list = this.getList();
         const item = { id: this._newId(), name: cleanName, date: isoDate };
         list.push(item);
-        this._persistList(list);
+        this._writeFile(list, this.getActiveId());
         this.update();
         this.renderDots();
 
@@ -109,10 +148,11 @@ window.App.ExamCountdown = {
         if (!cleanName) return { ok: false, error: '请输入名称' };
         if (cleanName.length > 20) return { ok: false, error: '名称最多 20 个字符' };
         if (!isoDate) return { ok: false, error: '请选择正确的日期' };
+        if (!this._canPersist()) return { ok: false, error: '本地服务未连接，暂时无法保存' };
 
         item.name = cleanName;
         item.date = isoDate;
-        this._persistList(list);
+        this._writeFile(list, this.getActiveId());
         this.update();
         this.renderDots();
 
@@ -123,14 +163,10 @@ window.App.ExamCountdown = {
         const list = this.getList();
         const item = list.find(x => x.id === id);
         if (!item || item.fixed) return { ok: false, error: '该倒计日不可删除' };
+        if (!this._canPersist()) return { ok: false, error: '本地服务未连接，暂时无法保存' };
 
-        this._persistList(list.filter(x => x.id !== id));
-
-        if (this.getActiveId() === id) {
-            if (window.App.Store) {
-                window.App.Store.setSetting('activeCountdownId', this.FIXED.id);
-            }
-        }
+        const activeId = this.getActiveId() === id ? this.FIXED.id : this.getActiveId();
+        this._writeFile(list.filter(x => x.id !== id), activeId);
 
         this.update();
         this.renderDots();
@@ -139,50 +175,78 @@ window.App.ExamCountdown = {
 
     // ---------- 持久化辅助 ----------
 
-    // 让存储中的列表/当前项始终合法（首次运行、数据损坏时自动修复）
+    // 让存储中的数据始终合法（首次运行、旧格式、数据损坏时自动修复）
     syncStore() {
         if (!window.App.Store) return;
+        if (!this._canPersist()) return;
 
-        const raw = window.App.Store.getSetting('countdowns');
-        const stored = this._toStored(this._normalize(raw));
-        if (JSON.stringify(stored) !== JSON.stringify(raw || null)) {
-            window.App.Store.setSetting('countdowns', stored);
-        }
+        const file = this._readFile();
+        const list = this._normalize(file.items);
+        const stored = this._toStored(list);
+        const activeId = this._resolveActiveId(file.activeId, list);
 
-        const rawActive = window.App.Store.getSetting('activeCountdownId');
-        const activeId = this._resolveActiveId(rawActive);
-        if (rawActive !== activeId) {
-            window.App.Store.setSetting('activeCountdownId', activeId);
-        }
-    },
-
-    _persistList(list) {
-        if (window.App.Store) {
-            window.App.Store.setSetting('countdowns', this._toStored(list));
+        if (
+            JSON.stringify(stored) !== JSON.stringify(file.items) ||
+            activeId !== file.activeId
+        ) {
+            this._writeFile(list, activeId);
         }
     },
 
-    // 规范化：固定项永远存在且名称/日期不可被篡改，其余项过滤非法数据
+    // 别的窗口改了倒计日：跟着更新（含首页展示项）
+    watchStore() {
+        if (!window.App.Store || !window.App.Store.watch) return;
+
+        window.App.Store.watch(this.KEY, () => {
+            this.update();
+            this.renderDots();
+
+            if (
+                window.App.ModalCountdown &&
+                typeof window.App.ModalCountdown.render === 'function'
+            ) {
+                window.App.ModalCountdown.render();
+            }
+        });
+    },
+
+    // 规范化：固定项永远存在（名称/日期可用存储里的合法值），其余项过滤非法数据
     _normalize(raw) {
-        const list = [Object.assign({}, this.FIXED)];
+        let fixedName = this.FIXED.name;
+        let fixedDate = this.FIXED.date;
+
+        const list = [];
 
         if (Array.isArray(raw)) {
             raw.forEach(item => {
                 if (!item || typeof item !== 'object') return;
 
                 const id = String(item.id || '').trim();
-                if (!id || id === this.FIXED.id) return;
-                if (list.some(x => x.id === id)) return;
+                if (!id) return;
 
                 const name = String(item.name || '').trim();
                 const date = this.parseDate(item.date);
+
+                // 高考项：允许调整名称/日期，但始终不可删除、不可在弹窗里编辑
+                if (id === this.FIXED.id) {
+                    if (name) fixedName = name;
+                    if (date) fixedDate = date;
+                    return;
+                }
+
                 if (!name || !date) return;
+                if (list.some(x => x.id === id)) return;
 
                 list.push({ id, name, date });
             });
         }
 
-        return list;
+        return [
+            Object.assign({}, this.FIXED, {
+                name: fixedName,
+                date: fixedDate
+            })
+        ].concat(list);
     },
 
     _toStored(list) {
@@ -193,10 +257,10 @@ window.App.ExamCountdown = {
         }));
     },
 
-    _resolveActiveId(raw) {
+    _resolveActiveId(raw, list) {
         const id = String(raw || '');
-        const list = this.getList();
-        return list.some(x => x.id === id) ? id : this.FIXED.id;
+        const items = list || this.getList();
+        return items.some(x => x.id === id) ? id : this.FIXED.id;
     },
 
     _newId() {
