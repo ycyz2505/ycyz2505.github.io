@@ -164,17 +164,28 @@ window.App = window.App || {};
             on(this.el.rotateBtn, 'click', function () { self.rotate180(); });
 
             // 搜索
-            on(this.el.search, 'input', function () { self.applySearch(self.el.search.value); });
+            on(this.el.search, 'input', function () {
+                self.syncKbCaret();
+                self.applySearch(self.el.search.value);
+            });
+            // 仅当用户真实聚焦输入框（触屏点输入框 / 物理键盘）时记录光标，
+            // 供屏幕键盘接着这个位置继续输入
+            on(this.el.search, 'focus', function () { self.syncKbCaret(); });
+            on(this.el.search, 'click', function () { self.syncKbCaret(); });
+            on(this.el.search, 'keyup', function () { self.syncKbCaret(); });
             on(this.el.search, 'keydown', function (ev) {
                 if (ev.key === 'Enter') { ev.preventDefault(); self.jumpToFirst(); }
                 else if (ev.key === 'Escape') {
                     ev.stopPropagation();
                     self.el.search.value = '';
+                    self.resetKbCaret();
                     self.applySearch('');
                 }
             });
             on(this.el.searchClear, 'click', function () {
-                if (self.el.search) { self.el.search.value = ''; self.el.search.focus(); }
+                // 只清空内容，不聚焦输入框（触屏设备一聚焦就会弹出系统键盘）
+                if (self.el.search) self.el.search.value = '';
+                self.resetKbCaret();
                 self.applySearch('');
             });
 
@@ -282,6 +293,7 @@ window.App = window.App || {};
             this.pendingDrag = null;
             this.drag = null;
             this.search = '';
+            this.resetKbCaret();
             if (this.el.search) this.el.search.value = '';
             if (this.el.searchClear) this.el.searchClear.style.display = 'none';
 
@@ -1114,32 +1126,51 @@ window.App = window.App || {};
             el.dataset.built = '1';
         },
 
-        // 键盘始终作用于搜索框：无论输入框是否处于激活状态，
-        // 点一下键盘（或右侧的 ⌫ / 清空键）都会先把搜索框激活，再操作
+        // 屏幕键盘的光标位置：键盘操作全程不聚焦输入框
+        // （触屏设备一旦聚焦输入框就会弹出系统自带键盘），改由脚本自行维护光标
+        kbCaret: null,
+
+        syncKbCaret: function () {
+            var input = this.el.search;
+            if (!input) return;
+            if (document.activeElement === input && typeof input.selectionStart === 'number') {
+                this.kbCaret = input.selectionStart;
+            }
+        },
+
+        resetKbCaret: function () {
+            this.kbCaret = 0;
+        },
+
+        currentKbCaret: function (len) {
+            var c = this.kbCaret;
+            if (typeof c !== 'number' || isNaN(c)) return len;
+            return Math.max(0, Math.min(len, c));
+        },
+
+        // 键盘始终作用于搜索框，但不会聚焦输入框（否则触屏设备会弹出系统键盘），
+        // 插入位置由 kbCaret 自行维护
         onVirtualKey: function (key) {
             var input = this.el.search;
             if (!input) return;
 
             if (key === '__clear') {
                 input.value = '';
-                input.focus();
+                this.kbCaret = 0;
                 this.applySearch('');
                 return;
             }
 
-            if (key === '__back') {
-                var v = input.value;
-                if (!v) { input.focus(); return; }
+            var v = input.value;
 
-                var focusedBack = document.activeElement === input;
-                var backPos = (focusedBack && typeof input.selectionStart === 'number')
-                    ? input.selectionStart
-                    : v.length;
+            if (key === '__back') {
+                if (!v) { this.kbCaret = 0; return; }
+
+                var backPos = this.currentKbCaret(v.length);
                 if (backPos <= 0) backPos = v.length;
 
                 input.value = v.slice(0, backPos - 1) + v.slice(backPos);
-                input.focus();
-                try { input.setSelectionRange(backPos - 1, backPos - 1); } catch (e) { /* 忽略 */ }
+                this.kbCaret = backPos - 1;
 
                 this.applySearch(input.value);
                 return;
@@ -1148,15 +1179,9 @@ window.App = window.App || {};
             var ch = String(key || '');
             if (!/^[a-z]$/.test(ch)) return;
 
-            var value = input.value;
-            var focused = document.activeElement === input;
-            var caret = (focused && typeof input.selectionStart === 'number')
-                ? input.selectionStart
-                : value.length;
-
-            input.value = value.slice(0, caret) + ch + value.slice(caret);
-            input.focus();
-            try { input.setSelectionRange(caret + 1, caret + 1); } catch (e) { /* 忽略 */ }
+            var caret = this.currentKbCaret(v.length);
+            input.value = v.slice(0, caret) + ch + v.slice(caret);
+            this.kbCaret = caret + 1;
 
             this.applySearch(input.value);
         },
