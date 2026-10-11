@@ -56,6 +56,11 @@ window.App.Weather = {
             const temp = this.formatTemperature(current.temperature_2m);
             el.textContent = `${this.getWeatherName(current.weather_code)} ${temp}℃`;
 
+            const iconEl = document.getElementById('weatherIcon');
+            if (iconEl) {
+                iconEl.textContent = this.getWeatherIcon(current.weather_code);
+            }
+
             // 成功 → 结束重试状态
             this._isRetrying = false;
             if (this._retryTimer) {
@@ -103,13 +108,26 @@ window.App.Weather = {
         return map[code] || '未知天气';
     },
 
+    getWeatherIcon(code) {
+        const map = {
+            0: '☀️', 1: '🌤️', 2: '⛅', 3: '☁️',
+            45: '🌫️', 48: '🌫️',
+            51: '🌦️', 53: '🌦️', 55: '🌧️', 56: '🌧️', 57: '🌧️',
+            61: '🌦️', 63: '🌧️', 65: '🌧️', 66: '🌧️', 67: '🌧️',
+            71: '🌨️', 73: '🌨️', 75: '❄️', 77: '🌨️',
+            80: '🌦️', 81: '🌧️', 82: '🌧️', 85: '🌨️', 86: '🌨️',
+            95: '⛈️', 96: '⛈️', 99: '⛈️'
+        };
+        return map[code] || '☁️';
+    },
+
     // ---------- 位置提示 ----------
     bindLocationTip() {
         const weatherInfo = document.getElementById('weatherInfo');
         if (!weatherInfo) return;
 
-        // 把 tooltip 插入到"天气"所在那一行（.schedule-item 已设置 position:relative）
-        const row = weatherInfo.closest('.schedule-item') || weatherInfo.parentNode;
+        // 把 tooltip 插入到天气卡片（.weather-card 已设置 position:relative）
+        const row = weatherInfo.closest('.weather-card') || weatherInfo.parentNode;
         if (row && !row.querySelector('#weatherLocationTip')) {
             const tip = document.createElement('div');
             tip.id = 'weatherLocationTip';

@@ -94,23 +94,46 @@ body,html{overflow:hidden;margin:0;padding:0;width:100%;height:100%;font-family:
 .solar-card p{font-size:16px;line-height:1.6;color:var(--theme-text);margin:0;font-family:'Microsoft YaHei';flex-grow:1;text-indent:2em}
 
 /* ===== 时间 / 作息 ===== */
-#currentDateTime,.schedule-container{position:absolute;left:25px;z-index:5;background:var(--theme-surface);border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.1)}
-#currentDateTime{top:78px;padding:15px 25px;text-align:center;min-width:180px}
-.schedule-container{top:225px;padding:15px 20px;min-width:190px}
-.time-section{font-family:'Microsoft-Yahei',sans-serif;font-size:44px;color:var(--theme-dark);margin:8px 0;display:block;width:100%}
-.date-section{font-family:'Microsoft YaHei',serif;font-size:22px;color:var(--theme-muted);letter-spacing:.5px;white-space:nowrap;display:block;width:100%}
-.schedule-item{font-family:'STZhongSong',sans-serif;margin:8px 0;position:relative}
-.schedule-title{display:block;font-size:20px;color:var(--theme-dark);font-weight:600;line-height:.8}
-.schedule-value{display:block;font-size:25px;color:var(--theme-text);text-align:center;margin:4px 0 0;padding:2px 0;line-height:.8}
-.timetable{margin-top:10px;border-top:1px solid var(--theme-border);padding-top:8px}
-.timetable-item{font-size:25px;font-family:STZhongSong,cursive;line-height:1.2;text-align:center}
-.timetable-row{display:flex;align-items:center;font-family:STZhongSong,cursive;font-size:24px;line-height:1;padding:2px 0}
-.timetable-row-divider{border-bottom:2px dashed var(--theme-border);margin-bottom:6px;padding-bottom:6px}
-.timetable-label{width:42%;text-align:right;padding-right:15px;color:var(--theme-primary);font-weight:bold}
-.timetable-course{width:58%;text-align:left;padding-left:5px;color:var(--theme-text)}
+/* 左侧栏：时间卡片 + 作息卡片纵向堆叠，间距由 gap 控制，不依赖固定 top 值；
+   固定列宽并让卡片拉伸，两张卡片左右边缘对齐 */
+.left-column{position:absolute;left:25px;top:78px;z-index:5;width:246px;display:flex;flex-direction:column;align-items:stretch;gap:18px}
+#currentDateTime,.schedule-container{background:var(--theme-surface);border-radius:14px;box-shadow:0 4px 20px rgba(0,0,0,.10),0 0 0 1px rgba(var(--theme-primary-rgb),.10)}
+#currentDateTime{padding:16px 26px 14px;text-align:center}
+.schedule-container{padding:14px 16px 16px}
+.time-section{font-family:'Microsoft-Yahei',sans-serif;font-size:44px;color:var(--theme-dark);margin:6px 0 4px;display:block;width:100%;letter-spacing:1px;font-variant-numeric:tabular-nums}
+.date-section{font-family:'Microsoft YaHei',serif;font-size:21px;color:var(--theme-muted);letter-spacing:.5px;white-space:nowrap;display:block;width:100%}
+
+/* 天气卡片：与下方摘要卡同款样式，左侧带对应天气的图标 */
+.weather-card{position:relative;display:flex;align-items:center;justify-content:center;gap:7px;margin-top:12px;padding:10px 8px;background:var(--theme-surface-soft);border:1px solid var(--theme-border);border-radius:11px;font-family:STZhongsong,serif;font-size:18px;color:var(--theme-text);letter-spacing:.5px;cursor:pointer;transition:border-color .3s,background .3s,color .2s}
+.weather-card:hover{border-color:var(--theme-primary);color:var(--theme-primary-active)}
+.weather-icon{font-family:'Segoe UI Emoji','Apple Color Emoji',sans-serif;font-size:20px;line-height:1;flex-shrink:0}
+.weather-text{min-width:0}
+
+/* 顶部两栏：当前作息 / 下个作息倒计时 */
+.schedule-summary{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.summary-card{display:flex;flex-direction:column;justify-content:center;background:var(--theme-surface-soft);border:1px solid var(--theme-border);border-radius:11px;padding:16px 5px 17px;text-align:center;min-width:0;transition:border-color .3s,background .3s}
+.summary-title{font-family:STZhongsong,serif;font-size:14px;line-height:1.3;color:var(--theme-muted)}
+.summary-value{font-family:STZhongsong,serif;font-size:20px;line-height:1.3;font-weight:700;color:var(--theme-dark);margin-top:2px;white-space:nowrap;font-variant-numeric:tabular-nums}
+
+.timetable{margin-top:2px;border-top:1px solid var(--theme-border);padding-top:10px}
+.timetable-item{font-size:25px;font-family:STZhongSong,cursive;line-height:1.2;text-align:center;color:var(--theme-muted)}
+.timetable-row{position:relative;display:flex;align-items:center;font-family:STZhongSong,cursive;font-size:26px;line-height:1.1;padding:2px 6px;border-radius:8px;transition:background .4s,box-shadow .4s}
+.timetable-row-divider{margin-bottom:5px;padding-bottom:5px}
+.timetable-row-divider::after{content:'';position:absolute;left:6px;right:6px;bottom:0;border-bottom:2px dashed var(--theme-border)}
+.timetable-label{width:42%;text-align:right;padding-right:12px;color:var(--theme-primary);font-weight:bold;box-sizing:border-box;transition:color .4s,opacity .4s}
+.timetable-course{width:58%;text-align:left;padding-left:4px;color:var(--theme-text);box-sizing:border-box;transition:color .4s,opacity .4s}
+
+/* 已过去的课：灰掉 */
+.timetable-row--past .timetable-label,.timetable-row--past .timetable-course{color:var(--theme-muted);opacity:.62}
+
+/* 正在进行的课：高亮 */
+.timetable-row--current{background:linear-gradient(90deg,rgba(var(--theme-primary-rgb),.22),rgba(var(--theme-primary-rgb),.05));box-shadow:inset 0 0 0 1.5px rgba(var(--theme-primary-rgb),.38)}
+.timetable-row--current .timetable-label{color:var(--theme-primary-active)}
+.timetable-row--current .timetable-course{color:var(--theme-dark);font-weight:700}
+.timetable-row--current::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:62%;border-radius:0 3px 3px 0;background:var(--theme-primary)}
 
 /* ===== 天气定位提示 ===== */
-.weather-location-tip{position:absolute;top:calc(100% + 6px);left:0;background:rgba(0,0,0,.85);color:#fff;padding:6px 12px;border-radius:6px;font-size:13px;z-index:100;opacity:0;visibility:hidden;transition:opacity .2s,visibility .2s;pointer-events:none;white-space:nowrap;font-family:'Microsoft YaHei',sans-serif;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+.weather-location-tip{position:absolute;top:calc(100% + 6px);left:50%;transform:translateX(-50%);background:rgba(0,0,0,.85);color:#fff;padding:6px 12px;border-radius:6px;font-size:13px;z-index:100;opacity:0;visibility:hidden;transition:opacity .2s,visibility .2s;pointer-events:none;white-space:nowrap;font-family:'Microsoft YaHei',sans-serif;box-shadow:0 2px 8px rgba(0,0,0,.2)}
 .weather-location-tip.active{opacity:1;visibility:visible}
 
 /* ===== 导航 / 倒计时 ===== */

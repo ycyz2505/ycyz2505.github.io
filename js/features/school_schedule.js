@@ -9,6 +9,20 @@ window.App.SchoolSchedule = {
         'saturday'
     ],
 
+    // 显示用缩写表：只影响「当前」卡片和倒计时标题的文字，
+    // 作息表原始名称一个字都不改，includes('课间') / includes('节课')
+    // 这类时间判断逻辑完全不受影响。
+    DISPLAY_ALIASES: {
+        '晚自习预备':   '晚预',
+        '第一节晚自习': '晚一',
+        '第二节晚自习': '晚二',
+        '第三节晚自习': '晚三',
+        '第四节晚自习': '晚四',
+        '放学回家':     '放学',
+        '周日返校':     '返校',
+        '新的一天':     '明天'
+    },
+
     init() {
         clearInterval(window.App.Timers.schoolSchedule);
 
@@ -101,34 +115,27 @@ window.App.SchoolSchedule = {
         return data.weekday;
     },
 
-    getCourseName(day, lessonIndex) {
-        const courses = this.getEffectiveCourses(day);
+    // 「当前」卡片的文字：查缩写表，查不到就原样显示
+    getDisplayName(name) {
+        if (!name) return name;
 
-        return courses[
-            day === 0
-                ? lessonIndex
-                : lessonIndex + 1
-        ] || '';
+        return this.DISPLAY_ALIASES[name] || name;
     },
 
-    isCourseSchedule(name) {
-        if (!name) return false;
+    // 倒计时标题的目标文字：先查缩写表，
+    // 再把指向某节课的目标统一成"上课"
+    getCountdownLabel(label) {
+        if (!label) return label;
 
-        return (
-            name.includes('节课') ||
-            name.includes('晚自习') ||
-            name.endsWith('考试')
-        );
-    },
+        const alias = this.DISPLAY_ALIASES[label];
 
-    getLessonItems(todaySchedule) {
-        if (!Array.isArray(todaySchedule)) {
-            return [];
+        if (alias) return alias;
+
+        if (/^第[一二三四五六七八九十]+节课$/.test(label)) {
+            return '上课';
         }
 
-        return todaySchedule.filter(item =>
-            this.isCourseSchedule(item[1])
-        );
+        return label;
     },
 
     // ★ 修复：周日返校目标时间若已过去（如周日 17:40 之后），自动跳到下一个周日，
@@ -164,10 +171,7 @@ window.App.SchoolSchedule = {
         const utils = window.App.Utils;
 
         if (day === 6) {
-            return {
-                current: '周末',
-                nextLesson: '无'
-            };
+            return { current: '周末' };
         }
 
         // ★ 修复：作息表中"周末"到 17:40 才结束，原阈值 17:30 会让 17:30~17:40 落入通用分支
@@ -175,33 +179,23 @@ window.App.SchoolSchedule = {
             day === 0 &&
             currentMinutes < utils.timeToMinutes('17:40')
         ) {
-            return {
-                current: '周末',
-                nextLesson: '第一节晚自习'
-            };
+            return { current: '周末' };
         }
 
         const todaySchedule = this.getTodaySchedule(day);
 
         if (!todaySchedule) {
-            return {
-                current: '加载中...',
-                nextLesson: ''
-            };
+            return { current: '加载中...' };
         }
 
         if (
             currentMinutes >= utils.timeToMinutes('21:30') ||
             currentMinutes < utils.timeToMinutes('6:30')
         ) {
-            return {
-                current: '睡觉',
-                nextLesson: '无'
-            };
+            return { current: '睡觉' };
         }
 
         let current = '';
-        let currentIndex = -1;
 
         for (let i = 0; i < todaySchedule.length; i++) {
             const [timeRange, name] = todaySchedule[i];
@@ -219,62 +213,15 @@ window.App.SchoolSchedule = {
 
             if (isInRange) {
                 current = name;
-                currentIndex = i;
                 break;
             }
         }
 
-        let nextLesson = '';
-
-        if (currentIndex >= 0) {
-            for (
-                let i = currentIndex + 1;
-                i < todaySchedule.length;
-                i++
-            ) {
-                const name = todaySchedule[i][1];
-
-                if (this.isCourseSchedule(name)) {
-                    nextLesson = name;
-                    break;
-                }
-            }
-        }
-
         if (!current && day === 5) {
-            return {
-                current: '放学',
-                nextLesson: '无'
-            };
+            return { current: '放学' };
         }
 
-        return {
-            current: current || '休息',
-            nextLesson: nextLesson || '无'
-        };
-    },
-
-    getCourseDisplayName(day, scheduleName) {
-        if (!this.isCourseSchedule(scheduleName)) {
-            return scheduleName;
-        }
-
-        const lessonItems = this.getLessonItems(
-            this.getTodaySchedule(day)
-        );
-
-        const lessonIndex = lessonItems.findIndex(
-            item => item[1] === scheduleName
-        );
-
-        if (lessonIndex < 0) {
-            return scheduleName;
-        }
-
-        return (
-            this.getCourseName(day, lessonIndex) ||
-            scheduleName
-        );
+        return { current: current || '休息' };
     },
 
     // options.renderTimetable === false 时只更新文字，
@@ -286,28 +233,41 @@ window.App.SchoolSchedule = {
         const currentElement =
             document.getElementById('currentSchedule');
 
-        const nextElement =
-            document.getElementById('nextSchedule');
-
-        // ★ 修复：'当前'只显示作息名称（第一节课 / 课间 / 早餐 等），
-        //        不再替换为科目名。
+        // '当前'只显示作息名称（第一节课 / 课间 / 早餐 等），不显示科目名。
         if (currentElement) {
-            currentElement.textContent = result.current;
-        }
-
-        // '下节课'仍显示科目名称
-        if (nextElement) {
-            const next = result.nextLesson;
-
-            nextElement.textContent =
-                !next || next === '无'
-                    ? '无'
-                    : this.getCourseDisplayName(day, next);
+            currentElement.textContent =
+                this.getDisplayName(result.current);
         }
 
         if (!options || options.renderTimetable !== false) {
             this.renderTimetable(day);
         }
+    },
+
+    // 与课表每一行一一对应的作息时间段（早读 / 各节课 / 晚自习 / 考试），
+    // 用来判断每节课是已过、进行中还是未到。
+    getCourseSlots(day) {
+        const todaySchedule = this.getTodaySchedule(day);
+
+        if (!Array.isArray(todaySchedule)) return [];
+
+        const utils = window.App.Utils;
+
+        return todaySchedule
+            .filter(([, name]) =>
+                name.includes('早读') ||
+                name.includes('节课') ||
+                name.includes('节晚自习') ||
+                name.endsWith('考试')
+            )
+            .map(([timeRange]) => {
+                const [start, end] = timeRange.split('-');
+
+                return {
+                    start: utils.timeToMinutes(start),
+                    end: utils.timeToMinutes(end)
+                };
+            });
     },
 
     renderTimetable(day) {
@@ -331,6 +291,10 @@ window.App.SchoolSchedule = {
             return;
         }
 
+        const now = window.App.Utils.now();
+        const nowMinutes = now.getHours() * 60 + now.getMinutes();
+        const slots = this.getCourseSlots(day);
+
         container.innerHTML = courses
             .map((course, index) => {
                 let label = '';
@@ -351,9 +315,23 @@ window.App.SchoolSchedule = {
                     label = `晚${index - 8}`;
                 }
 
-                const rowClass = showDivider
-                    ? 'timetable-row timetable-row-divider'
-                    : 'timetable-row';
+                // 已过 / 进行中 / 未到
+                const slot = slots[index];
+                let state = 'future';
+
+                if (slot) {
+                    if (nowMinutes >= slot.end) {
+                        state = 'past';
+                    } else if (nowMinutes >= slot.start) {
+                        state = 'current';
+                    }
+                }
+
+                const rowClass = [
+                    'timetable-row',
+                    showDivider ? 'timetable-row-divider' : '',
+                    `timetable-row--${state}`
+                ].filter(Boolean).join(' ');
 
                 return `
                     <div class="${rowClass}">
@@ -494,7 +472,7 @@ window.App.SchoolSchedule = {
 
         if (labelElement) {
             labelElement.textContent =
-                `距离${result.label}还有：`;
+                `距离${this.getCountdownLabel(result.label)}`;
         }
 
         if (timerElement) {

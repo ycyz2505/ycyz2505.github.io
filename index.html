@@ -24,29 +24,29 @@
             </nav>
         </header>
 
-        <div id="currentDateTime">
-            <div class="time-section"></div>
-            <div class="date-section"></div>
-        </div>
+        <div class="left-column">
+            <div id="currentDateTime">
+                <div class="time-section"></div>
+                <div class="date-section"></div>
+                <div class="weather-card">
+                    <span class="weather-icon" id="weatherIcon">☁️</span>
+                    <span class="weather-text" id="weatherInfo">加载中...</span>
+                </div>
+            </div>
 
-        <div id="scheduleContainer" class="schedule-container">
-            <div class="schedule-item">
-                <span class="schedule-title">天气：</span>
-                <span class="schedule-value" id="weatherInfo">加载中...</span>
+            <div id="scheduleContainer" class="schedule-container">
+                <div class="schedule-summary">
+                    <div class="summary-card">
+                        <div class="summary-title">当前</div>
+                        <div class="summary-value" id="currentSchedule">加载中...</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-title" id="countdownName">距离下课</div>
+                        <div class="summary-value" id="countdownTimer">--:--</div>
+                    </div>
+                </div>
+                <div class="timetable" id="todayTimetable"></div>
             </div>
-            <div class="schedule-item">
-                <span class="schedule-title">当前：</span>
-                <span class="schedule-value" id="currentSchedule">加载中...</span>
-            </div>
-            <div class="schedule-item">
-                <span class="schedule-title">下节课：</span>
-                <span class="schedule-value" id="nextSchedule">加载中...</span>
-            </div>
-            <div class="schedule-item">
-                <span class="schedule-title" id="countdownName">倒计时：</span>
-                <span class="schedule-value" id="countdownTimer" style="font-size:28px;">--:--</span>
-            </div>
-            <div class="timetable" id="todayTimetable"></div>
         </div>
 
         <!-- 倒计日切换区：左右滑动切换 -->
@@ -323,6 +323,11 @@
                     1. 修复座位表和自定义倒计日的本地存储；
                     2. 座位表屏幕键盘在使用时不激活输入框；
                     3. 导航栏改为白色；
+                    4. 天气移入时间卡片、显示在日期下方，并去掉"天气："前缀；
+                    5. 作息卡片顶部改为"当前作息 / 下个作息倒计时"两栏小卡片，去掉"下节课"；
+                    6. 今日课表字号增大，已过去的课变灰、正在进行的课高亮；
+                    7. 作息名称新增显示用缩写表（晚自习预备→晚预、第一节~第四节晚自习→晚一~晚四、放学回家→放学等），只影响显示，不影响时间判断逻辑；
+                    8. 天气去掉分割线、改为与摘要卡同款的小卡片，并在左侧加对应天气的图标；
 
                     2026.10.5
                     1. 发现 bug 凌晨 0:00 到起床这段时间的下个作息倒计时会显示“距离新的一天 23 小时”，待修；
