@@ -23,6 +23,10 @@ window.App.SchoolSchedule = {
         '新的一天':     '明天'
     },
 
+    // 摘要卡数值的字号候选：比课表字号（26px）小 1px 起，内容长了再退档。
+    // 行高由 CSS 固定，所以字号变化不会改变卡片尺寸。
+    VALUE_SIZES: [25, 23, 21],
+
     init() {
         clearInterval(window.App.Timers.schoolSchedule);
 
@@ -237,6 +241,11 @@ window.App.SchoolSchedule = {
         if (currentElement) {
             currentElement.textContent =
                 this.getDisplayName(result.current);
+
+            window.App.Utils.fitFontSize(
+                currentElement,
+                this.VALUE_SIZES
+            );
         }
 
         if (!options || options.renderTimetable !== false) {
@@ -480,6 +489,11 @@ window.App.SchoolSchedule = {
                 hours > 0
                     ? `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`
                     : `${pad(minutes)}:${pad(seconds)}`;
+
+            window.App.Utils.fitFontSize(
+                timerElement,
+                this.VALUE_SIZES
+            );
         }
     }
 };

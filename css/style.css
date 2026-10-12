@@ -104,16 +104,16 @@ body,html{overflow:hidden;margin:0;padding:0;width:100%;height:100%;font-family:
 .date-section{font-family:'Microsoft YaHei',serif;font-size:21px;color:var(--theme-muted);letter-spacing:.5px;white-space:nowrap;display:block;width:100%}
 
 /* 天气卡片：与下方摘要卡同款样式，左侧带对应天气的图标 */
-.weather-card{position:relative;display:flex;align-items:center;justify-content:center;gap:7px;margin-top:12px;padding:10px 8px;background:var(--theme-surface-soft);border:1px solid var(--theme-border);border-radius:11px;font-family:STZhongsong,serif;font-size:18px;color:var(--theme-text);letter-spacing:.5px;cursor:pointer;transition:border-color .3s,background .3s,color .2s}
+.weather-card{position:relative;display:flex;align-items:center;justify-content:center;gap:4px;margin-top:12px;padding:10px 2px;background:var(--theme-surface-soft);border:1px solid var(--theme-border);border-radius:11px;font-family:STZhongsong,serif;font-size:20px;line-height:23px;color:var(--theme-text);letter-spacing:.5px;cursor:pointer;transition:border-color .3s,background .3s,color .2s}
 .weather-card:hover{border-color:var(--theme-primary);color:var(--theme-primary-active)}
-.weather-icon{font-family:'Segoe UI Emoji','Apple Color Emoji',sans-serif;font-size:20px;line-height:1;flex-shrink:0}
+.weather-icon{font-family:'Segoe UI Emoji','Apple Color Emoji',sans-serif;font-size:24px;line-height:1;flex-shrink:0}
 .weather-text{min-width:0}
 
 /* 顶部两栏：当前作息 / 下个作息倒计时 */
 .schedule-summary{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
-.summary-card{display:flex;flex-direction:column;justify-content:center;background:var(--theme-surface-soft);border:1px solid var(--theme-border);border-radius:11px;padding:16px 5px 17px;text-align:center;min-width:0;transition:border-color .3s,background .3s}
-.summary-title{font-family:STZhongsong,serif;font-size:14px;line-height:1.3;color:var(--theme-muted)}
-.summary-value{font-family:STZhongsong,serif;font-size:20px;line-height:1.3;font-weight:700;color:var(--theme-dark);margin-top:2px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.summary-card{display:flex;flex-direction:column;justify-content:center;background:var(--theme-surface-soft);border:1px solid var(--theme-border);border-radius:11px;padding:16px 1px 17px;text-align:center;min-width:0;transition:border-color .3s,background .3s}
+.summary-title{font-family:STZhongsong,serif;font-size:16px;line-height:18px;color:var(--theme-muted)}
+.summary-value{font-family:STZhongsong,serif;font-size:22px;line-height:26px;font-weight:700;color:var(--theme-dark);margin-top:2px;white-space:nowrap;font-variant-numeric:tabular-nums}
 
 .timetable{margin-top:2px;border-top:1px solid var(--theme-border);padding-top:10px}
 .timetable-item{font-size:25px;font-family:STZhongSong,cursive;line-height:1.2;text-align:center;color:var(--theme-muted)}

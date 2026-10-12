@@ -21,6 +21,30 @@ window.App.Utils = {
         return h * 60 + m;
     },
 
+    // 按内容长度自选字号：从 sizes 里从大到小试，第一个放得下的就用它。
+    // 只改 font-size —— 行高由 CSS 钉死，所以卡片尺寸完全不受影响。
+    // maxWidth 省略时用元素自身的可用宽度。
+    fitFontSize(el, sizes, maxWidth) {
+        if (!el) return;
+
+        const limit = maxWidth === undefined ? el.clientWidth : maxWidth;
+
+        if (!limit || limit <= 0) return;
+
+        let chosen = sizes[sizes.length - 1];
+
+        for (const size of sizes) {
+            el.style.fontSize = size + 'px';
+
+            if (el.scrollWidth <= limit) {
+                chosen = size;
+                break;
+            }
+        }
+
+        el.style.fontSize = chosen + 'px';
+    },
+
     // 返回当前"业务时间"：真实时间 + 用户设置的偏移量
     // 所有需要"当前日期/时间"的业务逻辑都应当使用此方法，
     // 而不是直接 new Date()，这样才能支持设置里改时间

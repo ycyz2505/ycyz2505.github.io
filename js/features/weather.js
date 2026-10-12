@@ -61,6 +61,8 @@ window.App.Weather = {
                 iconEl.textContent = this.getWeatherIcon(current.weather_code);
             }
 
+            this.fitWeatherFont(el, iconEl);
+
             // 成功 → 结束重试状态
             this._isRetrying = false;
             if (this._retryTimer) {
@@ -119,6 +121,23 @@ window.App.Weather = {
             95: '⛈️', 96: '⛈️', 99: '⛈️'
         };
         return map[code] || '☁️';
+    },
+
+    // 天气文字按卡片剩余宽度自选字号：短天气名取大字号，
+    // 长天气名自动退到小字号。行高由 CSS 钉死，卡片尺寸始终不变。
+    fitWeatherFont(textEl, iconEl) {
+        const card = textEl && textEl.closest('.weather-card');
+        if (!card || !iconEl) return;
+
+        const cs = getComputedStyle(card);
+
+        const limit = card.clientWidth
+            - parseFloat(cs.paddingLeft)
+            - parseFloat(cs.paddingRight)
+            - iconEl.offsetWidth
+            - (parseFloat(cs.gap) || 0);
+
+        window.App.Utils.fitFontSize(textEl, [25, 23, 21, 20], limit);
     },
 
     // ---------- 位置提示 ----------
