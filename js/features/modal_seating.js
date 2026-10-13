@@ -1255,11 +1255,22 @@ window.App = window.App || {};
 
         pool: function () {
             var out = [];
+            var seen = Object.create(null);
+
             (this.data.rows || []).forEach(function (cells, r) {
                 (cells || []).forEach(function (cell, c) {
-                    if (cell && cell.t === 'n' && cell.n) out.push({ r: r, c: c, name: cell.n });
+                    if (!cell || cell.t !== 'n' || !cell.n) return;
+
+                    // 同名可能占多个块：抽取时只算一次，
+                    // 否则他在池子里占多项，被抽中的概率会成倍变大
+                    var key = String(cell.n).trim();
+                    if (seen[key]) return;
+                    seen[key] = true;
+
+                    out.push({ r: r, c: c, name: cell.n });
                 });
             });
+
             return out;
         },
 
@@ -1332,12 +1343,8 @@ window.App = window.App || {};
                 }, ms));
             });
 
-            this.timers.push(setTimeout(function () {
-                if (!self.rolling) return;
-                var p = pool[Math.floor(Math.random() * pool.length)];
-                self.picked = { r: p.r, c: p.c, name: p.name };
-                self.refreshPick();
-            }, PICK_TOTAL - holdMs));
+            // 最后一次抽取已由 times 的最后一项覆盖（≈ PICK_TOTAL - holdMs），
+            // 这里不再补一个同时刻的定时器。
 
             this.timers.push(setTimeout(function () {
                 if (!self.rolling) return;
