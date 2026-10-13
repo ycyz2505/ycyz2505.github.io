@@ -137,7 +137,9 @@ window.App.Weather = {
             - iconEl.offsetWidth
             - (parseFloat(cs.gap) || 0);
 
-        window.App.Utils.fitFontSize(textEl, [25, 23, 21, 20], limit);
+        // 档位从 22px 起，比课表（26px）小不少：
+        // 天气名加温度本来就长，字号太大即便不折行也会顶到卡片边
+        window.App.Utils.fitFontSize(textEl, [22, 20, 18, 16, 14], limit);
     },
 
     // ---------- 位置提示 ----------

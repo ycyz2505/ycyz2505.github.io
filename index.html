@@ -319,6 +319,18 @@
 
                     待添加的新功能：自定义倒计时（不只是高考倒计时，如一月考倒计时、期末倒计时等）、方便地统计需要讲的题目（课前统计好，课上老师直接讲）等。欢迎提建议。
 
+                    2026.10.13
+                    1. 随机抽取改为可指定人数：按钮旁新增下拉框，读作"随机抽取 x 人"，取值范围 1~座位表人数，默认 1，刷新页面后复位；
+                    2. 抽取过程改为每步高亮 x 个互不相同的人，最后一步高亮的 x 个人即为结果；
+                    3. 当 x 等于全班人数时跳过滚动动画，直接弹出"恭喜 你抽了个寂寞"；
+                    4. 抽取过程中禁止 180° 翻转，避免打断正在滚动的高亮；
+                    5. 抽中高亮不再放大，只保留变色与外圈阴影；
+                    6. 抽中名单改为自动换行排布并按人数分档缩放，抽取人数多时不再溢出屏幕；
+                    7. 修正随机抽取按姓名去重的问题：改为按座位入池，班里有同名的两人时两人都能被抽到；
+                    8. 去掉抽取结束时重复触发的那一次定时器，最后一次抽取不再执行两遍；
+                    9. 睡觉、周五放学后的倒计时由"距离明天"改为指向第二天第一个作息（如"距离早餐""距离周末"）；
+                    10. 上述倒计时的目标时间同步改为该作息的开始时间，不再是固定的午夜 23:59；顺带修复 2026.10.5 记录的"凌晨 0:00 到起床之间显示距离新的一天 23 小时"的问题；
+
                     2026.10.11
                     1. 修复座位表和自定义倒计日的本地存储；
                     2. 座位表屏幕键盘在使用时不激活输入框；
@@ -330,7 +342,7 @@
                     8. 天气去掉分割线、改为与摘要卡同款的小卡片，并在左侧加对应天气的图标；
 
                     2026.10.5
-                    1. 发现 bug 凌晨 0:00 到起床这段时间的下个作息倒计时会显示“距离新的一天 23 小时”，待修；
+                    1. 发现 bug 凌晨 0:00 到起床这段时间的下个作息倒计时会显示“距离新的一天 23 小时”，待修（已于 2026.10.13 修复）；
 
                     2026.10.4
                     1. 新增座位表功能；
@@ -741,7 +753,11 @@
                                 <button type="button" class="seat-mode-btn" data-mode="edit">✏️ 编辑</button>
                             </div>
                             <div class="seat-bar-actions">
-                                <button type="button" class="seat-btn primary seat-pick-btn" id="seatPickBtn">🎲 随机抽取</button>
+                                <div class="seat-pick-group">
+                                    <button type="button" class="seat-btn primary seat-pick-btn" id="seatPickBtn">🎲 随机抽取</button>
+                                    <select class="seat-pick-count" id="seatPickCount" aria-label="每次抽取的人数" title="每次抽取的人数"></select>
+                                    <span class="seat-pick-unit">人</span>
+                                </div>
                                 <button type="button" class="seat-btn seat-rotate-btn" id="seatRotate" title="把座位表上下左右同时翻转 180°">🔄 翻转</button>
                             </div>
                         </div>
@@ -845,7 +861,7 @@
                     <div class="seat-pick-card">
                         <div class="seat-confetti"></div>
                         <div class="seat-pick-title">🎉 恭喜被抽中</div>
-                        <div class="seat-pick-name" id="seatPickName">—</div>
+                        <div class="seat-pick-names s1" id="seatPickName"><span class="seat-pick-name">—</span></div>
                         <div class="seat-pick-actions">
                             <button type="button" class="seat-btn primary" id="seatAgain">🔁 再抽一次</button>
                             <button type="button" class="seat-btn" id="seatDone">完成</button>

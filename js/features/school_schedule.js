@@ -119,6 +119,40 @@ window.App.SchoolSchedule = {
         return data.weekday;
     },
 
+    // 下一个"当天第一个作息"（早餐 / 周末……）：{ endTime: Date, label: string }
+    // 睡觉之后、周五放学之后的倒计时指向它，而不是笼统的"到午夜"。
+    // 从今天开始找，取第一个还没到的 —— 凌晨 0:00 ~ 第一个作息之间
+    // 目标其实是【今天】的第一个作息，不能一律按明天算。
+    // 周六要单独取 saturday：getTodaySchedule 对周六会落到 weekday。
+    getNextDayFirstScheduleInfo() {
+        const now = window.App.Utils.now();
+        const data = this.getScheduleData();
+
+        for (let offset = 0; offset <= 1; offset++) {
+            const day = new Date(now);
+            day.setDate(day.getDate() + offset);
+
+            const dow = day.getDay();
+            const schedule = dow === 6
+                ? data.saturday
+                : this.getTodaySchedule(dow);
+
+            if (!Array.isArray(schedule) || !schedule.length) continue;
+
+            const [range, name] = schedule[0];
+            const [hour, minute] =
+                range.split('-')[0].split(':').map(Number);
+
+            day.setHours(hour, minute, 0, 0);
+
+            if (day > now) {
+                return { endTime: day, label: name };
+            }
+        }
+
+        return { endTime: '23:59', label: '新的一天' };
+    },
+
     // 「当前」卡片的文字：查缩写表，查不到就原样显示
     getDisplayName(name) {
         if (!name) return name;
@@ -397,10 +431,7 @@ window.App.SchoolSchedule = {
         );
 
         if (currentIndex === -1) {
-            return {
-                endTime: '23:59',
-                label: '新的一天'
-            };
+            return this.getNextDayFirstScheduleInfo();
         }
 
         const currentItem = todaySchedule[currentIndex];
@@ -435,10 +466,7 @@ window.App.SchoolSchedule = {
             };
         }
 
-        return {
-            endTime: '23:59',
-            label: '新的一天'
-        };
+        return this.getNextDayFirstScheduleInfo();
     },
 
     updateCountdownDisplay() {

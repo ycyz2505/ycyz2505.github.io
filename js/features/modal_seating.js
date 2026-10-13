@@ -53,6 +53,8 @@ window.App = window.App || {};
         edit: null,
         search: '',
         picked: null,
+        // 每次抽取的人数；不持久化，刷新页面后回到 1
+        pickCount: 1,
         drag: null,
         pendingDrag: null,
         rolling: false,
@@ -111,6 +113,7 @@ window.App = window.App || {};
                 kbBack: id('seatKbBack'),
                 kbClear: id('seatKbClear'),
                 pickBtn: id('seatPickBtn'),
+                pickCount: id('seatPickCount'),
                 rotateBtn: id('seatRotate'),
                 addRow: id('seatAddRow'),
                 colsMinus: id('seatColsMinus'),
@@ -208,6 +211,11 @@ window.App = window.App || {};
 
             // 随机抽取
             on(this.el.pickBtn, 'click', function () { self.startPick(); });
+            on(this.el.pickCount, 'change', function () {
+                var n = parseInt(self.el.pickCount.value, 10);
+                if (!isFinite(n) || n < 1) n = 1;
+                self.pickCount = n;
+            });
             on(this.el.againBtn, 'click', function () { self.hideOverlay(); self.startPick(); });
             on(this.el.doneBtn, 'click', function () { self.hideOverlay(); });
             on(this.el.overlay, 'click', function (ev) {
@@ -302,6 +310,7 @@ window.App = window.App || {};
             this.setTrashHot(false);
             this.setMode('view');
             this.status('');
+            this.refreshPickCount();
 
             // 打开动画 / 字体就绪后重新计算尺寸
             this.scheduleLayout();
@@ -543,6 +552,7 @@ window.App = window.App || {};
                 if (this.el.empty) this.el.empty.classList.add('active');
                 if (this.el.stage) this.el.stage.classList.add('is-empty');
                 this.updateMeta();
+                this.refreshPickCount();
                 return;
             }
             if (this.el.empty) this.el.empty.classList.remove('active');
@@ -567,6 +577,7 @@ window.App = window.App || {};
             });
 
             this.updateMeta();
+            this.refreshPickCount();
             this.applySearch(this.search);
             this.refreshPick();
             this.refreshCsvPreview();
@@ -999,6 +1010,9 @@ window.App = window.App || {};
         },
 
         rotate180: function () {
+            // 抽取过程中禁止翻转：翻转会重建格子，打断正在滚动的高亮
+            if (this.rolling) return;
+
             var rows = this.data.rows;
             if (!rows.length) { this.status('座位表还是空的', true); return; }
 
@@ -1255,21 +1269,62 @@ window.App = window.App || {};
 
         pool: function () {
             var out = [];
-            var seen = Object.create(null);
 
             (this.data.rows || []).forEach(function (cells, r) {
                 (cells || []).forEach(function (cell, c) {
                     if (!cell || cell.t !== 'n' || !cell.n) return;
 
-                    // 同名可能占多个块：抽取时只算一次，
-                    // 否则他在池子里占多项，被抽中的概率会成倍变大
-                    var key = String(cell.n).trim();
-                    if (seen[key]) return;
-                    seen[key] = true;
-
+                    // 按"座位"入池，而不是按姓名：班里可能有同名的两个人，
+                    // 他们各占一个块、是两个独立的人，都要能被抽到，
+                    // 所以这里不做去重。
                     out.push({ r: r, c: c, name: cell.n });
                 });
             });
+
+            return out;
+        },
+
+        // 按座位表人数重建下拉框选项（1 ~ n），并把已选值收敛到范围内
+        refreshPickCount: function () {
+            var sel = this.el.pickCount;
+            if (!sel) return;
+
+            var n = this.pool().length;
+
+            if (n < 1) {
+                sel.innerHTML = '';
+                sel.disabled = true;
+                this.pickCount = 1;
+                return;
+            }
+
+            if (this.pickCount > n) this.pickCount = n;
+            if (this.pickCount < 1) this.pickCount = 1;
+
+            // 选项个数没变就不重建，免得打断正在展开的列表
+            if (sel.options.length !== n) {
+                var html = '';
+                for (var i = 1; i <= n; i++) {
+                    html += '<option value="' + i + '">' + i + '</option>';
+                }
+                sel.innerHTML = html;
+            }
+
+            sel.disabled = false;
+            sel.value = String(this.pickCount);
+        },
+
+        // 从池子里随机取 count 个互不相同的座位
+        pickSome: function (pool, count) {
+            var rest = pool.slice();
+            var out = [];
+            var n = Math.min(Math.max(1, count | 0), rest.length);
+
+            for (var i = 0; i < n; i++) {
+                var idx = Math.floor(Math.random() * rest.length);
+                out.push(rest[idx]);
+                rest.splice(idx, 1);
+            }
 
             return out;
         },
@@ -1321,10 +1376,24 @@ window.App = window.App || {};
                 return;
             }
 
+            this.refreshPickCount();
+
+            var count = Math.min(Math.max(1, this.pickCount | 0), pool.length);
+
             this.hideOverlay();
             this.clearTimers();
+
+            // 抽的人数正好等于全班：结果毫无悬念，跳过滚动动画直接弹窗
+            if (count >= pool.length) {
+                this.picked = this.pickSome(pool, count);
+                this.refreshPick();
+                this.showOverlay(this.picked, true);
+                return;
+            }
+
             this.rolling = true;
             if (this.el.pickBtn) this.el.pickBtn.disabled = true;
+            if (this.el.rotateBtn) this.el.rotateBtn.disabled = true;
             if (this.el.content) this.el.content.classList.add('seat-rolling');
             this.picked = null;
             this.refreshPick();
@@ -1334,12 +1403,16 @@ window.App = window.App || {};
             var overlayMs = PICK_TOTAL - 250;
             var times = this.pickTimes(PICK_TOTAL - holdMs, PICK_STEPS);
 
+            // 每一步都重新抽 count 个互不相同的人
+            var step = function () {
+                self.picked = self.pickSome(pool, count);
+                self.refreshPick();
+            };
+
             times.forEach(function (ms) {
                 self.timers.push(setTimeout(function () {
                     if (!self.rolling) return;
-                    var p = pool[Math.floor(Math.random() * pool.length)];
-                    self.picked = { r: p.r, c: p.c, name: p.name };
-                    self.refreshPick();
+                    step();
                 }, ms));
             });
 
@@ -1351,7 +1424,8 @@ window.App = window.App || {};
                 self.rolling = false;
                 if (self.el.content) self.el.content.classList.remove('seat-rolling');
                 if (self.el.pickBtn) self.el.pickBtn.disabled = false;
-                self.showOverlay(self.picked);
+                if (self.el.rotateBtn) self.el.rotateBtn.disabled = false;
+                self.showOverlay(self.picked, false);
             }, overlayMs));
         },
 
@@ -1363,21 +1437,72 @@ window.App = window.App || {};
                 el.classList.remove('seat-picked');
             });
 
-            if (!this.picked) return;
-            var el = grid.querySelector('.seat-block.t-n[data-row="' + this.picked.r + '"][data-col="' + this.picked.c + '"]');
-            if (el) el.classList.add('seat-picked');
+            var picked = this.picked;
+            if (!picked || !picked.length) return;
+
+            picked.forEach(function (p) {
+                var el = grid.querySelector(
+                    '.seat-block.t-n[data-row="' + p.r + '"][data-col="' + p.c + '"]'
+                );
+                if (el) el.classList.add('seat-picked');
+            });
         },
 
-        showOverlay: function (picked) {
-            var name = (picked && picked.name) || '（未命名）';
+        // 名单里的一个名字（"恭喜\n你抽了个寂寞" 也走这里）
+        createNameEl: function (text) {
+            var span = document.createElement('span');
+            span.className = 'seat-pick-name';
+            span.textContent = text;
+            return span;
+        },
 
-            if (this.el.overlayName) {
-                this.el.overlayName.textContent = name;
-                this.el.overlayName.classList.toggle('long', Array.from(name).length > 3);
+        // 按人数（并兼顾最长名字）挑字号档位：人越多档位越小，配合换行整屏可见
+        nameSizeClass: function (list) {
+            var n = list.length;
+            var maxLen = 0;
+
+            list.forEach(function (p) {
+                var len = Array.from(p.name || '').length;
+                if (len > maxLen) maxLen = len;
+            });
+
+            if (n === 1) return maxLen > 3 ? 's2' : 's1';
+            if (n <= 3) return 's2';
+            if (n <= 10) return 's3';
+            if (n <= 25) return 's4';
+            return 's5';
+        },
+
+        // picked: 本次抽中的座位数组；allPicked 为 true 表示 x = 全班人数
+        showOverlay: function (picked, allPicked) {
+            var list = Array.isArray(picked) ? picked : (picked ? [picked] : []);
+            var box = this.el.overlayName;
+
+            if (box) {
+                box.innerHTML = '';
+
+                if (allPicked) {
+                    // 抽的人数正好等于全班：等于谁都没被单独抽出来
+                    box.className = 'seat-pick-names s2';
+                    box.appendChild(this.createNameEl('恭喜\n你抽了个寂寞'));
+                } else if (list.length) {
+                    box.className = 'seat-pick-names ' + this.nameSizeClass(list);
+
+                    var self = this;
+                    list.forEach(function (p) {
+                        box.appendChild(self.createNameEl(p.name || '（未命名）'));
+                    });
+                } else {
+                    box.className = 'seat-pick-names s1';
+                    box.appendChild(this.createNameEl('（未命名）'));
+                }
             }
 
             var grid = this.el.grid;
-            var el = (picked && grid) ? grid.querySelector('.seat-block.t-n[data-row="' + picked.r + '"][data-col="' + picked.c + '"]') : null;
+            var first = list[0];
+            var el = (first && grid)
+                ? grid.querySelector('.seat-block.t-n[data-row="' + first.r + '"][data-col="' + first.c + '"]')
+                : null;
 
             if (el) {
                 try {
@@ -1430,6 +1555,7 @@ window.App = window.App || {};
             this.rolling = false;
             this.clearTimers();
             if (this.el.pickBtn) this.el.pickBtn.disabled = false;
+            if (this.el.rotateBtn) this.el.rotateBtn.disabled = false;
             if (this.el.content) this.el.content.classList.remove('seat-rolling');
             this.picked = null;
             this.refreshPick();
