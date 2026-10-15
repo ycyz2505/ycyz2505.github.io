@@ -632,6 +632,8 @@ window.App = window.App || {};
 
             if (!dataKey) {
                 if (st.secret) st.secretOrphaned = true;
+                // 顺手把缓存清掉，否则界面会一直显示上一次解出来的旧值
+                delete this.secretCache[st.id];
                 return null;
             }
 
@@ -639,6 +641,7 @@ window.App = window.App || {};
 
             if (!obj) {
                 st.secretOrphaned = true;
+                delete this.secretCache[st.id];
                 return null;
             }
 
@@ -732,8 +735,14 @@ window.App = window.App || {};
                 }
             }
 
-            // 第一次隐藏：需要一把本人的密钥来包 own。
-            // 管理员手里只有管理员密钥，所以只能给本人设置。
+            // 第一次隐藏：需要一把本人的密钥来包 own，还需要管理员密钥来包 adm。
+            // 管理员密钥是必须的——没有它，这份密文将来谁也救不回来，
+            // 所以宁可先不让隐藏，也不留下一份管理员永远打不开的数据。
+            if (!this.adminKey) {
+                return { ok: false, reason: 'noadm' };
+            }
+
+            // 管理员手里只有管理员密钥，包不了别人那份 own，所以只有本人能设置
             if (!isSelf) {
                 return { ok: false, reason: 'needself' };
             }
@@ -1282,14 +1291,29 @@ window.App = window.App || {};
             return out;
         },
 
-        // 轻提示，挂在 #pageContent 里（跟着页面一起缩放）
+        // 轻提示
+        //
+        // 挂在 document.body 上而不是 #pageContent 里：
+        // #pageContent 的高度被钉死在 1080px，而缩放只按宽度算，
+        // 窗口比 16:9 更宽或更矮时页面底部会超出视口，
+        // 挂在里面的浮层就会掉到屏幕外面去。body 上则是纯视口坐标，永远可见。
         toast(text, ms) {
-            var host = document.getElementById('pageContent');
+            var host = document.body;
             if (!host) return;
 
             var el = document.createElement('div');
             el.className = 'plaza-toast';
             el.textContent = text;
+
+            // 页面是整体缩放的，浮层在缩放之外，所以字号要手动跟着缩放，
+            // 看起来才和页面里的文字一样大
+            var page = document.getElementById('pageContent');
+            var zoom = page ? (parseFloat(page.style.zoom) || 1) : 1;
+
+            el.style.fontSize = (16 * zoom).toFixed(2) + 'px';
+            el.style.padding = (13 * zoom).toFixed(2) + 'px ' + (26 * zoom).toFixed(2) + 'px';
+            el.style.bottom = (90 * zoom).toFixed(2) + 'px';
+
             host.appendChild(el);
 
             requestAnimationFrame(function () { el.classList.add('show'); });

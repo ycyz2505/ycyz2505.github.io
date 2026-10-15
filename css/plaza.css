@@ -329,7 +329,8 @@ select.plaza-login-select:disabled{opacity:.6}
 /* ============================================================
    轻提示
    ============================================================ */
-.plaza-toast{position:absolute;left:50%;bottom:150px;transform:translate(-50%,10px);z-index:100000;padding:13px 26px;border-radius:12px;background:rgba(0,0,0,.82);color:#fff;font-family:inherit;font-size:16px;line-height:1.5;max-width:900px;text-align:center;opacity:0;pointer-events:none;transition:opacity .25s ease,transform .25s ease;box-shadow:0 8px 30px rgba(0,0,0,.28)}
+/* 挂在 document.body 上，用视口坐标定位，不受页面整体缩放影响 */
+.plaza-toast{position:fixed;left:50%;bottom:90px;transform:translate(-50%,10px);z-index:100000;padding:13px 26px;border-radius:12px;background:rgba(0,0,0,.82);color:#fff;font-family:inherit;font-size:16px;line-height:1.5;max-width:min(900px,90vw);text-align:center;opacity:0;pointer-events:none;transition:opacity .25s ease,transform .25s ease;box-shadow:0 8px 30px rgba(0,0,0,.28)}
 .plaza-toast.show{opacity:1;transform:translate(-50%,0)}
 
 /* ============================================================

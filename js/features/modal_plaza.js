@@ -14,6 +14,7 @@ window.App = window.App || {};
     var App = window.App;
 
     var PAGE_W = 1920;
+    var PAGE_H = 1080;
     var POPOVER_W = 300;
 
     App.ModalPlaza = {
@@ -711,12 +712,17 @@ window.App = window.App || {};
 
             left = Math.max(10, Math.min(left, PAGE_W - POPOVER_W - 10));
 
-            if (top + el.offsetHeight > 1060) {
+            // 页面高度被钉死在 1080px，但窗口不一定够高，
+            // 所以翻转判断要用「真实可见区域」而不是页面自己的底边
+            var visibleTop = Math.max(-pageRect.top / zoom, 0) + 10;
+            var visibleBottom = Math.min((window.innerHeight - pageRect.top) / zoom, PAGE_H) - 10;
+
+            if (top + el.offsetHeight > visibleBottom) {
                 top = (rect.top - pageRect.top) / zoom - el.offsetHeight - 8;
             }
 
             el.style.left = left + 'px';
-            el.style.top = Math.max(10, top) + 'px';
+            el.style.top = Math.max(visibleTop, top) + 'px';
 
             this._popover = el;
         },

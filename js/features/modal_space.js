@@ -352,6 +352,12 @@ window.App = window.App || {};
                         (st.birthdayVisible !== false ? ' checked' : '') +
                         (App.PlazaCrypto.isAvailable() ? '' : ' disabled') + '>' +
                     '<i></i></label>';
+
+                // 早期版本可能留下一份没有管理员副本的密文，提醒一下
+                if (hidden && !st.secret.adm) {
+                    birthdayHtml += '<span class="space-warn">管理员看不到这条（隐藏时还没设管理员密码），' +
+                        '关掉再打开这个开关可以重建</span>';
+                }
             } else if (this.canEdit()) {
                 // 管理员：本人隐藏的生日也看得到
                 if (!readable) {
@@ -799,6 +805,8 @@ window.App = window.App || {};
 
                 if (result.reason === 'needself') {
                     App.Plaza.toast('隐藏生日需要本人操作');
+                } else if (result.reason === 'noadm') {
+                    App.Plaza.toast('暂时不能隐藏：请先让管理员在「设置 → 名单管理」里设置管理员密码', 4000);
                 } else if (result.reason === 'nokey') {
                     App.Plaza.toast('请先登录');
                 } else if (result.reason === 'nocrypto') {
@@ -946,6 +954,8 @@ window.App = window.App || {};
 
                     if (res.reason === 'needself') {
                         msg = '只有本人能隐藏自己的生日；要帮他改的话，把展示开关打开即可';
+                    } else if (res.reason === 'noadm') {
+                        msg = '暂时不能隐藏：请先让管理员设置管理员密码，否则这份密文将来谁都打不开';
                     } else if (res.reason === 'nocrypto') {
                         msg = '当前浏览器不支持加密';
                     } else if (res.reason === 'nokey') {
