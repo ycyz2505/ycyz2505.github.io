@@ -9,6 +9,8 @@ window.App.ModalCore = {
             { btn: 'notificationButton',   modal: 'notificationModal', close: 'closeNotification' },
             { btn: 'calculatorButton',     modal: 'calculatorModal',   close: 'closeCalculator' },
         { btn: 'seatingButton', modal: 'seatingModal', close: 'closeSeating' },
+            { btn: 'plazaButton',         modal: 'plazaModal',        close: 'closePlaza' },
+            { btn: 'openRosterModal',     modal: 'rosterModal',       close: 'closeRoster' },
 
             // 设置面板内部的两个子面板入口
             { btn: 'openVirtualTimeModal', modal: 'virtualTimeModal',  close: 'closeVirtualTime' },
@@ -26,7 +28,8 @@ window.App.ModalCore = {
             });
         });
 
-        ['maximizeNotification', 'maximizeLostAndFound', 'maximizeAnnouncement', 'maximizeSeating'].forEach(id => {
+        ['maximizeNotification', 'maximizeLostAndFound', 'maximizeAnnouncement', 'maximizeSeating',
+         'maximizePlaza', 'maximizeSpace', 'maximizeRoster'].forEach(id => {
             document.getElementById(id)?.addEventListener('click', function () {
                 const modal = this.closest('.settings-modal');
                 modal.classList.toggle('fullscreen');

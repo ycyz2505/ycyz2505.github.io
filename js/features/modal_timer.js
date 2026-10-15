@@ -11,7 +11,15 @@ window.App.ModalTimer = {
     instances: new Map(),
 
     // 不需要定时关闭的模态框（操作类）
-    EXCLUDE: ['settingsModal', 'phraseModal'],
+    // 广场相关的几个都不定时关闭：社交操作、登录、编辑资料被中途关掉会很讨厌
+    EXCLUDE: [
+        'settingsModal',
+        'phraseModal',
+        'plazaModal',
+        'plazaLoginModal',
+        'spaceModal',
+        'rosterModal'
+    ],
 
     init() {
         document.querySelectorAll('.settings-modal').forEach(modal => {

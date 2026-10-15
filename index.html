@@ -4,6 +4,7 @@
     <title>高二（22）班 | 高考必胜</title>
     <meta charset="utf-8">
     <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/plaza.css">
 </head>
 <body>
     <div id="serviceBanner">
@@ -82,6 +83,7 @@
             <button id="notificationButton" class="action-button">🔔 通知</button>
             <button id="calculatorButton" class="action-button">🧮 计算器</button>
             <button id="seatingButton" class="action-button">🪑 座位表</button>
+            <button id="plazaButton" class="action-button">🏛 广场</button>
             <button id="musicStopButton" class="action-button" style="display:none;">⏹ 关闭</button>
         </div>
 
@@ -174,6 +176,15 @@
                             <span class="settings-entry-info">
                                 <span class="settings-entry-title">自定义倒计日</span>
                                 <span class="settings-entry-desc">添加多个倒计日，首页左右滑动切换</span>
+                            </span>
+                            <span class="settings-entry-arrow">›</span>
+                        </button>
+
+                        <button type="button" class="settings-entry" id="openRosterModal">
+                            <span class="settings-entry-icon">👥</span>
+                            <span class="settings-entry-info">
+                                <span class="settings-entry-title">名单管理</span>
+                                <span class="settings-entry-desc">录入真实姓名、性别、学号，发放广场的初始密码</span>
                             </span>
                             <span class="settings-entry-arrow">›</span>
                         </button>
@@ -319,6 +330,24 @@
 
                     待添加的新功能：自定义倒计时（不只是高考倒计时，如一月考倒计时、期末倒计时等）、方便地统计需要讲的题目（课前统计好，课上老师直接讲）等。欢迎提建议。
 
+                    2026.10.15
+                    1. 新增「广场」：全班同学的名片墙，每人一张卡片，展示背景图、头像、昵称、真实姓名、性别、学号、生日、个性签名、个人介绍、关注数、粉丝数与点赞量；
+                    2. 广场支持搜索（昵称 / 真实姓名 / 学号 / 拼音首字母，如 cyn 可搜到"车一诺"），可按"全部 / 我的关注 / 我的粉丝 / 互相关注 / 还没关注的"筛选，可按学号、昵称、点赞、粉丝、最近更新资料排序；
+                    3. 新增广场登录：在列表里选自己、输入密码即可。密码为纯数字，支持防偷窥——输入内容里只要含有正确密码就能登录；登录后标题栏显示头像、昵称和"进入空间"，关闭广场（及个人空间）即自动退出登录；
+                    4. 新增关注功能：可关注、取关他人；两人互相关注时卡片上会显示"互相关注"，该标识只有互关的两人自己看得到；
+                    5. 新增点赞功能：每人每天对同一个人最多点 50 个赞，卡片底栏的心形就是点赞按钮；
+                    6. 新增「个人空间」：可查看全部信息，可修改头像、背景图、昵称、生日、个性签名、个人介绍（编辑时左侧卡片实时预览）；可在关注列表里取关他人、在粉丝列表里回关或取关他人；可修改自己的密码；
+                    7. 生日支持"是否在广场中展示"：关掉之后生日会用本人密码加密后再存进文件，直接打开 data/plaza.json 只能看到一段密文；
+                    8. 新增「名单管理」（设置面板里进入）：录入真实姓名、性别、学号，支持从座位表一键导入姓名、CSV 导入导出、批量生成初始密码、把全班密码统一设为同一个值、导出密码表；
+                    9. 名单管理需要管理员密码（首次进入时设置），密码以密文形式存在本地，同样支持防偷窥输入；管理员可以查看和修改所有人的所有信息、重置任何人的密码，也能解开所有人隐藏的生日；
+                    10. 重置密码不会丢数据：隐藏的生日会自动用新密码重新加密，本人拿到新密码后照样能看；
+                    11. 头像没上传时会自动生成"名字首字 + 渐变底色"的头像；背景图不设就是纯白，也可以自己上传，或从 9 张节气图里挑一张；
+                    12. 新增 data/plaza.json 与 data/plaza_media.json 两个数据文件，图片单独存放，避免点一次赞就重传好几 MB；
+                    13. 本地服务未启动时，广场顶部会提示"当前是只读模式"，避免同学误以为关注成功了；
+                    14. 登录框里"选择你自己"改成了下拉框（不再把全班名单摊在页面上），下面配一个数字小键盘，触屏上不用调出系统键盘也能输密码；
+                    15. 公告板新增字体大小调节（12~120px），和通知、寻物用的是同一套控件，设置会被记住；
+                    16. 公告板发布《新功能上线：广场 & 个人空间》，说明用法并请大家尽快填好个人主页；
+
                     2026.10.13
                     1. 随机抽取改为可指定人数：按钮旁新增下拉框，读作"随机抽取 x 人"，取值范围 1~座位表人数，默认 1，刷新页面后复位；
                     2. 抽取过程改为每步高亮 x 个互不相同的人，最后一步高亮的 x 个人即为结果；
@@ -413,7 +442,26 @@
                     </div>
                 </div>
 
-                <div class="announcement-content">
+                <div class="announcement-content" id="announcementContent">
+                    <div class="announcement-card">
+                        <div class="announcement-title">🏛 新功能上线：广场 &amp; 个人空间</div>
+                        <div class="announcement-time">2026.10.15</div>
+                        <div class="announcement-body">
+                            班牌上多了一个「<strong>广场</strong>」——全班同学的名片墙。每人一张卡片，上面有头像、昵称、个签等，还有关注、点赞功能。
+                            <ul>
+                                <li><strong>怎么进去：</strong>点首页底部的「🏛 广场」按钮。</li>
+                                <li><strong>怎么登录：</strong>点右上角「登录」→ 在下拉框里选你自己 → 输密码。初始密码全班统一是 <strong>12345678</strong>。<strong>登录后请立即修改密码！</strong></li>
+                                <li><strong>关于密码：</strong>密码将按照国际主流方案加密后存储（该种加密无法被解密），任何位置都不会存储明文密码，不会有泄露风险。此外，<strong>密码输入时有防窥功能</strong>，输入的内容里只要<strong>包含</strong>你的密码就能登录，所以可以在前后随便多打几个数字，旁边的人看不出哪几位才是真的。</li>
+                                <li><strong>能干什么：</strong>关注同学（两人互相关注会在卡片上显示标记，只有你们俩看得见）、给同学点赞（每人每天对同一个人最多 50 个）、点别人的卡片进他的空间逛逛。还有为后来的神秘功能做准备。</li>
+                                <li><strong>自己的空间：</strong>登录后点右上角的「🏠 进入空间」，可以改个人资料。</li>
+                            </ul>
+                            <p>
+                                ⚠️ 建议大家尽快把自己的个人主页填好，后续大概率会基于个人主页推出神秘功能（班内一些人已经知道是什么功能了，若你不知道可以去打听打听，<strong>请勿外传！</strong>）。
+                            </p>
+                        </div>
+                        <p class="announcement-footnote">遇到问题/忘记密码找站长。</p>
+                    </div>
+
                     <div class="announcement-card">
                         <div class="announcement-title">📢 倒计时网站征稿活动</div>
                         <div class="announcement-time">2026.9.26</div>
@@ -429,6 +477,15 @@
                             </ul>
                             <p class="announcement-footnote">只要句子不是违规内容一般来者不拒，最终解释权归 tqc 所有</p>
                         </div>
+                    </div>
+                </div>
+
+                <div class="notification-footer">
+                    <div class="font-size-control">
+                        <span class="font-size-label">字体大小:</span>
+                        <input type="range" id="announcementFontSizeSlider" min="12" max="120" value="20">
+                        <input type="number" id="announcementFontSizeValue" min="12" max="120" value="20">
+                        <span>px</span>
                     </div>
                 </div>
             </div>
@@ -870,6 +927,135 @@
                 </div>
             </div>
         </div>
+
+        <!-- ==================== 广场 ==================== -->
+        <div class="settings-modal plaza-modal" id="plazaModal">
+            <div class="settings-content">
+                <div class="settings-header">
+                    <h3>广场</h3>
+                    <div class="settings-header-actions">
+                        <!-- 登录按钮 / 登录后的身份胶囊由 ModalPlaza 渲染 -->
+                        <div class="plaza-account" id="plazaAccount"></div>
+                        <span class="maximize-btn" id="maximizePlaza">⛶</span>
+                        <span class="close-btn" id="closePlaza">&times;</span>
+                    </div>
+                </div>
+
+                <div class="plaza-body">
+                    <div class="plaza-readonly" id="plazaReadonly" style="display:none;">
+                        当前是只读模式（本地服务未启动），关注和点赞不会被保存
+                    </div>
+
+                    <div class="plaza-toolbar">
+                        <div class="plaza-search">
+                            <span class="plaza-search-icon">🔍</span>
+                            <input type="text" id="plazaSearchInput"
+                                   placeholder="搜索昵称 / 姓名 / 学号 / 拼音（如 cyn = 车一诺）"
+                                   autocomplete="off">
+                            <button type="button" class="plaza-search-clear" id="plazaSearchClear"
+                                    style="display:none;">✕</button>
+                        </div>
+                        <select class="plaza-select" id="plazaFilter" aria-label="筛选">
+                            <option value="all">全部</option>
+                            <option value="following">我的关注</option>
+                            <option value="followers">我的粉丝</option>
+                            <option value="mutual">互相关注</option>
+                            <option value="unfollowed">还没关注的</option>
+                        </select>
+                        <select class="plaza-select" id="plazaSort" aria-label="排序">
+                            <option value="default">默认（学号）</option>
+                            <option value="name">昵称</option>
+                            <option value="likes">点赞最多</option>
+                            <option value="fans">粉丝最多</option>
+                            <option value="recent">最近更新资料</option>
+                        </select>
+                        <span class="plaza-count" id="plazaCount"></span>
+                    </div>
+
+                    <div class="plaza-grid" id="plazaGrid"></div>
+                    <div class="plaza-empty" id="plazaEmpty" style="display:none;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 广场登录（小模态框） -->
+        <div class="settings-modal plaza-login-modal" id="plazaLoginModal">
+            <div class="settings-content">
+                <div class="settings-header">
+                    <h3>登录广场</h3>
+                    <span class="close-btn" id="closePlazaLogin">&times;</span>
+                </div>
+
+                <div class="plaza-login-body">
+                    <div class="plaza-login-label">选择你自己</div>
+                    <div class="plaza-search plaza-login-search">
+                        <span class="plaza-search-icon">🔍</span>
+                        <input type="text" id="plazaLoginSearch"
+                               placeholder="先搜一下（昵称 / 姓名 / 拼音，可选）" autocomplete="off">
+                    </div>
+                    <select class="plaza-input plaza-login-select" id="plazaLoginSelect"></select>
+
+                    <div class="plaza-login-label">密码（数字）</div>
+                    <div class="plaza-login-pwd">
+                        <input type="password" class="plaza-input" id="plazaLoginPassword"
+                               inputmode="numeric" autocomplete="off" placeholder="输入密码">
+                        <div class="plaza-login-hint">
+                            密码有防窥功能：只要输入内容包含你的密码，即可登录。
+                        </div>
+                    </div>
+
+                    <div class="plaza-login-note" id="plazaLoginNote" style="display:none;"></div>
+
+                    <div class="plaza-keypad" id="plazaKeypad"></div>
+
+                    <div class="plaza-login-actions">
+                        <button type="button" class="plaza-btn" id="plazaLoginCancel">取消</button>
+                        <button type="button" class="plaza-btn primary" id="plazaLoginSubmit">登录</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== 个人空间 ==================== -->
+        <div class="settings-modal space-modal" id="spaceModal">
+            <div class="settings-content">
+                <div class="settings-header">
+                    <h3 id="spaceTitle">个人空间</h3>
+                    <div class="settings-header-actions">
+                        <span class="maximize-btn" id="maximizeSpace">⛶</span>
+                        <span class="close-btn" id="closeSpace">&times;</span>
+                    </div>
+                </div>
+
+                <div class="space-body">
+                    <div class="space-side">
+                        <div class="space-card-holder" id="spaceCardHolder"></div>
+                        <div class="space-side-actions" id="spaceSideActions"></div>
+                    </div>
+
+                    <div class="space-main">
+                        <div class="space-tabs" id="spaceTabs"></div>
+                        <div class="space-panel" id="spacePanel"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== 名单管理（管理员） ==================== -->
+        <div class="settings-modal roster-modal" id="rosterModal">
+            <div class="settings-content">
+                <div class="settings-header">
+                    <h3>名单管理</h3>
+                    <div class="settings-header-actions">
+                        <span class="maximize-btn" id="maximizeRoster">⛶</span>
+                        <span class="close-btn" id="closeRoster">&times;</span>
+                    </div>
+                </div>
+
+                <div class="roster-body" id="rosterBody"></div>
+            </div>
+        </div>
+
     </div>
 
     <script src="js/data/solarterms.js"></script>
@@ -900,11 +1086,18 @@
     <script src="js/features/modal_countdown.js"></script>
     <script src="js/features/modal_lost_found.js"></script>
     <script src="js/features/modal_notification.js"></script>
+    <script src="js/features/modal_announcement.js"></script>
     <script src="js/features/modal_phrase.js"></script>
     <script src="js/features/modal_timer.js"></script>
     <script src="js/features/modal_calculator.js"></script>
     <script src="js/features/modal_music.js"></script>
     <script src="js/features/modal_seating.js"></script>
+
+    <script src="js/features/plaza_crypto.js"></script>
+    <script src="js/features/plaza_core.js"></script>
+    <script src="js/features/modal_roster.js"></script>
+    <script src="js/features/modal_plaza.js"></script>
+    <script src="js/features/modal_space.js"></script>
 
     <script>
         (function () {

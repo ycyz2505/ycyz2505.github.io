@@ -39,11 +39,18 @@ window.onload = async function () {
     safeInit('ModalCountdown', () => window.App.ModalCountdown?.init());
     safeInit('ModalLostFound', () => window.App.ModalLostFound?.init());
     safeInit('ModalNotification', () => window.App.ModalNotification?.init());
+    safeInit('ModalAnnouncement', () => window.App.ModalAnnouncement?.init());
     safeInit('ModalPhrase', () => window.App.ModalPhrase?.init());
     safeInit('Calculator', () => window.App.Calculator?.init());
     safeInit('ModalTimer', () => window.App.ModalTimer?.init());
     safeInit('Music', () => window.App.Music?.init());
     safeInit('ModalSeating', () => window.App.ModalSeating?.init());
+
+    // 广场：先建数据层，再建三个模态框
+    safeInit('Plaza', () => window.App.Plaza?.init());
+    safeInit('ModalRoster', () => window.App.ModalRoster?.init());
+    safeInit('ModalPlaza', () => window.App.ModalPlaza?.init());
+    safeInit('ModalSpace', () => window.App.ModalSpace?.init());
 
     const loadingOverlay =
         document.getElementById('loadingOverlay');

@@ -48,6 +48,7 @@ window.App.Store = {
             autoRefreshSwitch: false,
             lostAndFoundFontSize: 28,
             notificationFontSize: 16,
+            announcementFontSize: 20,
 
             // 今日课表临时覆盖，不修改 timetable 原始数据
             temporaryTimetable: null,
@@ -61,6 +62,12 @@ window.App.Store = {
 
         // 倒计日：见 exam_countdown.js（第一项固定为高考，不可删除）
         countdowns: { version: 2, items: [], activeId: '' },
+
+        // 广场：见 plaza_core.js
+        //   plaza      名单 + 社交关系 + 账号（小文件，频繁写）
+        //   plazaMedia 头像与背景图（大文件，极少写、不订阅轮询）
+        plaza: { version: 1, admin: null, students: [], meta: {} },
+        plazaMedia: { version: 1, media: {} },
 
         timetable: {},
         schedule: {},
