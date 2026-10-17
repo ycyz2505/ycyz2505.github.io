@@ -807,6 +807,8 @@ window.App = window.App || {};
                     App.Plaza.toast('隐藏生日需要本人操作');
                 } else if (result.reason === 'noadm') {
                     App.Plaza.toast('暂时不能隐藏：请先让管理员在「设置 → 名单管理」里设置管理员密码', 4000);
+                } else if (result.reason === 'admigrate') {
+                    App.Plaza.toast('管理员密码已设置；请管理员打开一次「设置 → 名单管理」完成加密升级', 5000);
                 } else if (result.reason === 'nokey') {
                     App.Plaza.toast('请先登录');
                 } else if (result.reason === 'nocrypto') {
@@ -955,7 +957,9 @@ window.App = window.App || {};
                     if (res.reason === 'needself') {
                         msg = '只有本人能隐藏自己的生日；要帮他改的话，把展示开关打开即可';
                     } else if (res.reason === 'noadm') {
-                        msg = '暂时不能隐藏：请先让管理员设置管理员密码，否则这份密文将来谁都打不开';
+                        msg = '暂时不能隐藏：请先让管理员在「设置 → 名单管理」里设置管理员密码';
+                    } else if (res.reason === 'admigrate') {
+                        msg = '管理员密码已设置；请管理员打开一次「设置 → 名单管理」完成加密升级';
                     } else if (res.reason === 'nocrypto') {
                         msg = '当前浏览器不支持加密';
                     } else if (res.reason === 'nokey') {

@@ -14,7 +14,7 @@
 //     杜绝「A 的关注里有 B、B 的粉丝里没有 A」这种不一致
 //   · 点赞是「每人每天对每个人最多 50 次」的计数，不是开关
 //   · 生日隐藏时用「数据密钥 DEK」模型加密（见下面 setBirthdayFor 的注释），
-//     本人密码和管理员密码各包一份 DEK，任一方都能解开
+//     本人密码包一份、管理员公钥包一份，任一方都能解开
 //   · 登录态只存在内存里，刷新即失效；退出时清掉明文密码和所有 AES 密钥
 // ============================================================
 
@@ -80,8 +80,12 @@ window.App = window.App || {};
 
         // 管理员是否已解锁名单管理；关闭名单管理即失效
         adminUnlocked: false,
-        // 管理员密码派生出来的 AES 密钥，用来解开所有人的 secret.adm
+        // 管理员密码派生出来的 AES 密钥，用来解开 admin.priv（私钥本身）
         adminKey: null,
+        // 管理员的 RSA 公钥 / 私钥。公钥明文存盘，解锁前后都能用；
+        // 私钥只在解锁后留在内存里，用来解开所有人的 secret.adm
+        adminPublicKey: null,
+        adminPrivateKey: null,
 
         // studentId → 解密出来的生日明文（"MM-DD"）
         // 退出登录 / 锁上管理员时清空
@@ -581,18 +585,33 @@ window.App = window.App || {};
         // 用「数据密钥」模型，而不是直接拿密码派生密钥加密内容：
         //   data = AES-GCM(明文, DEK)            DEK 是每人的一把随机密钥
         //   own  = AES-GCM(DEK, 本人密码派生的密钥)
-        //   adm  = AES-GCM(DEK, 管理员密码派生的密钥)
+        //   adm  = RSA-OAEP(DEK, 管理员公钥)
         //
         // 好处是改密码时只需重新包一份 DEK（内容不用动），
         // 而且管理员也能解开——两边拿到的是同一把 DEK。
+        // 用公钥包 adm 还意味着：同学隐藏生日时不需要管理员在场解锁，
+        // 只要管理员密码设过（公钥已经落盘）就行。
         // ------------------------------------------------------
 
-        // 取这个人的 DEK。本人用自己的密码密钥解 own，管理员用管理员密钥解 adm
+        // 取这个人的 DEK。本人用自己的密码密钥解 own，管理员用私钥解 adm
         async _dataKeyFor(st, which) {
             if (!st || !st.secret) return null;
 
-            var payload = which === 'adm' ? st.secret.adm : st.secret.own;
-            var key = which === 'adm' ? this.adminKey : (this.session ? this.session.aesKey : null);
+            if (which === 'adm') {
+                if (!st.secret.adm || !this.adminPrivateKey) return null;
+
+                var adminWrapped = await App.PlazaCrypto.decryptAsAdmin(
+                    st.secret.adm,
+                    this.adminPrivateKey
+                );
+
+                if (!adminWrapped || !adminWrapped.k) return null;
+
+                return App.PlazaCrypto.importAesKey(adminWrapped.k);
+            }
+
+            var payload = st.secret.own;
+            var key = this.session ? this.session.aesKey : null;
 
             if (!payload || !key) return null;
 
@@ -616,7 +635,7 @@ window.App = window.App || {};
                 await this._decryptInto(me, 'own');
             }
 
-            if (this.adminUnlocked && this.adminKey) {
+            if (this.adminUnlocked && this.adminPrivateKey) {
                 var list = this.data().students;
 
                 for (var i = 0; i < list.length; i++) {
@@ -693,7 +712,7 @@ window.App = window.App || {};
 
         // 设置生日 + 是否公开。
         // 关掉展示时：随机生成一把 DEK，用它加密内容，
-        // 再用本人密码的密钥包一份 own、用管理员密钥包一份 adm。
+        // 再用本人密码的密钥包一份 own、用管理员公钥包一份 adm。
         // 返回 { ok, reason }
         async setBirthdayFor(st, mmdd, visible) {
             if (!st) return { ok: false, reason: 'notfound' };
@@ -725,6 +744,17 @@ window.App = window.App || {};
                 }
 
                 if (dataKey) {
+                    // 旧版本可能留下过空的 adm（隐藏时管理员密钥不在内存），
+                    // 本人来改生日时顺手用公钥补一份
+                    if (!st.secret.adm && isSelf && this.session && this.session.aesKey) {
+                        var ownWrapped = await App.PlazaCrypto.decrypt(st.secret.own, this.session.aesKey);
+                        var healPub = await this._adminPublicKeyForWrap();
+
+                        if (ownWrapped && ownWrapped.k && healPub) {
+                            st.secret.adm = await App.PlazaCrypto.encryptToAdmin({ k: ownWrapped.k }, healPub);
+                        }
+                    }
+
                     st.secret.data = await App.PlazaCrypto.encrypt({ birthday: value }, dataKey);
                     st.birthday = '';
                     st.birthdayVisible = false;
@@ -735,14 +765,21 @@ window.App = window.App || {};
                 }
             }
 
-            // 第一次隐藏：需要一把本人的密钥来包 own，还需要管理员密钥来包 adm。
-            // 管理员密钥是必须的——没有它，这份密文将来谁也救不回来，
-            // 所以宁可先不让隐藏，也不留下一份管理员永远打不开的数据。
-            if (!this.adminKey) {
+            // 第一次隐藏：需要一把本人的密钥来包 own，还需要管理员公钥来包 adm。
+            // 公钥在管理员设密码时就落盘了，所以这里只要求管理员密码「设过」，
+            // 不要求管理员此刻解锁。
+            if (!this.hasAdmin()) {
                 return { ok: false, reason: 'noadm' };
             }
 
-            // 管理员手里只有管理员密钥，包不了别人那份 own，所以只有本人能设置
+            var adminPub = await this._adminPublicKeyForWrap();
+
+            if (!adminPub) {
+                // 管理员密码是旧版本设的，还没有公钥；需要管理员解锁一次完成升级
+                return { ok: false, reason: 'admigrate' };
+            }
+
+            // 管理员手里只有管理员私钥，包不了别人那份 own，所以只有本人能设置
             if (!isSelf) {
                 return { ok: false, reason: 'needself' };
             }
@@ -754,10 +791,13 @@ window.App = window.App || {};
             var dek = await App.PlazaCrypto.importAesKey(dekB64);
             if (!dek) return { ok: false, reason: 'nocrypto' };
 
+            var admWrapped = await App.PlazaCrypto.encryptToAdmin({ k: dekB64 }, adminPub);
+            if (!admWrapped) return { ok: false, reason: 'nocrypto' };
+
             st.secret = {
                 data: await App.PlazaCrypto.encrypt({ birthday: value }, dek),
                 own: await this._wrapDataKey(dekB64, ownKey),
-                adm: await this._wrapDataKey(dekB64, this.adminKey)
+                adm: admWrapped
             };
 
             st.birthday = '';
@@ -833,48 +873,108 @@ window.App = window.App || {};
         // 首次设置管理员密码
         async setAdminPassword(password) {
             var cred = await App.PlazaCrypto.createCredential(password);
+            var pair = await App.PlazaCrypto.createAdminKeyPair();
 
             this.data().admin = {
                 pwdSalt: cred.pwdSalt,
                 pwdIters: cred.pwdIters,
                 verifyKey: cred.verifyKey,
                 pwdLen: cred.pwdLen,
-                setAt: Date.now()
+                setAt: Date.now(),
+
+                // 公钥明文存盘（同学隐藏生日时要拿它包 adm）；
+                // 私钥用管理员密码派生的密钥加密后存盘
+                pub: pair.pubB64,
+                priv: await App.PlazaCrypto.encrypt({ k: pair.privB64 }, cred.aesKey)
             };
 
             this.adminKey = cred.aesKey;
+            this.adminPublicKey = pair.publicKey;
+            this.adminPrivateKey = pair.privateKey;
             this.adminUnlocked = true;
             this.save();
             await this.warmSecrets();
             return { ok: true };
         },
 
-        // 修改管理员密码：要把所有人的 secret.adm 都用新密钥重新包一遍
-        async changeAdminPassword(newPassword) {
-            if (!this.adminUnlocked || !this.adminKey) {
-                return { ok: false, reason: 'locked' };
+        // 解锁后把私钥装进内存；旧版本的数据顺便升级成公钥方案
+        async _loadAdminKeyPair(aesKey) {
+            var a = this.data().admin;
+            if (!a) return;
+
+            if (a.pub) {
+                this.adminPublicKey = await App.PlazaCrypto.importAdminPublicKey(a.pub);
+
+                var wrapped = a.priv
+                    ? await App.PlazaCrypto.decrypt(a.priv, aesKey)
+                    : null;
+
+                this.adminPrivateKey = wrapped && wrapped.k
+                    ? await App.PlazaCrypto.importAdminPrivateKey(wrapped.k)
+                    : null;
+
+                return;
             }
 
-            var oldKey = this.adminKey;
-            var fresh = await App.PlazaCrypto.createCredential(newPassword);
+            // 旧格式：secret.adm 是用管理员密码派生的 AES 密钥直接包的。
+            // 借这次解锁生成一对 RSA 密钥，把现有的 adm 全部改包一遍。
+            var pair = await App.PlazaCrypto.createAdminKeyPair();
             var list = this.data().students;
-            var broken = 0;
 
             for (var i = 0; i < list.length; i++) {
                 var st = list[i];
                 if (!st.secret || !st.secret.adm) continue;
 
-                var wrapped = await App.PlazaCrypto.decrypt(st.secret.adm, oldKey);
+                var old = await App.PlazaCrypto.decrypt(st.secret.adm, aesKey);
 
-                if (!wrapped || !wrapped.k) {
-                    broken += 1;
-                    continue;
+                if (old && old.k) {
+                    var rewrapped = await App.PlazaCrypto.encryptToAdmin({ k: old.k }, pair.publicKey);
+                    if (rewrapped) st.secret.adm = rewrapped;
+                } else {
+                    // 解不开就保持原样，别把可能还有用的密文覆盖掉
+                    st.secretOrphaned = true;
                 }
-
-                st.secret.adm = await this._wrapDataKey(wrapped.k, fresh.aesKey);
             }
 
+            a.pub = pair.pubB64;
+            a.priv = await App.PlazaCrypto.encrypt({ k: pair.privB64 }, aesKey);
+            this.adminPublicKey = pair.publicKey;
+            this.adminPrivateKey = pair.privateKey;
+            this.save();
+        },
+
+        // 拿管理员公钥来包 adm。公钥是明文存盘的，没解锁也能用
+        async _adminPublicKeyForWrap() {
+            if (this.adminPublicKey) return this.adminPublicKey;
+
+            var a = this.data().admin;
+            if (!a || !a.pub) return null;
+
+            this.adminPublicKey = await App.PlazaCrypto.importAdminPublicKey(a.pub);
+            return this.adminPublicKey;
+        },
+
+        // 修改管理员密码：只需用新密钥重新加密私钥；
+        // 所有人的 secret.adm 是用公钥包的，不受管理员密码影响
+        async changeAdminPassword(newPassword) {
+            if (!this.adminUnlocked || !this.adminKey) {
+                return { ok: false, reason: 'locked' };
+            }
+
+            var fresh = await App.PlazaCrypto.createCredential(newPassword);
             var a = this.data().admin || {};
+
+            if (a.priv) {
+                var wrapped = await App.PlazaCrypto.decrypt(a.priv, this.adminKey);
+
+                // 私钥解不开就别改密码，否则旧密码失效后私钥就永久打不开了
+                if (!wrapped || !wrapped.k) {
+                    return { ok: false, reason: 'broken' };
+                }
+
+                a.priv = await App.PlazaCrypto.encrypt({ k: wrapped.k }, fresh.aesKey);
+            }
+
             a.pwdSalt = fresh.pwdSalt;
             a.pwdIters = fresh.pwdIters;
             a.verifyKey = fresh.verifyKey;
@@ -885,7 +985,7 @@ window.App = window.App || {};
             this.adminKey = fresh.aesKey;
             this.save();
 
-            return { ok: true, broken: broken };
+            return { ok: true, broken: 0 };
         },
 
         async unlockAdmin(input) {
@@ -909,6 +1009,7 @@ window.App = window.App || {};
             this.adminUnlocked = true;
             this.adminKey = cred.aesKey;
 
+            await this._loadAdminKeyPair(cred.aesKey);
             await this.warmSecrets();
             this.emit();
 
@@ -918,6 +1019,8 @@ window.App = window.App || {};
         lockAdmin() {
             this.adminUnlocked = false;
             this.adminKey = null;
+            this.adminPublicKey = null;
+            this.adminPrivateKey = null;
 
             // 管理员解出来的那些明文不能留着
             this.secretCache = {};
@@ -933,9 +1036,9 @@ window.App = window.App || {};
             var cred = await App.PlazaCrypto.createCredential(pwd);
 
             if (st.secret && st.secret.adm) {
-                // 用管理员密钥解出 DEK（没解锁就用已有的缓存 / 放弃重包）
-                var wrapped = this.adminKey
-                    ? await App.PlazaCrypto.decrypt(st.secret.adm, this.adminKey)
+                // 用管理员私钥解出 DEK（没解锁就放弃重包）
+                var wrapped = this.adminPrivateKey
+                    ? await App.PlazaCrypto.decryptAsAdmin(st.secret.adm, this.adminPrivateKey)
                     : null;
 
                 if (wrapped && wrapped.k) {
@@ -983,8 +1086,8 @@ window.App = window.App || {};
         async setPasswordTo(st, pwd) {
             var cred = await App.PlazaCrypto.createCredential(pwd);
 
-            if (st.secret && st.secret.adm && this.adminKey) {
-                var wrapped = await App.PlazaCrypto.decrypt(st.secret.adm, this.adminKey);
+            if (st.secret && st.secret.adm && this.adminPrivateKey) {
+                var wrapped = await App.PlazaCrypto.decryptAsAdmin(st.secret.adm, this.adminPrivateKey);
 
                 if (wrapped && wrapped.k) {
                     st.secret.own = await this._wrapDataKey(wrapped.k, cred.aesKey);

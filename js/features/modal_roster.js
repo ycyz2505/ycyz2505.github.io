@@ -302,7 +302,7 @@ window.App = window.App || {};
                 '<div class="roster-foot">' +
                     '共 <b>' + all.length + '</b> 人 · 已发密码 <b>' + withPwd + '</b> 人 · ' +
                     '隐藏生日 <b>' + hidden + '</b> 人' +
-                    '<span class="roster-foot-note">（隐藏生日的内容管理员也看不到，这是设计如此）</span>' +
+                    '<span class="roster-foot-note">（具体内容要点进该同学的个人空间查看）</span>' +
                 '</div>';
         },
 
@@ -683,18 +683,18 @@ window.App = window.App || {};
                 return;
             }
 
-            if (!window.confirm('确认修改管理员密码？\n所有人的隐藏生日会用新密码重新加密，不会丢数据。')) return;
+            if (!window.confirm('确认修改管理员密码？\n隐藏生日的管理员副本由公钥保护，不受影响，不会丢数据。')) return;
 
             var r = await App.Plaza.changeAdminPassword(pwd);
 
             if (!r.ok) {
-                App.Plaza.toast('请先重新解锁名单管理');
+                App.Plaza.toast(r.reason === 'broken'
+                    ? '管理员私钥解不开，密码没有修改；请重新设置一次管理员密码'
+                    : '请先重新解锁名单管理');
                 return;
             }
 
-            App.Plaza.toast(r.broken
-                ? ('管理员密码已修改；有 ' + r.broken + ' 份密文本来就解不开，未能重包')
-                : '管理员密码已修改');
+            App.Plaza.toast('管理员密码已修改');
         },
 
         // ------------------------------------------------------

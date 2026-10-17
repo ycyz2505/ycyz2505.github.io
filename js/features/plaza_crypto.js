@@ -197,6 +197,101 @@ window.App = window.App || {};
         },
 
         // ------------------------------------------------------
+        // 管理员公钥：把 DEK 包给管理员，不需要管理员此刻在场
+        //
+        //   pub  = RSA-OAEP 公钥（SPKI，明文存盘，谁都能用来加密）
+        //   priv = AES-GCM(PKCS8 私钥, 管理员密码派生的 aesKey)
+        //
+        // 这样同学隐藏生日时只要管理员密码「设过」就够了：
+        // 用公钥包一份 adm，管理员以后解锁时再用私钥解开。
+        // ------------------------------------------------------
+        async createAdminKeyPair() {
+            if (!subtle) throw new Error('当前浏览器不支持加密功能');
+
+            var pair = await subtle.generateKey(
+                {
+                    name: 'RSA-OAEP',
+                    modulusLength: 2048,
+                    publicExponent: new Uint8Array([1, 0, 1]),
+                    hash: 'SHA-256'
+                },
+                true,
+                ['encrypt', 'decrypt']
+            );
+
+            var pub = await subtle.exportKey('spki', pair.publicKey);
+            var priv = await subtle.exportKey('pkcs8', pair.privateKey);
+
+            return {
+                publicKey: pair.publicKey,
+                privateKey: pair.privateKey,
+                pubB64: bytesToBase64(new Uint8Array(pub)),
+                privB64: bytesToBase64(new Uint8Array(priv))
+            };
+        },
+
+        async importAdminPublicKey(base64) {
+            if (!subtle || !base64) return null;
+
+            try {
+                return await subtle.importKey(
+                    'spki',
+                    base64ToBytes(base64),
+                    { name: 'RSA-OAEP', hash: 'SHA-256' },
+                    false,
+                    ['encrypt']
+                );
+            } catch (e) {
+                return null;
+            }
+        },
+
+        async importAdminPrivateKey(base64) {
+            if (!subtle || !base64) return null;
+
+            try {
+                return await subtle.importKey(
+                    'pkcs8',
+                    base64ToBytes(base64),
+                    { name: 'RSA-OAEP', hash: 'SHA-256' },
+                    false,
+                    ['decrypt']
+                );
+            } catch (e) {
+                return null;
+            }
+        },
+
+        // 用管理员公钥加密一个小对象（DEK），返回 base64
+        async encryptToAdmin(value, publicKey) {
+            if (!subtle || !publicKey) return '';
+
+            try {
+                var data = new TextEncoder().encode(JSON.stringify(value));
+                var cipher = await subtle.encrypt({ name: 'RSA-OAEP' }, publicKey, data);
+                return bytesToBase64(new Uint8Array(cipher));
+            } catch (e) {
+                return '';
+            }
+        },
+
+        async decryptAsAdmin(payload, privateKey) {
+            if (!subtle || !privateKey || !payload) return null;
+
+            try {
+                var plain = await subtle.decrypt(
+                    { name: 'RSA-OAEP' },
+                    privateKey,
+                    base64ToBytes(payload)
+                );
+
+                return JSON.parse(new TextDecoder().decode(plain));
+            } catch (e) {
+                return null;
+            }
+        },
+
+        // ------------------------------------------------------
         // AES-256-GCM：密文格式 = iv(12字节) || 认证密文，整体 base64
         // ------------------------------------------------------
         async encrypt(value, aesKey) {
