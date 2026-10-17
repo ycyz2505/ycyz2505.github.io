@@ -723,6 +723,7 @@ window.App = window.App || {};
 
             if (visible) {
                 st.birthday = value;
+                st.birthdayVisible = true;
                 st.secret = null;
                 st.secretOrphaned = false;
                 this.secretCache[st.id] = value;
@@ -1164,8 +1165,14 @@ window.App = window.App || {};
                     st.secret = null;
                     st.secretOrphaned = false;
                 } else if (!st.secret) {
-                    // 开关关着却没有密文：当没设置过处理
-                    st.birthday = '';
+                    // 开关关着却没有密文。旧版本「取消隐藏」漏改开关时会留下
+                    // birthdayVisible=false + 明文生日 + 没有密文的状态：
+                    // 生日还在就当作已公开，别把明文清掉。
+                    if (st.birthday) {
+                        st.birthdayVisible = true;
+                    } else {
+                        st.birthday = '';
+                    }
                 } else {
                     st.birthday = '';
                 }
