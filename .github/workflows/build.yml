@@ -51,6 +51,15 @@ jobs:
           path: m-server.exe
           if-no-files-found: error
 
+      - name: 上传依赖锁定文件
+        uses: actions/upload-artifact@v4
+        with:
+          name: m-deps
+          path: |
+            m-server/go.mod
+            m-server/go.sum
+          if-no-files-found: warn
+
       # main 分支每次成功构建都更新同一个 Release，
       # 使用者永远从「最新构建」拿 exe，不需要等人工发布。
       - name: 发布最新构建
