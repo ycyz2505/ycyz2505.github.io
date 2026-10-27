@@ -44,6 +44,8 @@ window.onload = async function () {
     safeInit('Calculator', () => window.App.Calculator?.init());
     safeInit('ModalTimer', () => window.App.ModalTimer?.init());
     safeInit('Music', () => window.App.Music?.init());
+    safeInit('MOnline', () => window.App.MOnline?.init());
+    safeInit('MLib', () => window.App.MLib?.init());
     safeInit('ModalSeating', () => window.App.ModalSeating?.init());
 
     // 广场：先建数据层，再建三个模态框

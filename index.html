@@ -664,8 +664,39 @@
                 </div>
 
                 <div class="music-body" id="musicBody">
+                    <div class="m-tabs" id="mTabs">
+                        <button type="button" class="m-tab on" data-tab="local">本地</button>
+                        <button type="button" class="m-tab" data-tab="search">搜索</button>
+                        <button type="button" class="m-tab" data-tab="list">歌单</button>
+                        <span class="m-tab-status" id="mTabStatus"></span>
+                    </div>
+
                     <div class="music-scroll" id="musicScroll">
-                        <div class="music-tree" id="musicTree"></div>
+                        <div class="m-view" id="mViewLocal">
+                            <div class="music-tree" id="musicTree"></div>
+                        </div>
+
+                        <div class="m-view" id="mViewSearch" hidden>
+                            <div class="m-search-bar">
+                                <input type="text" id="mSearchInput" placeholder="搜索歌曲、歌手" autocomplete="off" spellcheck="false">
+                                <button type="button" id="mSearchBtn">搜索</button>
+                            </div>
+                            <div class="m-src-row" id="mSrcRow"></div>
+                            <div class="m-status" id="mSearchStatus"></div>
+                            <div class="m-results" id="mResults"></div>
+                        </div>
+
+                        <div class="m-view" id="mViewList" hidden>
+                            <div class="m-list-bar">
+                                <select id="mListSelect"></select>
+                                <button type="button" id="mListNew">新建</button>
+                                <button type="button" id="mListRename">改名</button>
+                                <button type="button" id="mListDel">删除</button>
+                                <button type="button" id="mListVerify">体检</button>
+                            </div>
+                            <div class="m-status" id="mListStatus"></div>
+                            <div class="m-results" id="mListSongs"></div>
+                        </div>
                     </div>
 
                                         <div class="music-settings-panel" id="musicSettingsPanel">
@@ -1098,7 +1129,9 @@
     <script src="js/features/modal_phrase.js"></script>
     <script src="js/features/modal_timer.js"></script>
     <script src="js/features/modal_calculator.js"></script>
-    <script src="js/features/modal_music.js"></script>
+    <script src="js/features/m_player.js"></script>
+    <script src="js/features/m_online.js"></script>
+    <script src="js/features/m_library.js"></script>
     <script src="js/features/modal_seating.js"></script>
 
     <script src="js/features/plaza_crypto.js"></script>

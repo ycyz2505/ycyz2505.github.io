@@ -1,5 +1,5 @@
 // ============================================================
-// js/features/modal_music.js
+// js/features/m_player.js
 // 音乐播放器
 // - 入口：在计算器中连续输入 SECRET_CODE（暗码）
 // - 歌曲来源：data/music/ 目录（通过 LocalDataServer 读取）
@@ -41,6 +41,13 @@ window.App = window.App || {};
         tree: null,
         songs: [],
         index: -1,
+
+        // 在线 / 本地歌单队列
+        active: 'local',     // local | m
+        mQueue: [],
+        mIndex: -1,
+        tab: 'local',
+        notice: '',
 
         lyricToken: 0,
         lyrics: [],
@@ -98,11 +105,56 @@ window.App = window.App || {};
     }
 
     function mediaUrl(relPath) {
+        if (!relPath) return '';
+        if (/^(https?:|blob:|data:)/i.test(relPath)) return relPath;
         return baseUrl() + '/api/music/media?path=' + encodeURIComponent(relPath);
     }
 
     function $(id) {
         return document.getElementById(id);
+    }
+
+    // ------------------------------------------------------------
+    // 当前队列
+    // ------------------------------------------------------------
+    function curList() {
+        return S.active === 'm' ? S.mQueue : S.songs;
+    }
+
+    function curIdx() {
+        return S.active === 'm' ? S.mIndex : S.index;
+    }
+
+    function setCurIdx(i) {
+        if (S.active === 'm') S.mIndex = i;
+        else S.index = i;
+    }
+
+    function curSong() {
+        const list = curList();
+        return list[curIdx()] || null;
+    }
+
+    function coverSrc(song) {
+        if (!song) return '';
+        if (song.coverUrl) return song.coverUrl;
+        if (song.cover) return mediaUrl(song.cover);
+        return '';
+    }
+
+    function songSub(song) {
+        if (!song) return '—';
+        return song.sub || subtitleOf(song);
+    }
+
+    function setNotice(text) {
+        S.notice = text || '';
+        updateLyricUI();
+    }
+
+    function setTabStatus(text) {
+        const el = $('mTabStatus');
+        if (el) el.textContent = text || '';
     }
 
     // ------------------------------------------------------------
@@ -341,7 +393,7 @@ window.App = window.App || {};
     }
 
     function renderSongNode(song, idx) {
-        const active = (idx === S.index);
+        const active = (S.active === 'local' && idx === S.index);
         const cover = song.cover
             ? '<img src="' + mediaUrl(song.cover) + '" alt="">'
             : '♪';
@@ -429,7 +481,7 @@ window.App = window.App || {};
         const btn = $('musicStopButton');
         if (!btn) return;
 
-        const show = !!(audio && !audio.paused && S.index >= 0);
+        const show = !!(audio && !audio.paused && curIdx() >= 0);
         btn.style.display = show ? '' : 'none';
     }
 
@@ -572,11 +624,14 @@ window.App = window.App || {};
         const song = S.songs[i];
         if (!song) return;
 
+        S.active = 'local';
         S.index = i;
 
         S.lyricToken++;
         S.lyrics = [];
         S.lyricIndex = -1;
+        S.notice = '';
+        setTabStatus('');
 
         updateLyricUI();
         updateBar();
@@ -597,11 +652,186 @@ window.App = window.App || {};
         renderTree();
     }
 
-    function togglePlay() {
-        if (!S.songs.length) return;
+    // ------------------------------------------------------------
+    // 在线队列播放
+    // ------------------------------------------------------------
+    function playOnline(list, index) {
+        if (!Array.isArray(list) || !list.length) return;
 
-        if (S.index < 0) {
-            playIndex(0);
+        S.active = 'm';
+        S.mQueue = list.slice();
+        playMIndex(index);
+    }
+
+    function playMIndex(i) {
+        if (!S.mQueue.length) return;
+        if (i < 0) i = 0;
+        if (i >= S.mQueue.length) i = S.mQueue.length - 1;
+
+        const song = S.mQueue[i];
+        if (!song) return;
+
+        S.mIndex = i;
+
+        S.lyricToken++;
+        S.lyrics = [];
+        S.lyricIndex = -1;
+        S.notice = song.audioUrl ? '' : '正在解析…';
+        setTabStatus('');
+
+        updateLyricUI();
+        updateBar();
+        updateHomeButton();
+        renderTree();
+
+        startMPlay(song, S.lyricToken);
+    }
+
+    async function startMPlay(song, token) {
+        const MO = window.App.MOnline;
+
+        if (!song.audioUrl) {
+            if (!MO) {
+                setNotice('在线服务未加载');
+                return;
+            }
+
+            setNotice('正在解析…');
+
+            try {
+                const res = await MO.resolve(song);
+                if (token !== S.lyricToken) return;
+
+                if (!res || !res.ok) {
+                    setNotice((res && res.error) || '解析失败');
+                    return;
+                }
+
+                song.sid = res.sid;
+                song.ext = res.ext || '';
+                song.quality = res.quality || null;
+                song.warnings = res.warnings || [];
+
+                if (res.song) {
+                    song.source = res.song.source || song.source;
+                    song.id = res.song.id || song.id;
+                    song.name = res.song.name || song.name;
+                    song.artist = res.song.artist || song.artist;
+                    song.album = res.song.album || song.album;
+                    song.title = song.name;
+                    song.sub = [song.artist, MO.label(song.source)]
+                        .filter(Boolean).join(' · ');
+                }
+
+                song.audioUrl = MO.streamUrl(res.sid);
+                if (!song.coverUrl && song.cover) {
+                    song.coverUrl = MO.coverUrl(song);
+                }
+
+                const warn = (res.warnings || []).filter(Boolean);
+                if (res.switched) {
+                    setTabStatus('已换源：' + MO.label(song.source));
+                } else {
+                    setTabStatus(warn.length ? warn[0] : '');
+                }
+            } catch (e) {
+                if (token !== S.lyricToken) return;
+                console.warn('[Music] 在线解析失败：', e);
+                setNotice('解析失败：' + (e.message || e));
+                return;
+            }
+        }
+
+        if (token !== S.lyricToken) return;
+
+        S.notice = '';
+
+        audio.src = song.audioUrl;
+        audio.load();
+
+        const p = audio.play();
+        if (p && p.catch) {
+            p.catch(err => console.warn('[Music] 播放失败：', err));
+        }
+
+        updateBar();
+        updateLyricUI();
+        renderTree();
+
+        loadMLyric(song, token);
+    }
+
+    function playAt(i) {
+        if (S.active === 'm') playMIndex(i);
+        else playIndex(i);
+    }
+
+    // 播放中出错：换一次源再试
+    async function handlePlaybackError() {
+        if (S.active !== 'm') return;
+
+        const song = curSong();
+        if (!song || song._retried) return;
+        song._retried = true;
+
+        const MO = window.App.MOnline;
+        if (!MO) return;
+
+        setNotice('播放出错，正在换源…');
+
+        try {
+            const base = await MO.probe();
+            if (!base) {
+                setNotice('播放出错');
+                return;
+            }
+
+            const res = await fetch(base + '/api/m/switch?' + MO.songQuery(song), {
+                cache: 'no-store'
+            });
+            const data = await res.json();
+
+            if (!data || !data.ok) {
+                setNotice('换源失败');
+                return;
+            }
+
+            const pos = audio ? audio.currentTime : 0;
+
+            song.sid = data.sid;
+            song.audioUrl = MO.streamUrl(data.sid);
+            if (data.song) {
+                song.source = data.song.source || song.source;
+                song.sub = [song.artist, MO.label(song.source)]
+                    .filter(Boolean).join(' · ');
+            }
+
+            audio.src = song.audioUrl;
+            audio.load();
+
+            const p = audio.play();
+            if (p && p.catch) p.catch(() => {});
+
+            if (pos > 0) {
+                setTimeout(() => {
+                    try { audio.currentTime = pos; } catch (e) { /* 忽略 */ }
+                }, 300);
+            }
+
+            setNotice('');
+            updateBar();
+        } catch (e) {
+            console.warn('[Music] 换源失败：', e);
+            setNotice('换源失败');
+        }
+    }
+
+    function togglePlay() {
+        const list = curList();
+        if (!list.length) return;
+
+        if (curIdx() < 0) {
+            playAt(0);
             return;
         }
 
@@ -614,7 +844,8 @@ window.App = window.App || {};
     }
 
     function playNext(auto) {
-        if (!S.songs.length) return;
+        const list = curList();
+        if (!list.length) return;
 
         if (S.mode === 'single' && auto) {
             audio.currentTime = 0;
@@ -626,14 +857,15 @@ window.App = window.App || {};
         let next;
 
         if (S.mode === 'shuffle') {
-            if (S.songs.length === 1) next = 0;
-            else {
-                do { next = Math.floor(Math.random() * S.songs.length); }
-                while (next === S.index);
+            if (list.length === 1) {
+                next = 0;
+            } else {
+                do { next = Math.floor(Math.random() * list.length); }
+                while (next === curIdx());
             }
         } else {
-            next = S.index + 1;
-            if (next >= S.songs.length) {
+            next = curIdx() + 1;
+            if (next >= list.length) {
                 if (S.mode === 'order' && auto) {
                     audio.pause();
                     audio.currentTime = 0;
@@ -643,20 +875,21 @@ window.App = window.App || {};
             }
         }
 
-        playIndex(next);
+        playAt(next);
     }
 
     function playPrev() {
-        if (!S.songs.length) return;
+        const list = curList();
+        if (!list.length) return;
 
         if (audio.currentTime > 3) {
             audio.currentTime = 0;
             return;
         }
 
-        let prev = S.index - 1;
-        if (prev < 0) prev = S.songs.length - 1;
-        playIndex(prev);
+        let prev = curIdx() - 1;
+        if (prev < 0) prev = list.length - 1;
+        playAt(prev);
     }
 
     // ------------------------------------------------------------
@@ -669,9 +902,12 @@ window.App = window.App || {};
         }
 
         S.index = -1;
+        S.mIndex = -1;
         S.lyrics = [];
         S.lyricIndex = -1;
+        S.notice = '';
         S.lyricToken++;
+        setTabStatus('');
 
         window.App.GoldenPhrase?.clearMusicLyric();
 
@@ -714,6 +950,36 @@ window.App = window.App || {};
                 S.lyricIndex = -1;
                 updateLyricUI();
             });
+    }
+
+    function applyLyric(text, token) {
+        if (token !== S.lyricToken) return;
+
+        S.lyrics = text ? parseLRC(text) : [];
+        S.lyricIndex = -1;
+        updateLyricUI();
+
+        if (audio) syncLyric(audio.currentTime);
+    }
+
+    function loadMLyric(song, token) {
+        if (song.lyricUrl) {
+            fetch(song.lyricUrl, { cache: 'no-store' })
+                .then(res => (res.ok ? res.text() : ''))
+                .then(text => applyLyric(text, token))
+                .catch(() => applyLyric('', token));
+            return;
+        }
+
+        const MO = window.App.MOnline;
+        if (!MO || !song.id) {
+            applyLyric('', token);
+            return;
+        }
+
+        MO.lyricText(song)
+            .then(text => applyLyric(text, token))
+            .catch(() => applyLyric('', token));
     }
 
     function findLyricIndex(t) {
@@ -760,9 +1026,8 @@ window.App = window.App || {};
 
         if (!arr.length) {
             if (prevEl) prevEl.textContent = '';
-            curEl.textContent = S.index >= 0
-                ? '歌词缺失'
-                : '♪ 选择一首歌开始播放';
+            curEl.textContent = S.notice
+                || (curIdx() >= 0 ? '歌词缺失' : '♪ 选择一首歌开始播放');
             if (nextEl) nextEl.textContent = '';
             return;
         }
@@ -779,7 +1044,7 @@ window.App = window.App || {};
     // 播放条 UI
     // ------------------------------------------------------------
     function updateBar() {
-        const song = S.songs[S.index];
+        const song = curSong();
 
         const titleEl = $('musicNowTitle');
         const subEl = $('musicNowSub');
@@ -787,13 +1052,13 @@ window.App = window.App || {};
         const totalEl = $('musicTimeTotal');
 
         if (titleEl) titleEl.textContent = song ? song.title : '未播放';
-        if (subEl) subEl.textContent = song ? subtitleOf(song) : '—';
+        if (subEl) subEl.textContent = songSub(song);
         if (totalEl && !song) totalEl.textContent = '0:00';
 
         if (coverEl) {
-            if (song && song.cover) {
-                coverEl.innerHTML =
-                    '<img src="' + mediaUrl(song.cover) + '" alt="">';
+            const src = coverSrc(song);
+            if (src) {
+                coverEl.innerHTML = '<img src="' + src + '" alt="">';
             } else {
                 coverEl.textContent = '♪';
             }
@@ -808,7 +1073,7 @@ window.App = window.App || {};
         const cover = $('musicCover');
         if (!btn) return;
 
-        const playing = audio && !audio.paused && S.index >= 0;
+        const playing = audio && !audio.paused && curIdx() >= 0;
         btn.textContent = playing ? '⏸' : '▶';
 
         if (cover) cover.classList.toggle('spin', !!playing);
@@ -1091,10 +1356,47 @@ window.App = window.App || {};
         audio.addEventListener('error', () => {
             console.warn('[Music] 音频加载出错');
             window.App.GoldenPhrase?.clearMusicLyric();
+            handlePlaybackError();
         });
     }
 
+    // ------------------------------------------------------------
+    // 标签页
+    // ------------------------------------------------------------
+    const TAB_VIEW = {
+        local: 'mViewLocal',
+        search: 'mViewSearch',
+        list: 'mViewList'
+    };
+
+    function switchTab(name) {
+        if (!TAB_VIEW[name]) name = 'local';
+        S.tab = name;
+
+        Object.keys(TAB_VIEW).forEach(key => {
+            const el = $(TAB_VIEW[key]);
+            if (el) el.hidden = (key !== name);
+        });
+
+        const tabs = $('mTabs');
+        if (tabs) {
+            tabs.querySelectorAll('.m-tab').forEach(btn => {
+                btn.classList.toggle('on', btn.dataset.tab === name);
+            });
+        }
+
+        if (name === 'search') window.App.MOnline?.open?.();
+        if (name === 'list') window.App.MLib?.open?.();
+    }
+
     function bindUI() {
+        // ---- 标签页 ----
+        $('mTabs')?.addEventListener('click', e => {
+            const btn = e.target.closest('.m-tab');
+            if (!btn) return;
+            switchTab(btn.dataset.tab || 'local');
+        });
+
         // ---- 歌曲树 ----
         const treeEl = $('musicTree');
 
@@ -1104,7 +1406,7 @@ window.App = window.App || {};
                 const i = Number(songNode.dataset.index);
                 if (isNaN(i)) return;
 
-                if (i === S.index) {
+                if (S.active === 'local' && i === S.index) {
                     togglePlay();
                 } else {
                     playIndex(i);
@@ -1302,16 +1604,29 @@ window.App = window.App || {};
             updateBar();
             applyVolume(S.volume, true);
             updateHomeButton();
+            switchTab(S.tab);
 
             window.App.Calculator?.clear?.();
         },
 
         isPlaying() {
-            return !!(audio && !audio.paused && S.index >= 0);
+            return !!(audio && !audio.paused && curIdx() >= 0);
         },
 
         stop() {
             stopMusic();
+        },
+
+        // 供搜索页 / 歌单页调用
+        playOnline,
+        switchTab,
+
+        getQueue() {
+            return curList();
+        },
+
+        getIndex() {
+            return curIdx();
         }
     };
 })();

@@ -1,0 +1,36 @@
+m-server
+========
+
+本目录整体适用 GNU Affero General Public License v3.0（见同目录 LICENSE）。
+
+上游来源
+--------
+
+本程序在构建时通过 Go module 引入并链接以下项目：
+
+  go-music-dl
+    https://github.com/guohuiyuan/go-music-dl
+    作者：guohuiyuan
+    许可：GNU AGPL-3.0
+    用途：搜索、取流、歌词、封面、换源匹配等底层能力（core 包）
+
+  music-lib
+    https://github.com/guohuiyuan/music-lib
+    许可：GNU AGPL-3.0
+    用途：各音乐平台的具体实现（作为 go-music-dl 的依赖引入）
+
+本目录下的 main.go、api.go、quality.go、resolve.go、library.go、session.go、
+song.go、paths.go 为本项目自行编写，仅调用上述项目的公开接口，未修改其源码。
+因链接了 AGPL-3.0 代码，本目录整体以 AGPL-3.0 发布。
+
+范围说明
+--------
+
+AGPL-3.0 仅约束 m-server/ 目录（以及由此编译出的 m-server.exe）。
+仓库内其余部分（index.html、css/、js/、images/ 等）为本项目原创，不在此许可范围内。
+
+免责声明
+--------
+
+仅供学习与技术交流。通过本程序获取的音频、歌词、封面等内容的版权归各平台与
+权利人所有。请勿用于商业用途，请勿公开部署为下载服务。

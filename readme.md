@@ -51,7 +51,9 @@
         ├── modal_phrase.js   金句选择
         ├── modal_timer.js    模态框定时关闭
         ├── modal_calculator.js 计算器
-        ├── modal_music.js    音乐播放器
+        ├── m_player.js       播放器（本地 / 在线 / 歌单三个标签页）
+        ├── m_online.js       在线搜索、解析播放、换源
+        ├── m_library.js      本地歌单管理
         ├── modal_seating.js  座位表（展示 / 编辑 / CSV / 搜索 / 随机抽人）
         ├── plaza_crypto.js   广场的密码派生与加解密（PBKDF2 + AES-GCM）
         ├── plaza_core.js     广场数据层（名单、关注、点赞、登录态、图片压缩）
@@ -62,7 +64,10 @@
 
 .
 ├── LocalDataServer.exe       本地数据服务（可选）
-└── data/                     本地数据（由 LocalDataServer.exe 生成）
+├── m-server.exe              在线搜索 / 歌单服务（可选，从 Releases 下载）
+├── m-server/                 上述服务的 Go 源码（AGPL-3.0）
+├── .github/workflows/        自动编译 m-server.exe
+└── data/                     本地数据（由本地服务生成）
     ├── settings.json         设置
     ├── timetable.json        课表
     ├── schedule.json         作息表
@@ -74,7 +79,8 @@
     ├── countdowns.json       倒计日
     ├── plaza.json            广场名单、关注、点赞、账号
     ├── plaza_media.json      广场的头像与背景图
-    └── music/                音乐目录（按文件夹分类，自动识别封面与歌词）
+    ├── music/                音乐目录（按文件夹分类，自动识别封面与歌词）
+    └── m/                    在线搜索下载的歌单（library.json + 每首歌一个文件夹）
 ```
 
 ## 快速开始
@@ -118,7 +124,9 @@
 
 ## 音乐播放器
 
-在计算器中连续输入某暗码即可打开音乐播放器。暗码在 `js/features/modal_music.js` 中的 `SECRET_CODE` 常量里修改。
+在计算器中连续输入某暗码即可打开音乐播放器。暗码在 `js/features/m_player.js` 中的 `SECRET_CODE` 常量里修改。
+
+播放器顶部有 **本地 / 搜索 / 歌单** 三个标签页。本地页就是原来那套目录树；搜索和歌单页需要额外的本地伴生服务 `m-server.exe`（见下一节），没有它这两个标签页会提示"本地服务未启动"。
 
 - 歌曲来源为 `data\music\` 目录，通过 `LocalDataServer.exe` 读取；
 - 歌曲列表保留原始目录层级，以树形结构展示，可折叠展开，分类文件夹右侧显示歌曲数量；
@@ -134,6 +142,42 @@
 
 - **定时关闭**：可选 5/10/15/30 分钟、1 小时预设，或自定义秒数、指定时刻到点关闭；
 - **输出设备**：列出当前系统的音频输出设备，可逐台启用/禁用。该操作需要以管理员身份运行 `LocalDataServer.exe`。
+
+## 在线搜索与本地歌单
+
+这两块需要额外的本地伴生服务 `m-server.exe`（源码在 `m-server/`，从 Releases 下载，**不需要安装任何运行时**）。把它和 `LocalDataServer.exe` 放在同一目录、双击运行即可，端口从 `17650` 开始自动找，页面会自己探测。
+
+**搜索页**
+
+- 输入关键词后并发搜索多个音源（默认网易云、QQ、酷狗、酷我、千千；咪咕、汽水、B站可在音源标签里手动打开）
+- 每条结果带音源标记、时长、封面，点 ▶ 直接试听，点 ＋ 加入当前选中的歌单
+- 试听是**纯流式**的：音频不落盘，只在内存里中转，切歌即释放；封面和歌词同样只在内存缓存
+
+**歌单页**
+
+- 新建 / 改名 / 删除歌单，移出单曲，一键体检
+- 「加入歌单」会把音频、封面、歌词三个文件下载到 `data/m/<歌单名>/<歌名 - 歌手>/`，每首歌一个子文件夹，封面和歌词不会互相串
+- 歌单里的歌可以直接播，不需要联网
+
+**质量校验与换源**
+
+播放前和下载前都会做三级校验：
+
+| 对象 | 检查内容 |
+|------|----------|
+| 音频 | 魔数（ID3 / fLaC / OggS / ftyp / RIFF / WMA）、是否误返回网页或 JSON、码率与标称时长是否匹配（用于识别 30 秒试听片段） |
+| 歌词 | 是否为空、有没有 `[mm:ss]` 时间轴、有效行数是否过少、是否误返回网页、非 UTF-8 自动按 GBK 解码 |
+| 封面 | 魔数、文件大小、能否解码、尺寸是否过小 |
+
+综合评分（100 分制）：音频不合格直接否决，歌词缺失 −25，封面缺失 −10，时长明显不符 −45。
+
+- **≥ 70**：直接用
+- **45 ~ 69**：先换源试一次，换不到更好的就用它，并在界面上标出问题
+- **< 45**：强制换源；所有源都不行就选分最高的，明确提示"音质较低 / 歌词缺失"
+
+播放过程中如果出错或卡顿，会自动换一次源并尽量保持播放进度。
+
+> 版权提示：通过该功能获取的音频、歌词、封面版权归各平台与权利人所有，仅供个人学习使用，请勿公开部署为下载服务。`m-server/` 目录适用 AGPL-3.0（详见其 `LICENSE` 与 `NOTICE`）。
 
 ## 座位表
 
@@ -290,6 +334,29 @@
 支持的数据名称：`settings`、`timetable`、`schedule`、`phrases`、`solarterms`、`lostfound`、`notifications`、`seatmap`、`countdowns`、`plaza`、`plazaMedia`。
 
 服务端不限制数据名（只校验名字里没有路径分隔符），所以新增数据文件不需要重新编译 `LocalDataServer.exe`。
+
+### 在线搜索服务（`m-server.exe`，端口 17650~17659）
+
+同样只监听 `127.0.0.1`，全部返回 JSON，全部带 `Access-Control-Allow-Origin: *`。
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/api/m/ping` | 探测服务 |
+| GET | `/api/m/sources` | 音源列表 |
+| GET | `/api/m/search?q=&sources=&limit=` | 多源并发搜索 |
+| GET | `/api/m/resolve?id=&source=&...` | 解析 + 质量校验 + 自动换源 |
+| GET | `/api/m/switch?...` | 手动换源 |
+| GET | `/api/m/stream?sid=` | 音频流（支持 Range） |
+| GET | `/api/m/lyric?...` | 歌词文本 |
+| GET | `/api/m/cover?url=&source=` | 封面图 |
+| GET | `/api/m/media?path=` | 歌单里的本地文件 |
+| GET | `/api/m/library` | 读歌单 |
+| POST | `/api/m/library/playlist` | 新建 / 改名 / 删除 / 排序 |
+| POST | `/api/m/library/add` | 下载音频、封面、歌词并入歌单 |
+| POST | `/api/m/library/remove` | 移出歌单 |
+| POST | `/api/m/library/verify` | 巡检本地文件 |
+
+细节见 `m-server/README.md`。
 
 服务不可用时自动降级为内存模式，刷新后修改丢失。
 

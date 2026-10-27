@@ -3,3 +3,12 @@ Untitled-1.md
 output.md
 service_port.txt
 广场功能设计稿.md
+
+# 本地运行时产物
+data/
+m-server.exe
+m-server/data/
+m-server/m-server.exe
+
+# 工作区数据
+.workbuddy-ai/
