@@ -2,11 +2,11 @@ window.App.DailyImage = {
     // 判断当前"显示每日60s"是否开启（以 Store 为准，不再依赖 DOM）
     isEnabled() {
         if (window.App.Store) {
-            // 注意：未显式设置时默认开启
-            return window.App.Store.getSetting('imageSwitch') !== false;
+            // 未显式设置时默认关闭
+            return window.App.Store.getSetting('imageSwitch') === true;
         }
         const el = document.getElementById('imageSwitch');
-        return el ? el.checked : true;
+        return el ? el.checked : false;
     },
 
     init() {

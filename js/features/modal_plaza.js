@@ -18,6 +18,9 @@ window.App = window.App || {};
     var POPOVER_W = 300;
 
     App.ModalPlaza = {
+        // 计算器暗码：连续输入后打开广场（首页不再放入口按钮）
+        SECRET_CODE: '2522///',
+
         el: {},
         query: '',
         filter: 'all',
@@ -203,6 +206,15 @@ window.App = window.App || {};
             this.renderReadonlyBanner();
             this.renderAccount();
             this.renderGrid();
+        },
+
+        // 供计算器暗码等入口调用
+        open() {
+            if (!this.el.modal) return;
+
+            window.App.Calculator?.clear?.();
+            this.refresh();
+            this.el.modal.classList.add('active');
         },
 
         // 本地服务没起来时明确提示一句，免得同学以为关注成功了

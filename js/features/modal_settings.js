@@ -24,7 +24,7 @@ window.App.ModalSettings = {
             el.checked = (value === undefined) ? fallback : !!value;
         };
         setChecked('goldenSwitch', s.goldenSwitch, true);
-        setChecked('imageSwitch', s.imageSwitch, true);
+        setChecked('imageSwitch', s.imageSwitch, false);
         setChecked('clickRefreshSwitch', s.clickRefreshSwitch, false);
         setChecked('animationSwitch', s.animationSwitch, true);
         setChecked('themeGradientSwitch', s.themeGradientSwitch, true);

@@ -5,7 +5,7 @@
 // - 支持 sin/cos/tan/asin/acos/atan/ln/log/√/∛/exp/abs 等
 // - 角度制 / 弧度制切换、2nd 第二功能切换
 // - 实时预览结果，回车 / = 求值，支持物理键盘
-// - 隐藏功能：连续输入暗码可打开音乐播放器
+// - 隐藏功能：连续输入暗码可打开音乐播放器 / 广场
 // ============================================================
 
 window.App = window.App || {};
@@ -112,8 +112,19 @@ window.App = window.App || {};
 
         // ==================== 暗码检测 ====================
         _recordSecret(token) {
-            const code = (window.App.Music && window.App.Music.SECRET_CODE) || '';
-            if (!code) return;
+            // 支持多个暗码：音乐播放器、广场
+            const codes = [
+                {
+                    code: (window.App.Music && window.App.Music.SECRET_CODE) || '',
+                    open: () => window.App.Music?.open()
+                },
+                {
+                    code: (window.App.ModalPlaza && window.App.ModalPlaza.SECRET_CODE) || '',
+                    open: () => window.App.ModalPlaza?.open()
+                }
+            ].filter(item => item.code);
+
+            if (!codes.length) return;
 
             // 统一运算符写法，让暗码可以用 ASCII 书写
             const norm = String(token)
@@ -121,13 +132,17 @@ window.App = window.App || {};
                 .replace(/[−–—]/g, '-')
                 .replace(/×/g, '*');
 
-            this._secretBuffer = (this._secretBuffer + norm)
-                .slice(-code.length * 3);
+            const maxLen = Math.max(...codes.map(item => item.code.length));
 
-            if (this._secretBuffer.endsWith(code)) {
+            this._secretBuffer = (this._secretBuffer + norm)
+                .slice(-maxLen * 3);
+
+            const hit = codes.find(item => this._secretBuffer.endsWith(item.code));
+
+            if (hit) {
                 this._secretBuffer = '';
                 this.clear();
-                window.App.Music?.open();
+                hit.open();
             }
         },
 

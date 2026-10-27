@@ -39,7 +39,7 @@ window.App.Store = {
     defaults: {
         settings: {
             goldenSwitch: true,
-            imageSwitch: true,
+            imageSwitch: false,
             apiProbability: 50,
             intervalDuration: 15000,
             clickRefreshSwitch: false,
