@@ -31,6 +31,7 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: '1.25.3'
+          cache-dependency-path: m-server/go.sum
 
       - name: 固定依赖版本
         run: go get github.com/guohuiyuan/go-music-dl@v1.1.3
