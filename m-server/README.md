@@ -10,18 +10,38 @@
 
 - 不需要安装 Go、Node 或任何运行时
 - 不需要联网安装依赖，exe 是单文件静态编译
+- **静默启动**，不弹命令行窗口（编译时带 `-H windowsgui`）
 - 首次运行会在同级目录建 `data/m/` 用来存歌单与已下载的歌曲
+- 日志写到同目录的 `m-server.log`
 
-启动后窗口会打印监听地址，形如：
+启动后不会有任何可见窗口。想确认它活着，看 `m-server.log`：
 
 ```
-[m] 已启动 http://127.0.0.1:17650
-[m] 数据目录 D:\...\data\m
+[m] 17:33:24 m-server 1.0.0 启动
+[m] 17:33:24 日志级别=info（M_LOG=debug 可开启详细日志）
+[m] 17:33:24 已启动 http://127.0.0.1:17650
+[m] 17:33:24 数据目录 D:\EClassDisplay\data\m
+[m] 17:33:24 日志文件 D:\EClassDisplay\m-server.log
 ```
 
 端口从 `17650` 开始找，被占用就依次往后试到 `17659`。页面会自动探测，不用手工配置。
 
-关闭窗口或按 `Ctrl+C` 即可停止。
+**停止**：任务管理器里结束 `m-server.exe`，或命令行执行：
+
+```bash
+taskkill /IM m-server.exe /F
+```
+
+## 日志
+
+| 项 | 说明 |
+|---|---|
+| 位置 | 与 `m-server.exe` 同级的 `m-server.log` |
+| 轮转 | 启动时超过 4MB 就把旧文件转存为 `m-server.log.old`，只保留一份 |
+| 级别 | 默认 `info`；设环境变量 `M_LOG=debug` 输出每次请求的详细过程，`M_LOG=warn` 只留问题 |
+| 控制台 | 从终端手动启动时日志同时打到 stderr，双击启动则只写文件 |
+
+排查网络问题时建议先开 `M_LOG=debug` 复现一次，日志里会带上每个音源的耗时和失败原因分类（超时 / DNS / TLS / 403 等）。
 
 ## 维护者：怎么编译
 
@@ -37,8 +57,10 @@
 cd m-server
 go get github.com/guohuiyuan/go-music-dl@v1.1.3
 go mod tidy
-go build -trimpath -ldflags "-s -w" -o ../m-server.exe .
+go build -trimpath -ldflags "-s -w -H windowsgui" -o ../m-server.exe .
 ```
+
+`-H windowsgui` 就是「静默启动」的来源：去掉它编译出来的 exe 会带一个命令行窗口，日志也只打控制台。
 
 依赖版本固定在 `v1.1.3`，避免上游改动导致行为漂移。
 
@@ -51,12 +73,16 @@ go build -trimpath -ldflags "-s -w" -o ../m-server.exe .
 data/m/
 ├── library.json          歌单与歌曲元数据
 ├── cookies.json          可选，各平台 Cookie
+├── prefs.json            音源分配（音频 / 歌词 / 封面）
+├── proxy.json            可选，网络兜底代理
 └── <歌单名>/
     └── <歌名 - 歌手>/
         ├── audio.mp3     音频（扩展名按实际格式）
         ├── cover.jpg     封面
         └── lyric.lrc     歌词
 ```
+
+日志不在这里，在 exe 同级：`m-server.log`。
 
 每首歌一个子文件夹，封面和歌词不会互相串。
 
@@ -93,6 +119,46 @@ data/m/
 | POST | `/api/m/library/add` | 下载三件套并入歌单 |
 | POST | `/api/m/library/remove` | 移出歌单 |
 | POST | `/api/m/library/verify` | 巡检本地文件 |
+| GET | `/api/m/prefs` | 读音源分配 |
+| POST | `/api/m/prefs` | 改音源分配 |
+| GET | `/api/m/net` | 网络兜底状态（每个域名当前用的策略） |
+
+## 音源分配
+
+音频、歌词、封面可以各自指定来源，存在 `data/m/prefs.json`：
+
+```json
+{
+  "audio": "bilibili",
+  "lyric": "migu",
+  "cover": "migu"
+}
+```
+
+值为 `auto` 表示跟随音频源。跨源找歌按「歌名 + 歌手 + 时长」算相似度，低于 0.55 就回退原源；结果缓存 15 分钟。
+
+## 网络兜底
+
+有些网络只放行 443、掐掉 80，而部分音源接口是明文 HTTP。服务在 HTTP 层做了一条自动降级链：
+
+```
+direct → https（同域名升 443）→ nokeep（丢长连接）→ proxy
+```
+
+- 走通的策略按域名记住 10 分钟，之后直接走它
+- 全部失败熔断该域名 60 秒，避免每次搜索白等
+- 空响应 / 返回网页 / 5xx 视为失败，继续换下一条路
+- 代理兜底：`data/m/proxy.json` 写 `{"enable": true, "proxies": ["http://127.0.0.1:7890"]}`，支持 http 与 socks5；或设 `M_PROXY`（逗号分隔）
+
+另有三个环境变量开关，出问题时可以逐个打开试：
+
+| 变量 | 作用 |
+|---|---|
+| `M_FORCE_IPV4=1` | 只走 IPv4。校园网 IPv6 常常「能解析但不通」，拨号会卡到超时 |
+| `M_DNS=223.5.5.5` | 换掉系统 DNS，绕开校园 DNS 劫持 / 污染 |
+| `M_LOG=debug` | 打出每次请求用了哪条策略、失败在哪一步 |
+
+> 兜底依赖库使用默认的 `http.Transport`。如果上游库自建了 Transport，这一层会被绕过。
 
 ## 质量校验
 

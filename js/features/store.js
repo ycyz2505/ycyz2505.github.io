@@ -50,6 +50,10 @@ window.App.Store = {
             notificationFontSize: 16,
             announcementFontSize: 20,
 
+            // 音乐播放器：上次的音量（0~1）与播放模式（见 m_player.js）
+            musicVolumeLevel: 0.8,
+            musicPlayMode: 'order',
+
             // 今日课表临时覆盖，不修改 timetable 原始数据
             temporaryTimetable: null,
 

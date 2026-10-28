@@ -30,19 +30,128 @@ type Resolution struct {
 	Switched bool
 	From     string
 	Warnings []string
+	// 音频 / 歌词 / 封面 实际各自用了哪个源
+	Sources map[string]string
 }
 
 const (
-	scoreGood     = 70
-	scoreAccept   = 45
-	// 单个音源搜索超时：给足 30s
-	sourceTimeout = 30 * time.Second
-	// 整体搜索截止：比单源略长，留 2s 收集余量
-	// 必须 >= sourceTimeout，否则单源 30s 白等
-	searchTimeout  = 32 * time.Second
+	scoreGood      = 70
+	scoreAccept    = 45
 	maxAltSources  = 4
 	maxAltPerSrc   = 3
 	maxSwitchTries = 4
+
+	// 跨源匹配结果的缓存时长
+	altMemoTTL = 15 * time.Minute
+	// 跨源匹配的最低相似度，低于这个值宁可不换
+	altMinScore = 0.55
+)
+
+// ---------- 跨源匹配 ----------
+
+type altEntry struct {
+	song Song
+	at   time.Time
+}
+
+var (
+	altMu   sync.Mutex
+	altMemo = map[string]altEntry{}
+)
+
+func clearAltMemo() {
+	altMu.Lock()
+	altMemo = map[string]altEntry{}
+	altMu.Unlock()
+}
+
+// pickSource 按偏好决定这首歌该从哪个源取
+// target 为 auto / 空 / 与原源相同，都直接返回原歌
+func pickSource(song Song, target string) Song {
+	target = strings.TrimSpace(target)
+	if target == "" || target == "auto" || target == song.Source {
+		return song
+	}
+	if !isValidSource(target) {
+		return song
+	}
+
+	key := song.key() + "@" + target
+
+	altMu.Lock()
+	if e, ok := altMemo[key]; ok && time.Since(e.at) < altMemoTTL {
+		altMu.Unlock()
+		return e.song
+	}
+	altMu.Unlock()
+
+	alt := findOnSource(song, target)
+	if alt == nil {
+		mlogDebug("[prefs] %s 在 %s 没找到匹配，回退原源",
+			song.Name, sourceLabel(target))
+		return song
+	}
+
+	altMu.Lock()
+	altMemo[key] = altEntry{song: *alt, at: time.Now()}
+	altMu.Unlock()
+
+	return *alt
+}
+
+// findOnSource 在指定音源里按 歌名 + 歌手 找最匹配的一首
+func findOnSource(song Song, target string) *Song {
+	fn := core.GetSearchFunc(target)
+	if fn == nil {
+		return nil
+	}
+
+	keyword := strings.TrimSpace(song.Name)
+	if keyword == "" {
+		return nil
+	}
+	if song.Artist != "" {
+		keyword = keyword + " " + song.Artist
+	}
+
+	songs, err := runSearch(fn, keyword)
+	if err != nil || len(songs) == 0 {
+		return nil
+	}
+
+	best := -1.0
+	var bestSong *Song
+
+	for _, m := range songs {
+		c := songFromModel(m)
+		c.Source = target
+		if c.ID == "" || c.Name == "" {
+			continue
+		}
+
+		score := core.CalcSongSimilarity(song.Name, song.Artist, c.Name, c.Artist)
+		if song.Duration > 0 && c.Duration > 0 && !core.IsDurationClose(song.Duration, c.Duration) {
+			score -= 0.15
+		}
+		if score > best {
+			picked := c
+			best = score
+			bestSong = &picked
+		}
+	}
+
+	if bestSong == nil || best < altMinScore {
+		return nil
+	}
+	return bestSong
+}
+
+// 这两个超时可以被环境变量覆盖（见 netfix.go）
+var (
+	// 单个音源搜索超时
+	sourceTimeout = 30 * time.Second
+	// 整体搜索截止：必须 >= sourceTimeout，否则单源白等
+	searchTimeout = 32 * time.Second
 )
 
 func downloadURL(song Song) (string, error) {
@@ -135,6 +244,11 @@ func resolveSong(song Song, allowSwitch bool) *Resolution {
 		res.Quality.Total < scoreAccept ||
 		(res.Quality.Audio.Score < 60 && !res.Quality.Lyric.OK)
 
+	// 音频源被用户钉死时不自动换源，否则等于没钉
+	if loadPrefs().Audio != "auto" {
+		allowSwitch = false
+	}
+
 	if needSwitch && allowSwitch {
 		if alt := switchTo(song, res); alt != nil {
 			alt.Switched = true
@@ -146,6 +260,13 @@ func resolveSong(song Song, allowSwitch bool) *Resolution {
 		res.Warnings = append(res.Warnings, "没有找到更合适的音源，使用当前结果")
 	}
 
+	if !res.Quality.Audio.OK {
+		if p := loadPrefs(); p.Audio != "auto" {
+			res.Warnings = append(res.Warnings,
+				"音频源已固定为 "+sourceLabel(p.Audio)+"，如需自动换源请把「音频」改回自动")
+		}
+	}
+
 	return res
 }
 
@@ -154,9 +275,22 @@ func tryResolve(song Song) *Resolution {
 		return nil
 	}
 
-	res := &Resolution{Song: song, Quality: Quality{}}
+	p := loadPrefs()
+	audioSong := pickSource(song, p.Audio)
+	lyricSong := pickSource(song, p.Lyric)
+	coverSong := pickSource(song, p.Cover)
 
-	fullFetch := fullFetchSources[song.Source]
+	res := &Resolution{
+		Song:    audioSong,
+		Quality: Quality{},
+		Sources: map[string]string{
+			"audio": audioSong.Source,
+			"lyric": lyricSong.Source,
+			"cover": coverSong.Source,
+		},
+	}
+
+	fullFetch := fullFetchSources[audioSong.Source]
 
 	var (
 		wg         sync.WaitGroup
@@ -167,15 +301,15 @@ func tryResolve(song Song) *Resolution {
 	wg.Add(2)
 	go func() {
 		defer wg.Done()
-		_, lyricCheck = fetchLyric(song)
+		_, lyricCheck = fetchLyric(lyricSong)
 	}()
 	go func() {
 		defer wg.Done()
-		_, _, coverCheck = fetchCover(song)
+		_, _, coverCheck = fetchCover(coverSong)
 	}()
 
 	if fullFetch {
-		data, err := fetchAudioBytes(song)
+		data, err := fetchAudioBytes(audioSong)
 		wg.Wait()
 		if err != nil || len(data) == 0 {
 			res.Quality = Quality{
@@ -192,10 +326,10 @@ func tryResolve(song Song) *Resolution {
 			return res
 		}
 		res.Bytes = data
-		res.Quality.Audio = checkAudioBytes(data, song.Duration)
+		res.Quality.Audio = checkAudioBytes(data, audioSong.Duration)
 		res.Ext = res.Quality.Audio.Ext
 	} else {
-		url, err := downloadURL(song)
+		url, err := downloadURL(audioSong)
 		if err != nil {
 			wg.Wait()
 			res.Quality = Quality{
@@ -205,17 +339,22 @@ func tryResolve(song Song) *Resolution {
 			return res
 		}
 		res.URL = url
-		res.Quality.Audio = probeAudioURL(url, song.Source, song.Duration)
+		res.Quality.Audio = probeAudioURL(url, audioSong.Source, audioSong.Duration)
 		res.Ext = res.Quality.Audio.Ext
 		wg.Wait()
 	}
 
 	if res.Ext == "" {
-		res.Ext = song.Ext
+		res.Ext = audioSong.Ext
 	}
 	if res.Ext == "" {
 		res.Ext = "mp3"
 	}
+
+	// 播放/下载用 audioSong 的 Source + ID，展示仍用用户点的那首歌的名字
+	res.Song.Name = song.Name
+	res.Song.Artist = song.Artist
+	res.Song.Album = song.Album
 
 	res.Quality.Lyric = lyricCheck
 	res.Quality.Cover = coverCheck

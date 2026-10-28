@@ -33,7 +33,7 @@ func initLogLevel() {
 	default:
 		logLevel.Store(logInfo)
 	}
-	log.Printf("[m] 日志级别=%s（M_LOG=debug 可开启详细日志）", levelName(int(logLevel.Load())))
+	log.Printf("日志级别=%s（M_LOG=debug 可开启详细日志）", levelName(int(logLevel.Load())))
 }
 
 func levelName(v int) string {

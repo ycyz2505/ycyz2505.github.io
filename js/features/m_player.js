@@ -115,6 +115,26 @@ window.App = window.App || {};
     }
 
     // ------------------------------------------------------------
+    // 设置项（音量 / 播放模式）持久化
+    // ------------------------------------------------------------
+    const SETTING_VOLUME = 'musicVolumeLevel';
+    const SETTING_MODE = 'musicPlayMode';
+
+    function readSetting(key, fallback) {
+        const st = window.App.Store;
+        if (!st || typeof st.getSetting !== 'function') return fallback;
+
+        const v = st.getSetting(key);
+        return (v === undefined || v === null) ? fallback : v;
+    }
+
+    function writeSetting(key, value) {
+        const st = window.App.Store;
+        if (!st || typeof st.setSetting !== 'function') return;
+        st.setSetting(key, value);
+    }
+
+    // ------------------------------------------------------------
     // 当前队列
     // ------------------------------------------------------------
     function curList() {
@@ -1271,7 +1291,7 @@ window.App = window.App || {};
         shuffle: '随机播放'
     };
 
-    function applyMode(mode) {
+    function applyMode(mode, persist) {
         S.mode = MODE_ICON[mode] ? mode : 'order';
 
         const btn = $('musicModeBtn');
@@ -1279,12 +1299,14 @@ window.App = window.App || {};
             btn.textContent = MODE_ICON[S.mode];
             btn.title = '播放模式：' + MODE_LABEL[S.mode];
         }
+
+        if (persist !== false) writeSetting(SETTING_MODE, S.mode);
     }
 
     // ------------------------------------------------------------
     // 音量
     // ------------------------------------------------------------
-    function applyVolume(v, updateSlider) {
+    function applyVolume(v, updateSlider, persist) {
         v = Math.max(0, Math.min(1, Number(v)));
         if (!isFinite(v)) v = 0.8;
 
@@ -1304,6 +1326,9 @@ window.App = window.App || {};
             icon.textContent = v <= 0.001 ? '🔇'
                             : (v < 0.4 ? '🔉' : '🔊');
         }
+
+        // 拖动过程中不写盘，松手（change）或静音切换时才落盘
+        if (persist === true) writeSetting(SETTING_VOLUME, S.volume);
     }
 
     // ------------------------------------------------------------
@@ -1442,12 +1467,17 @@ window.App = window.App || {};
             applyVolume(Number(e.target.value) / 100, false)
         );
 
+        // 拖动结束才落盘，避免每一帧都触发一次写文件
+        vol?.addEventListener('change', () => {
+            writeSetting(SETTING_VOLUME, S.volume);
+        });
+
         $('musicVolumeIcon')?.addEventListener('click', () => {
             if (S.volume > 0.001) {
                 S._lastVolume = S.volume;
-                applyVolume(0);
+                applyVolume(0, true, true);
             } else {
-                applyVolume(S._lastVolume || 0.8);
+                applyVolume(S._lastVolume || 0.8, true, true);
             }
         });
 
@@ -1476,6 +1506,11 @@ window.App = window.App || {};
             // 展开时自动加载音频设备列表
             if (open && !DEV.list.length && !DEV.loading) {
                 loadAudioDevices();
+            }
+
+            // 顺带刷新音源分配
+            if (open) {
+                window.App.MPrefs?.open?.();
             }
         });
 
@@ -1586,9 +1621,16 @@ window.App = window.App || {};
             if (S.inited) return;
             S.inited = true;
 
+            // 恢复上次的音量与播放模式。
+            // 音量要在 bindAudio 之前设好，那里会把 S.volume 应用到 <audio>
+            const savedVol = Number(readSetting(SETTING_VOLUME, S.volume));
+            if (isFinite(savedVol) && savedVol >= 0 && savedVol <= 1) {
+                S.volume = savedVol;
+            }
+
             bindAudio();
             bindUI();
-            applyMode('order');
+            applyMode(readSetting(SETTING_MODE, 'order'), false);
             loadTree(false);
 
             updateHomeButton();

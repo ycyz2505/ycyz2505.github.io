@@ -19,6 +19,12 @@ func cookieFile() string { return filepath.Join(dataDir(), "cookies.json") }
 
 func libraryFile() string { return filepath.Join(dataDir(), "library.json") }
 
+// 音源分配偏好：音频 / 歌词 / 封面 各自用哪个源
+func prefsFile() string { return filepath.Join(dataDir(), "prefs.json") }
+
+// 网络兜底：可选代理列表，供 80 端口被封时自动切换
+func proxyFile() string { return filepath.Join(dataDir(), "proxy.json") }
+
 func ensureDataDir() error { return os.MkdirAll(dataDir(), 0o755) }
 
 func exeDir() string {

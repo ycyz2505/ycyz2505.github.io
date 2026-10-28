@@ -46,6 +46,7 @@ window.onload = async function () {
     safeInit('Music', () => window.App.Music?.init());
     safeInit('MOnline', () => window.App.MOnline?.init());
     safeInit('MLib', () => window.App.MLib?.init());
+    safeInit('MPrefs', () => window.App.MPrefs?.init());
     safeInit('ModalSeating', () => window.App.ModalSeating?.init());
 
     // 广场：先建数据层，再建三个模态框

@@ -745,6 +745,31 @@
 
                             <div class="music-settings-status" id="musicDevicesStatus"></div>
                         </div>
+
+                        <div class="music-setting-section" style="margin-top:14px;padding-top:12px;border-top:1px solid var(--theme-border);">
+                            <div class="music-setting-title">音源分配</div>
+
+                            <div class="music-pref-row">
+                                <span>音频</span>
+                                <select id="mPrefAudio"></select>
+                            </div>
+
+                            <div class="music-pref-row">
+                                <span>歌词</span>
+                                <select id="mPrefLyric"></select>
+                            </div>
+
+                            <div class="music-pref-row">
+                                <span>封面</span>
+                                <select id="mPrefCover"></select>
+                            </div>
+
+                            <div class="music-sleep-row">
+                                <button type="button" id="mPrefSave" style="flex:1;">保存</button>
+                            </div>
+
+                            <div class="music-settings-status" id="mPrefStatus"></div>
+                        </div>
                     </div>
 
                     <div class="music-bar" id="musicBar">
@@ -1132,6 +1157,7 @@
     <script src="js/features/m_player.js"></script>
     <script src="js/features/m_online.js"></script>
     <script src="js/features/m_library.js"></script>
+    <script src="js/features/m_prefs.js"></script>
     <script src="js/features/modal_seating.js"></script>
 
     <script src="js/features/plaza_crypto.js"></script>

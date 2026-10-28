@@ -36,6 +36,24 @@ window.App = window.App || {};
         if (el) el.textContent = text || '';
     }
 
+    // 歌单里每首歌的音频 / 歌词 / 封面可能来自不同源，悬停时说明
+    const PART_LABEL = { audio: '音频', lyric: '歌词', cover: '封面' };
+
+    function sourceTitle(s) {
+        const map = s && s.sources;
+        if (!map) return '';
+
+        const parts = [];
+        Object.keys(PART_LABEL).forEach(k => {
+            if (!map[k]) return;
+            const label = window.App.MPrefs?.label?.(map[k]) || map[k];
+            parts.push(PART_LABEL[k] + ' ' + label);
+        });
+        if (!parts.length) return '';
+
+        return ' title="' + esc(parts.join(' · ')) + '"';
+    }
+
     async function api(path, options) {
         const base = await window.App.MOnline?.probe?.();
         if (!base) throw new Error('本地服务未启动');
@@ -115,7 +133,7 @@ window.App = window.App || {};
                             esc([s.artist, s.album].filter(Boolean).join(' · ')) +
                         '</div>' +
                     '</div>' +
-                    '<span class="m-badge">' + (Number(s.quality) || 0) + '</span>' +
+                    '<span class="m-badge"' + sourceTitle(s) + '>' + (Number(s.quality) || 0) + '</span>' +
                     '<span class="m-row-dur">' + fmtTime(s.duration) + '</span>' +
                     '<button type="button" class="m-row-btn" data-act="play" title="播放">▶</button>' +
                     '<button type="button" class="m-row-btn" data-act="del" title="移出歌单">×</button>' +

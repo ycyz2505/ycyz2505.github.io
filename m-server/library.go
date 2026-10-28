@@ -25,6 +25,8 @@ type LibSong struct {
 	AddedAt  int64    `json:"addedAt"`
 	Quality  int      `json:"quality"`
 	Warnings []string `json:"warnings,omitempty"`
+	// 音频 / 歌词 / 封面 实际各自来自哪个源
+	Sources map[string]string `json:"sources,omitempty"`
 }
 
 type Playlist struct {
@@ -288,29 +290,44 @@ type grabbed struct {
 	CoverExt string
 	Lyric    string
 	Quality  Quality
+	Sources  map[string]string
 }
 
 func grabSong(song Song) *grabbed {
-	data, err := fetchAudioBytes(song)
+	p := loadPrefs()
+	audioSong := pickSource(song, p.Audio)
+	lyricSong := pickSource(song, p.Lyric)
+	coverSong := pickSource(song, p.Cover)
+
+	data, err := fetchAudioBytes(audioSong)
 	if err != nil || len(data) == 0 {
 		return nil
 	}
 
-	g := &grabbed{Song: song, Audio: data}
-	g.Quality.Audio = checkAudioBytes(data, song.Duration)
+	g := &grabbed{
+		Song:  song,
+		Audio: data,
+		Sources: map[string]string{
+			"audio": audioSong.Source,
+			"lyric": lyricSong.Source,
+			"cover": coverSong.Source,
+		},
+	}
+
+	g.Quality.Audio = checkAudioBytes(data, audioSong.Duration)
 	g.Ext = g.Quality.Audio.Ext
 	if g.Ext == "" {
 		g.Ext = "mp3"
 	}
 
-	if text, lc := fetchLyric(song); text != "" {
+	if text, lc := fetchLyric(lyricSong); text != "" {
 		g.Lyric = text
 		g.Quality.Lyric = lc
 	} else {
 		g.Quality.Lyric = lc
 	}
 
-	if cover, _, cc := fetchCover(song); len(cover) > 0 {
+	if cover, _, cc := fetchCover(coverSong); len(cover) > 0 {
 		g.Cover = cover
 		g.CoverExt = imageKind(cover)
 		if g.CoverExt == "" {
@@ -326,9 +343,18 @@ func grabSong(song Song) *grabbed {
 }
 
 func downloadSong(song Song) (*grabbed, error) {
+	// 音频源被钉死时不做换源，直接按指定源取
+	pinned := loadPrefs().Audio != "auto"
+
 	first := grabSong(song)
-	if first != nil && first.Quality.Audio.OK && first.Quality.Total >= scoreGood {
+	if first != nil && first.Quality.Audio.OK && (pinned || first.Quality.Total >= scoreGood) {
 		return first, nil
+	}
+	if pinned {
+		if first != nil && first.Quality.Audio.OK {
+			return first, nil
+		}
+		return nil, errors.New("指定的音频源没有取到可用音频")
 	}
 
 	best := first
@@ -417,6 +443,7 @@ func handleLibraryAdd(w http.ResponseWriter, r *http.Request) {
 		Audio:    relDir + "/audio." + g.Ext,
 		AddedAt:  nowMs(),
 		Quality:  g.Quality.Total,
+		Sources:  g.Sources,
 	}
 	if len(g.Cover) > 0 {
 		entry.Cover = relDir + "/cover." + g.CoverExt

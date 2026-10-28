@@ -8,9 +8,10 @@ import (
 )
 
 const (
-	sessionTTL     = 2 * time.Hour
-	sessionMax     = 24
-	sessionBytesCap = 48 << 20 // 单首整段缓存的字节上限
+	sessionTTL      = 2 * time.Hour
+	sessionMax      = 24
+	sessionBytesCap = 48 << 20  // 单首整段缓存的字节上限
+	sessionTotalCap = 192 << 20 // 全部会话合计的字节上限
 )
 
 type session struct {
@@ -45,8 +46,18 @@ func putSession(s *session) {
 	s.LastUsed = s.Created
 	sessions[s.ID] = s
 
-	if len(sessions) > sessionMax {
-		evictLocked()
+	// 先按数量收敛
+	for len(sessions) > sessionMax {
+		if !evictLocked(s.ID) {
+			break
+		}
+	}
+	// 再按总字节收敛：整段缓存的音源（咪咕 / 汽水）单首可达 48MB，
+	// 只数条数的话 24 个会话能吃掉上 GB 内存
+	for totalBytesLocked() > sessionTotalCap && len(sessions) > 1 {
+		if !evictLocked(s.ID) {
+			break
+		}
 	}
 }
 
@@ -72,17 +83,34 @@ func dropSession(id string) {
 	delete(sessions, id)
 }
 
-func evictLocked() {
-	var oldestID string
-	var oldest time.Time
+// totalBytesLocked 当前所有会话占用的字节数（只统计整段缓存的音频）
+func totalBytesLocked() int64 {
+	var n int64
+	for _, s := range sessions {
+		n += int64(len(s.Bytes))
+	}
+	return n
+}
+
+// evictLocked 淘汰最久未使用的会话，keep 指定的那个不动
+func evictLocked(keep string) bool {
+	var (
+		oldestID string
+		oldest   time.Time
+	)
 	for id, s := range sessions {
+		if id == keep {
+			continue
+		}
 		if oldestID == "" || s.LastUsed.Before(oldest) {
 			oldestID, oldest = id, s.LastUsed
 		}
 	}
-	if oldestID != "" {
-		delete(sessions, oldestID)
+	if oldestID == "" {
+		return false
 	}
+	delete(sessions, oldestID)
+	return true
 }
 
 func gcSessions() {

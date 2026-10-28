@@ -18,7 +18,7 @@ import (
 
 const (
 	appService = "class-m-online"
-	appVersion = "1.0.0"
+	appVersion = "1.1.0"
 
 	portStart = 17650
 	portEnd   = 17659
@@ -33,9 +33,16 @@ func main() {
 	log.SetFlags(log.Ltime)
 	log.SetPrefix("[m] ")
 
+	// 静默启动：没有命令行窗口，日志统一写 exe 同级的 m-server.log
+	setupLog()
+	log.Printf("m-server %s 启动", appVersion)
+
 	loadCookies()
 
 	initLogLevel()   // ← 新增
+
+	// 网络兜底：80 端口被拦时自动换策略（日志级别就绪后再装，否则日志会被吞）
+	installNetFallback()
 
 	if err := ensureDataDir(); err != nil {
 		log.Printf("数据目录不可写：%v", err)
@@ -60,6 +67,7 @@ func main() {
 	go func() {
 		log.Printf("已启动 http://127.0.0.1:%d", port)
 		log.Printf("数据目录 %s", dataDir())
+		log.Printf("日志文件 %s", logFilePath())
 		if err := srv.Serve(ln); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("服务异常退出：%v", err)
 		}
@@ -104,6 +112,10 @@ func registerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/m/library/add", handleLibraryAdd)
 	mux.HandleFunc("POST /api/m/library/remove", handleLibraryRemove)
 	mux.HandleFunc("POST /api/m/library/verify", handleLibraryVerify)
+
+	mux.HandleFunc("GET /api/m/prefs", handlePrefsGet)
+	mux.HandleFunc("POST /api/m/prefs", handlePrefsSet)
+	mux.HandleFunc("GET /api/m/net", handleNetStatus)
 
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusNotFound, map[string]string{"error": "not found"})

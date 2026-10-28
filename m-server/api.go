@@ -243,6 +243,7 @@ func handleResolve(w http.ResponseWriter, r *http.Request) {
 		"switched": res.Switched,
 		"from":     res.From,
 		"warnings": res.Warnings,
+		"sources":  res.Sources,
 	})
 }
 
@@ -275,6 +276,7 @@ func handleSwitch(w http.ResponseWriter, r *http.Request) {
 			"song":    alt.Song,
 			"ext":     alt.Ext,
 			"quality": alt.Quality,
+			"sources": alt.Sources,
 		})
 		return
 	}
