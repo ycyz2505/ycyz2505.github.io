@@ -33,10 +33,13 @@ type Resolution struct {
 }
 
 const (
-	scoreGood      = 70
-	scoreAccept    = 45
-	searchTimeout  = 9 * time.Second
-	sourceTimeout  = 7 * time.Second
+	scoreGood     = 70
+	scoreAccept   = 45
+	// 单个音源搜索超时：给足 30s
+	sourceTimeout = 30 * time.Second
+	// 整体搜索截止：比单源略长，留 2s 收集余量
+	// 必须 >= sourceTimeout，否则单源 30s 白等
+	searchTimeout  = 32 * time.Second
 	maxAltSources  = 4
 	maxAltPerSrc   = 3
 	maxSwitchTries = 4
@@ -402,6 +405,6 @@ func runSearch(fn func(string) ([]model.Song, error), keyword string) ([]model.S
 	case o := <-ch:
 		return o.songs, o.err
 	case <-time.After(sourceTimeout):
-		return nil, errors.New("搜索超时")
+		return nil, fmt.Errorf("搜索超时（>%s）", sourceTimeout)
 	}
 }

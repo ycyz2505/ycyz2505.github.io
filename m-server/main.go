@@ -35,6 +35,8 @@ func main() {
 
 	loadCookies()
 
+	initLogLevel()   // ← 新增
+
 	if err := ensureDataDir(); err != nil {
 		log.Printf("数据目录不可写：%v", err)
 	}
@@ -88,6 +90,7 @@ func listenLocal() (net.Listener, int, error) {
 func registerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/m/ping", handlePing)
 	mux.HandleFunc("GET /api/m/sources", handleSources)
+	mux.HandleFunc("GET /api/m/diag", handleDiag)   // ← 新增
 	mux.HandleFunc("GET /api/m/search", handleSearch)
 	mux.HandleFunc("GET /api/m/resolve", handleResolve)
 	mux.HandleFunc("GET /api/m/switch", handleSwitch)

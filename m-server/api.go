@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"net/http"
 	"sort"
@@ -13,11 +14,12 @@ import (
 )
 
 type sourceResult struct {
-	Source string `json:"source"`
-	Label  string `json:"label"`
-	Songs  []Song `json:"songs"`
-	Error  string `json:"error,omitempty"`
-	MS     int64  `json:"ms"`
+	Source  string `json:"source"`
+	Label   string `json:"label"`
+	Songs   []Song `json:"songs"`
+	Error   string `json:"error,omitempty"`
+	ErrKind string `json:"errKind,omitempty"`
+	MS      int64  `json:"ms"`
 }
 
 func handlePing(w http.ResponseWriter, r *http.Request) {
@@ -28,6 +30,7 @@ func handlePing(w http.ResponseWriter, r *http.Request) {
 		"optional": optionalSources(),
 		"port":     currentPort,
 		"uptime":   int64(time.Since(startedAt).Seconds()),
+		"logLevel": levelName(int(logLevel.Load())),
 	})
 }
 
@@ -37,9 +40,9 @@ func handleSources(w http.ResponseWriter, r *http.Request) {
 		list = append(list, map[string]string{"id": s, "label": sourceLabel(s)})
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
-		"ok":       true,
-		"default":  defaultSources,
-		"sources":  list,
+		"ok":      true,
+		"default": defaultSources,
+		"sources": list,
 	})
 }
 
@@ -70,22 +73,56 @@ func handleSearch(w http.ResponseWriter, r *http.Request) {
 		limit = 12
 	}
 
+	rid := reqSeq.Add(1)
+	mlogInfo("[search#%d] 关键词=%q 音源=%v limit=%d", rid, keyword, srcs, limit)
+
 	ch := make(chan sourceResult, len(srcs))
+	pending := make(map[string]bool, len(srcs))
+	for _, s := range srcs {
+		pending[s] = true
+	}
 
 	for _, src := range srcs {
 		go func(s string) {
 			t0 := time.Now()
+			mlogDebug("[search#%d][%s] 开始", rid, s)
+
 			fn := core.GetSearchFunc(s)
 			if fn == nil {
-				ch <- sourceResult{Source: s, Label: sourceLabel(s), Error: "音源不可用"}
+				mlogWarn("[search#%d][%s] 该音源未注册", rid, s)
+				ch <- sourceResult{
+					Source: s, Label: sourceLabel(s),
+					Error: "音源未注册", ErrKind: "not-registered",
+				}
 				return
 			}
+
+			defer func() {
+				if rec := recover(); rec != nil {
+					ms := time.Since(t0).Milliseconds()
+					mlogWarn("[search#%d][%s] panic %v (%dms)", rid, s, rec, ms)
+					ch <- sourceResult{
+						Source: s, Label: sourceLabel(s),
+						Error:  fmt.Sprintf("内部异常：%v", rec),
+						ErrKind: "panic", MS: ms,
+					}
+				}
+			}()
+
 			songs, err := runSearch(fn, keyword)
+			ms := time.Since(t0).Milliseconds()
+
 			if err != nil {
-				ch <- sourceResult{Source: s, Label: sourceLabel(s), Error: err.Error(),
-					MS: time.Since(t0).Milliseconds()}
+				kind := classifyErr(err)
+				mlogWarn("[search#%d][%s] 失败 kind=%s（%s）用时=%dms err=%q",
+					rid, s, kind, errKindLabel(kind), ms, shortErr(err))
+				ch <- sourceResult{
+					Source: s, Label: sourceLabel(s),
+					Error: err.Error(), ErrKind: kind, MS: ms,
+				}
 				return
 			}
+
 			out := make([]Song, 0, limit)
 			for _, m := range songs {
 				if len(out) >= limit {
@@ -98,20 +135,32 @@ func handleSearch(w http.ResponseWriter, r *http.Request) {
 				}
 				out = append(out, song)
 			}
-			ch <- sourceResult{Source: s, Label: sourceLabel(s), Songs: out,
-				MS: time.Since(t0).Milliseconds()}
+
+			mlogInfo("[search#%d][%s] 完成 songs=%d 用时=%dms", rid, s, len(out), ms)
+			ch <- sourceResult{Source: s, Label: sourceLabel(s), Songs: out, MS: ms}
 		}(src)
 	}
 
 	groups := make([]sourceResult, 0, len(srcs))
 	deadline := time.After(searchTimeout)
+	received := 0
 
 collect:
-	for i := 0; i < len(srcs); i++ {
+	for received < len(srcs) {
 		select {
 		case res := <-ch:
+			received++
+			delete(pending, res.Source)
 			groups = append(groups, res)
 		case <-deadline:
+			for s := range pending {
+				mlogWarn("[search#%d][%s] 整体超时（>%s）仍未返回", rid, s, searchTimeout)
+				groups = append(groups, sourceResult{
+					Source: s, Label: sourceLabel(s),
+					Error:  fmt.Sprintf("整体超时（>%s）", searchTimeout),
+					ErrKind: "timeout",
+				})
+			}
 			break collect
 		}
 	}
@@ -129,8 +178,20 @@ collect:
 	for _, g := range groups {
 		flat = append(flat, g.Songs...)
 		if g.Error != "" {
-			errs = append(errs, map[string]string{"source": g.Source, "message": g.Error})
+			errs = append(errs, map[string]string{
+				"source":  g.Source,
+				"message": g.Error,
+				"kind":    g.ErrKind,
+				"label":   errKindLabel(g.ErrKind),
+			})
 		}
+	}
+
+	if len(errs) > 0 {
+		mlogWarn("[search#%d] 汇总：成功 %d/%d 音源，失败 %d 个",
+			rid, len(srcs)-len(errs), len(srcs), len(errs))
+	} else {
+		mlogInfo("[search#%d] 汇总：所有 %d 个音源成功", rid, len(srcs))
 	}
 
 	writeJSON(w, http.StatusOK, map[string]any{
@@ -149,11 +210,14 @@ func handleResolve(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	mlogInfo("[resolve] source=%s id=%s name=%q", song.Source, song.ID, song.Name)
+
 	res := resolveSong(song, true)
 	if res == nil {
 		res = &Resolution{Song: song, Warnings: []string{"解析失败"}}
 	}
 	if !res.Quality.Audio.OK && res.URL == "" && len(res.Bytes) == 0 {
+		mlogWarn("[resolve] 全部失败 source=%s id=%s", song.Source, song.ID)
 		writeJSON(w, http.StatusOK, map[string]any{
 			"ok":       false,
 			"error":    "所有音源都无法解析这首歌",
@@ -166,6 +230,9 @@ func handleResolve(w http.ResponseWriter, r *http.Request) {
 
 	sess := &session{Song: res.Song, URL: res.URL, Bytes: res.Bytes, Ext: res.Ext}
 	putSession(sess)
+
+	mlogInfo("[resolve] 成功 source=%s sid=%s score=%d switched=%v",
+		res.Song.Source, sess.ID, res.Quality.Total, res.Switched)
 
 	writeJSON(w, http.StatusOK, map[string]any{
 		"ok":       true,
