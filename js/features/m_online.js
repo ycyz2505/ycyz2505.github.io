@@ -1,9 +1,10 @@
 // ============================================================
 // js/features/m_online.js
 // 在线搜索：与本地伴生服务（127.0.0.1:17650~17659）通信
-// - 探测端口、多源搜索、解析播放、歌词与封面代理
-// - 播放队列交给 m_player.js 的 playOnline()
-// - 所有音频/封面/歌词都只在内存里中转，不落盘
+// 关键改动：
+//  - 探测 / 请求 / 搜索全程 console 输出
+//  - 搜索失败音源的具体原因（超时/DNS/TLS/403）会打到 console 与状态栏
+//  - 新增 diag()，可在 console 里 App.MOnline.diag() 一键体检所有音源
 // ============================================================
 
 window.App = window.App || {};
@@ -56,12 +57,24 @@ window.App = window.App || {};
         return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
     }
 
+    // 把后端返回的 errors 汇总成一行简洁文字，给状态栏用
+    function fmtErrorBrief(errors) {
+        if (!errors || !errors.length) return '';
+        const names = errors.map(e => {
+            const lbl = LABEL[e.source] || e.source;
+            const reason = e.label || e.kind || '';
+            return reason ? lbl + '（' + reason + '）' : lbl;
+        });
+        return '｜' + names.length + ' 个音源失败：' + names.join('、');
+    }
+
     // ---------------- 端口探测 ----------------
 
     function probeOne(port) {
         return new Promise(resolve => {
             const controller = new AbortController();
             const timer = setTimeout(() => controller.abort(), 700);
+            const t0 = performance.now();
 
             fetch('http://127.0.0.1:' + port + '/api/m/ping', {
                 signal: controller.signal,
@@ -71,13 +84,16 @@ window.App = window.App || {};
                 .then(data => {
                     clearTimeout(timer);
                     if (data && data.service === 'class-m-online') {
+                        const ms = Math.round(performance.now() - t0);
+                        console.debug('[MOnline] 探测命中端口', port, '耗时 ' + ms + 'ms', data);
                         resolve({ base: 'http://127.0.0.1:' + port, info: data });
                     } else {
                         resolve(null);
                     }
                 })
-                .catch(() => {
+                .catch(err => {
                     clearTimeout(timer);
+                    console.debug('[MOnline] 探测端口', port, '失败', err && err.name);
                     resolve(null);
                 });
         });
@@ -92,6 +108,8 @@ window.App = window.App || {};
         }
         M.probingAt = Date.now();
 
+        console.debug('[MOnline] 开始探测本地服务端口', PORTS);
+
         M.probing = (async () => {
             for (const port of PORTS) {
                 const hit = await probeOne(port);
@@ -101,10 +119,13 @@ window.App = window.App || {};
                     if (Array.isArray(hit.info.sources) && hit.info.sources.length) {
                         hit.info.sources.forEach(s => M.picked.add(s));
                     }
+                    console.info('[MOnline] 本地服务已连接', M.base,
+                        'logLevel=' + (hit.info.logLevel || '?'));
                     return M.base;
                 }
             }
             M.base = null;
+            console.warn('[MOnline] 未找到本地服务，请确认 m-server.exe 正在运行');
             return null;
         })().finally(() => {
             M.probing = null;
@@ -117,9 +138,11 @@ window.App = window.App || {};
         const base = await probe();
         if (!base) throw new Error('本地服务未启动');
 
+        const t0 = performance.now();
         const res = await fetch(base + path, Object.assign({
             cache: 'no-store'
         }, options || {}));
+        const ms = Math.round(performance.now() - t0);
 
         if (!res.ok) {
             let msg = 'HTTP ' + res.status;
@@ -127,8 +150,10 @@ window.App = window.App || {};
                 const j = await res.json();
                 if (j && j.error) msg = j.error;
             } catch (e) { /* 忽略 */ }
+            console.warn('[MOnline] 请求失败', path, ms + 'ms', msg);
             throw new Error(msg);
         }
+        console.debug('[MOnline] 请求成功', path, ms + 'ms');
         return res;
     }
 
@@ -192,16 +217,43 @@ window.App = window.App || {};
         const sources = Array.from(M.picked);
         if (!sources.length) return { ok: false, songs: [], error: '至少选择一个音源' };
 
-        const res = await api('/api/m/search?q=' + encodeURIComponent(q) +
+        const path = '/api/m/search?q=' + encodeURIComponent(q) +
             '&sources=' + encodeURIComponent(sources.join(',')) +
-            '&limit=12');
+            '&limit=12';
 
+        console.info('[MOnline] 发起搜索', { keyword: q, sources });
+
+        const res = await api(path);
         const data = await res.json();
+
+        const errors = Array.isArray(data.errors) ? data.errors : [];
+        const groups = Array.isArray(data.groups) ? data.groups : [];
+
+        // 每个音源的详细情况
+        if (groups.length) {
+            console.groupCollapsed('[MOnline] 搜索详情（' + groups.length + ' 个音源）');
+            groups.forEach(g => {
+                const lbl = g.label || LABEL[g.source] || g.source;
+                if (g.error) {
+                    console.warn('  ✗ ' + lbl + '（' + (g.errKind || 'error') + '）'
+                        + (g.ms || 0) + 'ms：' + g.error);
+                } else {
+                    console.log('  ✓ ' + lbl + ' 返回 ' + ((g.songs && g.songs.length) || 0)
+                        + ' 首（' + (g.ms || 0) + 'ms）');
+                }
+            });
+            console.groupEnd();
+        }
+
+        if (errors.length) {
+            console.warn('[MOnline] 失败音源汇总：', errors);
+        }
+
         return {
             ok: !!data.ok,
             songs: Array.isArray(data.songs) ? data.songs : [],
-            groups: Array.isArray(data.groups) ? data.groups : [],
-            errors: Array.isArray(data.errors) ? data.errors : []
+            groups,
+            errors
         };
     }
 
@@ -216,6 +268,33 @@ window.App = window.App || {};
             return await res.text();
         } catch (e) {
             return '';
+        }
+    }
+
+    // 一键诊断：console 里 App.MOnline.diag() 可调
+    async function diag(keyword) {
+        const path = '/api/m/diag' +
+            (keyword ? '?q=' + encodeURIComponent(keyword) : '');
+        try {
+            const res = await api(path);
+            const data = await res.json();
+            console.group('[MOnline] 诊断结果' + (data.query ? '（' + data.query + '）' : ''));
+            (data.results || []).forEach(r => {
+                const lbl = r.label || LABEL[r.source] || r.source;
+                if (r.ok) {
+                    console.log('  ✓ ' + lbl + '（' + r.source + '）：'
+                        + r.songs + ' 首，' + (r.ms || 0) + 'ms');
+                } else {
+                    console.warn('  ✗ ' + lbl + '（' + r.source + '）：'
+                        + (r.reason || r.error) + '，' + (r.ms || 0) + 'ms');
+                    if (r.error) console.warn('     kind=' + r.errKind + ' detail=' + r.error);
+                }
+            });
+            console.groupEnd();
+            return data;
+        } catch (e) {
+            console.error('[MOnline] 诊断失败', e);
+            throw e;
         }
     }
 
@@ -300,14 +379,12 @@ window.App = window.App || {};
             renderResults();
 
             if (!M.results.length) {
-                setStatus('没有找到结果');
+                setStatus('没有找到结果' + fmtErrorBrief(out.errors));
             } else {
-                const slow = (out.errors || []).length;
-                setStatus('共 ' + M.results.length + ' 首' +
-                    (slow ? '（' + slow + ' 个音源无响应）' : ''));
+                setStatus('共 ' + M.results.length + ' 首' + fmtErrorBrief(out.errors));
             }
         } catch (e) {
-            console.warn('[M] 搜索失败：', e);
+            console.warn('[MOnline] 搜索失败：', e);
             setStatus('搜索失败：' + (e.message || e));
             M.results = [];
             renderResults();
@@ -410,6 +487,9 @@ window.App = window.App || {};
         streamUrl,
         toQueue,
         songQuery,
+
+        // 一键诊断
+        diag,
 
         label(src) { return LABEL[src] || src; }
     };
