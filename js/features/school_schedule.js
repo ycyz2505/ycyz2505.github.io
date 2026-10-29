@@ -470,6 +470,9 @@ window.App.SchoolSchedule = {
     },
 
     updateCountdownDisplay() {
+        // 滚轮调音量时，这个数字暂时由播放器接管显示音量
+        if (window.App.Music?.volumeHudActive?.()) return;
+
         const result = this.getNextScheduleInfo();
         const now = window.App.Utils.now();
 

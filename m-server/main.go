@@ -18,7 +18,7 @@ import (
 
 const (
 	appService = "class-m-online"
-	appVersion = "1.1.0"
+	appVersion = "1.2.0"
 
 	portStart = 17650
 	portEnd   = 17659
@@ -40,9 +40,6 @@ func main() {
 	loadCookies()
 
 	initLogLevel()   // ← 新增
-
-	// 网络兜底：80 端口被拦时自动换策略（日志级别就绪后再装，否则日志会被吞）
-	installNetFallback()
 
 	if err := ensureDataDir(); err != nil {
 		log.Printf("数据目录不可写：%v", err)
@@ -72,6 +69,10 @@ func main() {
 			log.Fatalf("服务异常退出：%v", err)
 		}
 	}()
+
+	// 端口已经在服务了，再跑网络自检（要连外网，最坏几秒），
+	// 放在这里就不会拖慢页面第一次探测
+	installNetFallback()
 
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)

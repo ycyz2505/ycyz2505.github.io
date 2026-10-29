@@ -53,6 +53,10 @@ window.App.Store = {
             // 音乐播放器：上次的音量（0~1）与播放模式（见 m_player.js）
             musicVolumeLevel: 0.8,
             musicPlayMode: 'order',
+            // 首页是否显示「关闭」按钮；关掉后用节气 / 快捷键隐蔽停止
+            musicShowStopButton: true,
+            // 隐蔽停止快捷键，存 KeyboardEvent.code，空串表示不启用
+            musicStopHotkey: 'Escape',
 
             // 今日课表临时覆盖，不修改 timetable 原始数据
             temporaryTimetable: null,

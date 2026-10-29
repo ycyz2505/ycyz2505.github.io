@@ -59,9 +59,14 @@ window.App.Timeline = {
 
         document.querySelectorAll('.solar-term-marker').forEach(m => m.remove());
 
-        terms.forEach((term, index) => {
+        // 先筛掉不在时间轴范围内的节气，这样首尾就是「最左 / 最右」
+        const visible = terms.filter(term => {
+            const d = new Date(currentYear, term.month - 1, term.day);
+            return d >= startDate && d <= endDate;
+        });
+
+        visible.forEach((term, index) => {
             const termDate = new Date(currentYear, term.month - 1, term.day);
-            if (termDate < startDate || termDate > endDate) return;
 
             const position = ((termDate - startDate) / 86400000 / totalDays) * 100;
             const isPast = termDate < now;
@@ -111,6 +116,20 @@ window.App.Timeline = {
 
             marker.addEventListener('click', e => {
                 e.stopPropagation();
+
+                // 播放中：最左 / 最右 / 其余 分别是 上一首 / 下一首 / 停止。
+                // 不弹节气卡片，也不给任何提示。
+                if (window.App.Music?.isPlaying?.()) {
+                    if (index === 0) {
+                        window.App.Music.stealthPrev();
+                    } else if (index === visible.length - 1) {
+                        window.App.Music.stealthNext();
+                    } else {
+                        window.App.Music.stealthStop();
+                    }
+                    return;
+                }
+
                 document.querySelectorAll('.solar-card').forEach(c => c.classList.remove('active'));
                 document.querySelectorAll('.solar-term-marker').forEach(m => (m.style.zIndex = '2'));
                 card.classList.add('active');

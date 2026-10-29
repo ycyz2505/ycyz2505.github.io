@@ -64,6 +64,10 @@ window.App = window.App || {};
 
         volume: 0.8,
 
+        // 隐蔽控制
+        showStopBtn: true,
+        hotkey: 'Escape',
+
         inited: false,
 
         expanded: new Set(),
@@ -119,6 +123,8 @@ window.App = window.App || {};
     // ------------------------------------------------------------
     const SETTING_VOLUME = 'musicVolumeLevel';
     const SETTING_MODE = 'musicPlayMode';
+    const SETTING_STOP_BTN = 'musicShowStopButton';
+    const SETTING_HOTKEY = 'musicStopHotkey';
 
     function readSetting(key, fallback) {
         const st = window.App.Store;
@@ -501,7 +507,8 @@ window.App = window.App || {};
         const btn = $('musicStopButton');
         if (!btn) return;
 
-        const show = !!(audio && !audio.paused && curIdx() >= 0);
+        const show = S.showStopBtn !== false &&
+            !!(audio && !audio.paused && curIdx() >= 0);
         btn.style.display = show ? '' : 'none';
     }
 
@@ -898,11 +905,11 @@ window.App = window.App || {};
         playAt(next);
     }
 
-    function playPrev() {
+    function playPrev(force) {
         const list = curList();
         if (!list.length) return;
 
-        if (audio.currentTime > 3) {
+        if (!force && audio.currentTime > 3) {
             audio.currentTime = 0;
             return;
         }
@@ -1332,6 +1339,144 @@ window.App = window.App || {};
     }
 
     // ------------------------------------------------------------
+    // 隐蔽控制：快捷键 / 滚轮音量 / 首页按钮开关
+    // 触发前后都不弹任何提示
+    // ------------------------------------------------------------
+    const VOL = {
+        hud: false,
+        timer: null,
+        prevText: ''
+    };
+
+    function isPlayingNow() {
+        return !!(audio && !audio.paused && curIdx() >= 0);
+    }
+
+    function hotkeyLabel(code) {
+        if (!code) return '';
+        if (/^Key[A-Z]$/.test(code)) return code.slice(3);
+        if (/^Digit\d$/.test(code)) return code.slice(5);
+        if (/^F\d{1,2}$/.test(code)) return code;
+
+        const map = {
+            Escape: 'Esc', Space: '空格', Enter: '回车', Tab: 'Tab',
+            Backspace: '退格', Backquote: '`', Minus: '-', Equal: '=',
+            BracketLeft: '[', BracketRight: ']', Backslash: '\\',
+            Semicolon: ';', Quote: "'", Comma: ',', Period: '.', Slash: '/',
+            ArrowUp: '↑', ArrowDown: '↓', ArrowLeft: '←', ArrowRight: '→',
+            Insert: 'Ins', Delete: 'Del', Home: 'Home', End: 'End',
+            PageUp: 'PgUp', PageDown: 'PgDn'
+        };
+        return map[code] || code;
+    }
+
+    // 滚轮调音量：把「下个作息倒计时」的数字临时换成音量
+    function showVolumeHud() {
+        const el = $('countdownTimer');
+        if (!el) return;
+
+        if (!VOL.hud) VOL.prevText = el.textContent;
+
+        VOL.hud = true;
+        el.textContent = String(Math.round(S.volume * 100));
+
+        if (VOL.timer) clearTimeout(VOL.timer);
+        VOL.timer = setTimeout(() => {
+            VOL.timer = null;
+            VOL.hud = false;
+
+            writeSetting(SETTING_VOLUME, S.volume);
+
+            // 让作息模块立刻把倒计时写回去，否则要等下一个 tick
+            const ss = window.App.SchoolSchedule;
+            if (ss && typeof ss.updateCountdownDisplay === 'function') {
+                ss.updateCountdownDisplay();
+            } else {
+                el.textContent = VOL.prevText || '--:--';
+            }
+        }, 500);
+    }
+
+    function bindStealthControls() {
+        const chk = $('musicShowStop');
+        if (chk) {
+            chk.checked = S.showStopBtn !== false;
+            chk.addEventListener('change', () => {
+                S.showStopBtn = !!chk.checked;
+                writeSetting(SETTING_STOP_BTN, S.showStopBtn);
+                updateHomeButton();
+            });
+        }
+
+        const input = $('musicHotkey');
+        if (input) {
+            input.value = hotkeyLabel(S.hotkey);
+
+            input.addEventListener('click', () => {
+                input.dataset.capturing = '1';
+                input.value = '按下任意键…';
+                input.focus();
+            });
+
+            input.addEventListener('keydown', e => {
+                if (input.dataset.capturing !== '1') return;
+
+                e.preventDefault();
+                e.stopPropagation();
+
+                // 单独按修饰键不算一次录制
+                if (/^(Shift|Control|Alt|Meta)(Left|Right)$/.test(e.code)) return;
+
+                input.dataset.capturing = '';
+                S.hotkey = e.code;
+                writeSetting(SETTING_HOTKEY, S.hotkey);
+                input.value = hotkeyLabel(S.hotkey);
+                input.blur();
+            });
+
+            input.addEventListener('blur', () => {
+                if (input.dataset.capturing !== '1') return;
+                input.dataset.capturing = '';
+                input.value = hotkeyLabel(S.hotkey);
+            });
+        }
+
+        $('musicHotkeyClear')?.addEventListener('click', () => {
+            S.hotkey = '';
+            writeSetting(SETTING_HOTKEY, '');
+            const el = $('musicHotkey');
+            if (el) el.value = '';
+        });
+
+        // 全局停止键：只在播放中生效，静默停止
+        document.addEventListener('keydown', e => {
+            if (!S.hotkey || e.repeat) return;
+            if (e.code !== S.hotkey) return;
+
+            const t = e.target;
+            if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) {
+                return;
+            }
+            if (!isPlayingNow()) return;
+
+            e.preventDefault();
+            e.stopPropagation();
+            stopMusic();
+        });
+
+        // 任意位置滚轮调音量
+        window.addEventListener('wheel', e => {
+            if (e.ctrlKey) return;
+
+            const delta = Number(e.deltaY) || 0;
+            if (!delta) return;
+
+            applyVolume(S.volume + (delta < 0 ? 0.05 : -0.05), true);
+            showVolumeHud();
+        }, { passive: true });
+    }
+
+    // ------------------------------------------------------------
     // 事件绑定
     // ------------------------------------------------------------
     function bindAudio() {
@@ -1628,8 +1773,12 @@ window.App = window.App || {};
                 S.volume = savedVol;
             }
 
+            S.showStopBtn = readSetting(SETTING_STOP_BTN, true) !== false;
+            S.hotkey = String(readSetting(SETTING_HOTKEY, 'Escape') || '');
+
             bindAudio();
             bindUI();
+            bindStealthControls();
             applyMode(readSetting(SETTING_MODE, 'order'), false);
             loadTree(false);
 
@@ -1653,6 +1802,30 @@ window.App = window.App || {};
 
         isPlaying() {
             return !!(audio && !audio.paused && curIdx() >= 0);
+        },
+
+        // 隐蔽控制：首页节气标记与快捷键调用，不产生任何提示
+        stealthPrev() {
+            if (!isPlayingNow()) return false;
+            playPrev(true);
+            return true;
+        },
+
+        stealthNext() {
+            if (!isPlayingNow()) return false;
+            playNext(false);
+            return true;
+        },
+
+        stealthStop() {
+            if (!isPlayingNow()) return false;
+            stopMusic();
+            return true;
+        },
+
+        // 滚轮音量正在接管倒计时显示
+        volumeHudActive() {
+            return VOL.hud === true;
         },
 
         stop() {

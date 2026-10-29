@@ -770,6 +770,23 @@
 
                             <div class="music-settings-status" id="mPrefStatus"></div>
                         </div>
+
+                        <div class="music-setting-section" style="margin-top:14px;padding-top:12px;border-top:1px solid var(--theme-border);">
+                            <div class="music-setting-title">隐蔽控制</div>
+
+                            <label class="music-check-row">
+                                <input type="checkbox" id="musicShowStop" checked>
+                                <span>显示首页「关闭」按钮</span>
+                            </label>
+
+                            <div class="music-sleep-row">
+                                <span>停止键</span>
+                                <input type="text" id="musicHotkey" readonly placeholder="点击后按任意键">
+                                <button type="button" id="musicHotkeyClear">清除</button>
+                            </div>
+
+                            <div class="music-settings-status" id="musicHotkeyStatus"></div>
+                        </div>
                     </div>
 
                     <div class="music-bar" id="musicBar">
