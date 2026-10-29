@@ -1345,7 +1345,8 @@ window.App = window.App || {};
     const VOL = {
         hud: false,
         timer: null,
-        prevText: ''
+        prevText: '',
+        acc: 0
     };
 
     function isPlayingNow() {
@@ -1465,14 +1466,31 @@ window.App = window.App || {};
         });
 
         // 任意位置滚轮调音量
+        // 一次滚轮手势会连发十几条事件，直接逐条加减会让音量瞬间拉满，
+        // 所以先累积位移，够一格（约 100）才走 5%
         window.addEventListener('wheel', e => {
             if (e.ctrlKey) return;
 
             const delta = Number(e.deltaY) || 0;
             if (!delta) return;
 
-            applyVolume(S.volume + (delta < 0 ? 0.05 : -0.05), true);
-            showVolumeHud();
+            VOL.acc += -delta;
+            if (VOL.acc > 300) VOL.acc = 300;
+            if (VOL.acc < -300) VOL.acc = -300;
+
+            let changed = false;
+            while (VOL.acc >= 100) {
+                VOL.acc -= 100;
+                applyVolume(S.volume + 0.05, true);
+                changed = true;
+            }
+            while (VOL.acc <= -100) {
+                VOL.acc += 100;
+                applyVolume(S.volume - 0.05, true);
+                changed = true;
+            }
+
+            if (changed) showVolumeHud();
         }, { passive: true });
     }
 
