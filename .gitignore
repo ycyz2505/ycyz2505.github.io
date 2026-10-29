@@ -9,6 +9,8 @@ data/
 m-server.exe
 m-server/data/
 m-server/m-server.exe
+LocalDataServer/*.exe
+LocalDataServer/data/
 
 # 工作区数据
 .workbuddy-ai/

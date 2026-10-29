@@ -1371,22 +1371,67 @@ window.App = window.App || {};
         return map[code] || code;
     }
 
+    // 系统音量（需要 LocalDataServer 支持 /api/audio/volume）
+    const SYSVOL = {
+        supported: false,
+        value: -1,
+        timer: null
+    };
+
+    function fetchSysVolume() {
+        const base = baseUrl();
+        if (!base) return;
+
+        fetch(base + '/api/audio/volume', { cache: 'no-store' })
+            .then(res => (res.ok ? res.json() : null))
+            .then(data => {
+                if (data && data.ok && typeof data.volume === 'number') {
+                    SYSVOL.supported = true;
+                    SYSVOL.value = data.volume;
+                }
+            })
+            .catch(() => { /* 旧版服务没有这个接口，忽略 */ });
+    }
+
+    function pushSysVolume(percent) {
+        if (SYSVOL.timer) clearTimeout(SYSVOL.timer);
+
+        SYSVOL.timer = setTimeout(() => {
+            SYSVOL.timer = null;
+
+            const base = baseUrl();
+            if (!base) return;
+
+            fetch(base + '/api/audio/volume?v=' + Math.round(percent), {
+                method: 'POST',
+                cache: 'no-store'
+            }).catch(() => { /* 忽略 */ });
+        }, 80);
+    }
+
+    let saveVolTimer = null;
+    function scheduleVolumeSave() {
+        if (saveVolTimer) clearTimeout(saveVolTimer);
+        saveVolTimer = setTimeout(() => {
+            saveVolTimer = null;
+            writeSetting(SETTING_VOLUME, S.volume);
+        }, 500);
+    }
+
     // 滚轮调音量：把「下个作息倒计时」的数字临时换成音量
-    function showVolumeHud() {
+    function showVolumeHud(percent) {
         const el = $('countdownTimer');
         if (!el) return;
 
         if (!VOL.hud) VOL.prevText = el.textContent;
 
         VOL.hud = true;
-        el.textContent = String(Math.round(S.volume * 100));
+        el.textContent = String(Math.round(percent));
 
         if (VOL.timer) clearTimeout(VOL.timer);
         VOL.timer = setTimeout(() => {
             VOL.timer = null;
             VOL.hud = false;
-
-            writeSetting(SETTING_VOLUME, S.volume);
 
             // 让作息模块立刻把倒计时写回去，否则要等下一个 tick
             const ss = window.App.SchoolSchedule;
@@ -1478,19 +1523,22 @@ window.App = window.App || {};
             if (VOL.acc > 300) VOL.acc = 300;
             if (VOL.acc < -300) VOL.acc = -300;
 
-            let changed = false;
-            while (VOL.acc >= 100) {
-                VOL.acc -= 100;
-                applyVolume(S.volume + 0.05, true);
-                changed = true;
-            }
-            while (VOL.acc <= -100) {
-                VOL.acc += 100;
-                applyVolume(S.volume - 0.05, true);
-                changed = true;
-            }
+            let steps = 0;
+            while (VOL.acc >= 100) { VOL.acc -= 100; steps++; }
+            while (VOL.acc <= -100) { VOL.acc += 100; steps--; }
+            if (!steps) return;
 
-            if (changed) showVolumeHud();
+            // 有系统音量接口就调系统音量，否则退回播放器自身的音量
+            if (SYSVOL.supported) {
+                const base = SYSVOL.value >= 0 ? SYSVOL.value : 50;
+                SYSVOL.value = Math.max(0, Math.min(100, base + steps * 5));
+                showVolumeHud(SYSVOL.value);
+                pushSysVolume(SYSVOL.value);
+            } else {
+                applyVolume(S.volume + steps * 0.05, true);
+                showVolumeHud(S.volume * 100);
+                scheduleVolumeSave();
+            }
         }, { passive: true });
     }
 
@@ -1797,6 +1845,7 @@ window.App = window.App || {};
             bindAudio();
             bindUI();
             bindStealthControls();
+            fetchSysVolume();
             applyMode(readSetting(SETTING_MODE, 'order'), false);
             loadTree(false);
 
@@ -1813,6 +1862,7 @@ window.App = window.App || {};
             updateBar();
             applyVolume(S.volume, true);
             updateHomeButton();
+            fetchSysVolume();
             switchTab(S.tab);
 
             window.App.Calculator?.clear?.();

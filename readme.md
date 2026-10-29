@@ -153,7 +153,9 @@
 | 点节气时间轴**最右边**的节气 | 下一首 |
 | 点**其余任意**节气 | 停止播放（与「关闭」按钮一致） |
 | 按停止快捷键 | 停止播放 |
-| 任意位置滚动滚轮 | 调整音量；滚动时「下个作息倒计时」的数字临时显示当前音量，停手 0.5 秒后自动恢复 |
+| 任意位置滚动滚轮 | 调整**系统音量**；滚动时「下个作息倒计时」的数字临时显示当前音量，停手 0.5 秒后自动恢复 |
+
+> 滚轮走的是 Windows 主音量（`LocalDataServer.exe` 的 `/api/audio/volume`），不是网页里那根音量条。如果本地服务版本太旧没有这个接口，会自动退回调整播放器自身音量。
 
 ## 在线搜索与本地歌单
 
@@ -369,6 +371,8 @@ direct → direct+https → dns → dns+https → nokeep → proxy
 | GET | `/api/music/media?path=` | 流媒体播放（支持 Range 请求） |
 | GET | `/api/audio/devices` | 列出音频输出设备 |
 | POST | `/api/audio/device` | 启用/禁用某台输出设备 |
+| GET | `/api/audio/volume` | 读取系统主音量（0~100） |
+| POST | `/api/audio/volume?v=0~100` | 设置系统主音量，也接受 `{"volume":0~100}` |
 
 支持的数据名称：`settings`、`timetable`、`schedule`、`phrases`、`solarterms`、`lostfound`、`notifications`、`seatmap`、`countdowns`、`plaza`、`plazaMedia`。
 
