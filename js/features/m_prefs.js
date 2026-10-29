@@ -66,11 +66,9 @@ window.App = window.App || {};
         if (!sel) return;
 
         sel.innerHTML = ORDER.map(s => {
-            const text = s === 'auto'
-                ? LABEL.auto + '（跟随音频源）'
-                : LABEL[s];
-            return '<option value="' + s + '"' +
-                (s === value ? ' selected' : '') + '>' + text + '</option>';
+            const hint = s === 'auto' ? ' title="跟随音频源"' : '';
+            return '<option value="' + s + '"' + hint +
+                (s === value ? ' selected' : '') + '>' + LABEL[s] + '</option>';
         }).join('');
     }
 
@@ -88,7 +86,12 @@ window.App = window.App || {};
             render();
             setStatus('');
         } catch (e) {
-            setStatus('读取失败：' + (e.message || e));
+            const msg = String(e.message || e);
+            setStatus(
+                (msg.indexOf('not found') !== -1 || msg.indexOf('404') !== -1)
+                    ? '本地服务版本过旧，请更新 m-server.exe'
+                    : '读取失败：' + msg
+            );
         }
     }
 
@@ -134,6 +137,8 @@ window.App = window.App || {};
         },
 
         open() {
+            // 先铺静态选项，这样本地服务没起时下拉也不会是空的
+            if (!P.data) render();
             load();
         },
 
