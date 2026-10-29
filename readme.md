@@ -93,6 +93,8 @@
 
 考虑到 C 盘会还原，因此本地数据未使用浏览器缓存进行存储，而是由位于 D 盘的 `LocalDataServer.exe` 进行中转，实现网页直接读写本地磁盘。请先运行该文件，再打开页面。页面会自动探测本地端口 `17632` 到 `17641`。
 
+> `LocalDataServer.exe` 和 `m-server.exe` 都可以从 [Releases](https://github.com/ycyz2505/ycyz2505.github.io/releases/tag/build-latest) 下载，放到同一个目录里即可。
+
 音乐功能还需要在 `LocalDataServer.exe` 同级目录下建立 `data\music\` 文件夹，把歌曲按子文件夹分类放进去（同目录内可放 `.lrc` 歌词与封面图，封面优先匹配 `cover`、`folder`、`front`、`album`、`封面` 等命名，否则将使用文件夹内第一张图片）。
 
 ## 功能一览

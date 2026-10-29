@@ -5,6 +5,8 @@ on:
     branches: [main]
     paths:
       - 'm-server/**'
+      - 'LocalDataServer.exe'
+      - 'LocalDataServer/**'
       - '.github/workflows/build.yml'
   workflow_dispatch:
 
@@ -72,18 +74,28 @@ jobs:
           body: |
             由 GitHub Actions 自动构建，随 `main` 分支更新。
 
-            **用法**：下载 `m-server.exe`，放到 `LocalDataServer.exe` 同一个目录，双击运行。
+            **两个文件都下下来，放在同一个目录里**，双击各自的 exe 即可。
             不需要安装 Go 或任何运行时。
+
+            `m-server.exe` —— 在线搜索 / 歌单服务（可选，只要本地播放可以不运行）
 
             - 静默启动，不弹命令行窗口
             - 日志写到同目录的 `m-server.log`（超过 4MB 会转存为 `.old`）
             - 端口从 `17650` 开始自动找，页面会自己探测
             - 首次运行会在同级目录建 `data/m/` 存歌单
             - 停止：任务管理器结束 `m-server.exe`，或命令行 `taskkill /IM m-server.exe /F`
-            - 只想用本地播放可以不运行它
+
+            `LocalDataServer.exe` —— 本地数据与音频服务（必需）
+
+            - 页面读写本地 JSON、播放 `data/music/` 里的歌都靠它
+            - 端口从 `17632` 开始自动找
+            - 提供系统音量接口 `/api/audio/volume`（v1.4 起）
+            - 停止：任务管理器结束 `LocalDataServer.exe`，或 `taskkill /IM LocalDataServer.exe /F`
 
             构建自 `${{ github.sha }}`
-          files: m-server.exe
+          files: |
+            m-server.exe
+            LocalDataServer.exe
           overwrite_files: true
           make_latest: true
 
@@ -92,4 +104,6 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: m-server.exe
+          files: |
+            m-server.exe
+            LocalDataServer.exe
