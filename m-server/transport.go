@@ -265,8 +265,7 @@ func newFallbackTransport() *fallbackTransport {
 	nk.DisableKeepAlives = true
 	t.profiles = append(t.profiles, netProfile{name: "nokeep", tr: nk})
 
-	// 代理兜底
-	proxies := detectProxies()
+	// 代理兜底（proxies 已由上面的自检并发算好）
 	for i, raw := range proxies {
 		u, err := url.Parse(raw)
 		if err != nil || u.Host == "" {
