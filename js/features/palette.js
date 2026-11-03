@@ -102,20 +102,60 @@ window.App.Palette = {
 };
 
 window.App.ModalPalette = {
+    _previewing: false,
+    _previewTimer: null,
+    _previewDismissBound: false,
+
     init() {
         document.getElementById('openPaletteModal')?.addEventListener('click', () => {
+            this.setPreviewing(false);
             this.populate();
             document.getElementById('paletteModal')?.classList.add('active');
         });
 
         document.getElementById('closePalette')?.addEventListener('click', () => {
+            this.setPreviewing(false);
             document.getElementById('paletteModal')?.classList.remove('active');
         });
 
         document.getElementById('paletteReset')?.addEventListener('click', () => {
+            this.setPreviewing(false);
             window.App.Palette.reset();
             this.populate();
             this.status('已恢复默认配色');
+        });
+    },
+
+    // 取色时把所有模态框一起淡出（和虚拟时间滑动条同一套做法），
+    // 这样能直接看到页面上的真实配色，而不是被设置面板挡住。
+    setPreviewing(on) {
+        this._previewing = !!on;
+
+        document.querySelectorAll('.settings-modal').forEach(modal => {
+            modal.classList.toggle('previewing', this._previewing);
+        });
+
+        clearTimeout(this._previewTimer);
+
+        if (!this._previewing) return;
+
+        // 兜底：万一取色器没有触发 change，最多 60 秒后恢复面板
+        this._previewTimer = setTimeout(() => this.setPreviewing(false), 60000);
+        this.bindPreviewDismiss();
+    },
+
+    bindPreviewDismiss() {
+        if (this._previewDismissBound) return;
+        this._previewDismissBound = true;
+
+        const dismiss = () => {
+            if (this._previewing) this.setPreviewing(false);
+        };
+
+        // 取色器关闭后，用户在页面上的下一次点击/按键即可恢复面板
+        window.addEventListener('pointerdown', dismiss, true);
+        window.addEventListener('keydown', event => {
+            if (event.key === 'Escape') dismiss();
         });
     },
 
@@ -157,6 +197,9 @@ window.App.ModalPalette = {
             row.appendChild(info);
 
             swatch.addEventListener('input', e => {
+                // 第一次移动颜色就淡出面板，让页面实时可见
+                this.setPreviewing(true);
+
                 const next = window.App.Palette.get() || window.App.Palette.defaults();
                 const normalized = window.App.Palette.normalizeHex(e.target.value) || color.fallback;
                 next[color.key] = normalized;
@@ -164,6 +207,9 @@ window.App.ModalPalette = {
                 hex.textContent = normalized;
                 this.status('已应用');
             });
+
+            // 取色器关闭 / 确认颜色后恢复面板
+            swatch.addEventListener('change', () => this.setPreviewing(false));
 
             fragment.appendChild(row);
         });
