@@ -10,7 +10,8 @@ window.App = window.App || {};
 
 window.App.PhraseHistory = {
     WINDOW_MS: 24 * 60 * 60 * 1000,
-    MAX_ITEMS: 500,
+    // 默认 15 秒轮播时，24 小时约 5760 条；上限给足，避免文件无限增长
+    MAX_ITEMS: 6000,
 
     SOURCE_LABELS: {
         api: '联网',
@@ -84,12 +85,6 @@ window.App.ModalPhraseHistory = {
 
         document.getElementById('closePhraseHistory')?.addEventListener('click', () => {
             document.getElementById('phraseHistoryModal')?.classList.remove('active');
-        });
-
-        // 其他窗口写入历史时，如果面板正开着就顺手刷新
-        window.App.Store?.watch('phraseHistory', () => {
-            const modal = document.getElementById('phraseHistoryModal');
-            if (modal && modal.classList.contains('active')) this.populate();
         });
     },
 
