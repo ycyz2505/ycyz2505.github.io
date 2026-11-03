@@ -18,7 +18,7 @@ import (
 
 const (
 	appService = "class-m-online"
-	appVersion = "1.2.0"
+	appVersion = "1.3.0"
 
 	portStart = 17650
 	portEnd   = 17659
@@ -36,6 +36,12 @@ func main() {
 	// 静默启动：没有命令行窗口，日志统一写 exe 同级的 m-server.log
 	setupLog()
 	log.Printf("m-server %s 启动", appVersion)
+
+	// 禁止多开：命名互斥量 + 端口探测，旧版本没有互斥量也能拦住
+	if !singleInstance() {
+		log.Printf("检测到已有 m-server 在运行，本次启动取消")
+		return
+	}
 
 	loadCookies()
 
@@ -73,6 +79,9 @@ func main() {
 	// 端口已经在服务了，再跑网络自检（要连外网，最坏几秒），
 	// 放在这里就不会拖慢页面第一次探测
 	installNetFallback()
+
+	// 后台检查 GitHub Releases，有新版本就下载并重启自己
+	startUpdateCheck()
 
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)

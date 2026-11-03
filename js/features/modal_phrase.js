@@ -37,7 +37,7 @@ window.App.ModalPhrase = {
                 item.classList.add('phrase-click-effect');
                 setTimeout(() => item.classList.remove('phrase-click-effect'), 400);
 
-                window.App.GoldenPhrase?.updateDisplay(phrase);
+                window.App.GoldenPhrase?.updateDisplay(phrase, 'manual');
 
                 document.getElementById('phraseModal')?.classList.remove('active');
 

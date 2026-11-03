@@ -25,6 +25,12 @@ window.App.ThemeBackground = {
     },
 
     update() {
+        // 调色盘优先：用户手动配色时不再覆盖节气渐变
+        if (window.App.Palette && window.App.Palette.isActive()) {
+            window.App.Palette.apply();
+            return;
+        }
+
         // 关闭时：清除内联变量，回退到 CSS 里写死的默认绿色主题
         if (!this.isGradientEnabled()) {
             this.resetTheme();

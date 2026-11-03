@@ -1,6 +1,7 @@
 window.App.GoldenPhrase = {
     currentPhrase: null,
     pendingPhrase: null,
+    pendingSource: null,
     prefetchController: null,
     cycleTimer: null,
     _animationTimer: null,
@@ -67,7 +68,7 @@ window.App.GoldenPhrase = {
 
     init() {
         if (!this.currentPhrase) {
-            this.displayNext(this.pickLocalPhrase());
+            this.displayNext(this.pickLocalPhrase(), 'local');
         }
 
         this.scheduleNextCycle();
@@ -90,7 +91,7 @@ window.App.GoldenPhrase = {
     },
 
     showLocal() {
-        this.displayNext(this.pickLocalPhrase());
+        this.displayNext(this.pickLocalPhrase(), 'local');
     },
 
     // ==================== 音乐歌词接管 ====================
@@ -158,31 +159,39 @@ window.App.GoldenPhrase = {
 
     onCycleEnd() {
         let next;
+        let source;
 
         if (this.pendingPhrase) {
             next = this.pendingPhrase;
+            source = this.pendingSource || 'api';
             this.pendingPhrase = null;
+            this.pendingSource = null;
         } else {
             this.cancelPrefetch();
             next = this.pickLocalPhrase();
+            source = 'local';
         }
 
-        this.displayNext(next);
+        this.displayNext(next, source);
         this.scheduleNextCycle();
     },
 
-    refreshNow() {
+    refreshNow(source) {
         this.stopCycle();
 
         let next;
+        let origin;
+
         if (this.pendingPhrase) {
             next = this.pendingPhrase;
+            origin = this.pendingSource || 'api';
         } else {
             next = this.pickLocalPhrase();
+            origin = source || 'local';
         }
 
         this.cancelPrefetch();
-        this.displayNext(next);
+        this.displayNext(next, origin);
 
         if (document.getElementById('goldenSwitch')?.checked) {
             this.scheduleNextCycle();
@@ -199,11 +208,13 @@ window.App.GoldenPhrase = {
         const controller = new AbortController();
         this.prefetchController = controller;
         this.pendingPhrase = null;
+        this.pendingSource = null;
 
         const probability = Number(window.App.State?.apiProbability ?? 50);
 
         if (Math.random() >= probability / 100) {
             this.pendingPhrase = this.pickLocalPhrase();
+            this.pendingSource = 'local';
             return;
         }
 
@@ -224,6 +235,7 @@ window.App.GoldenPhrase = {
                 if (this.prefetchController !== controller) return;
 
                 this.pendingPhrase = text;
+                this.pendingSource = 'api';
                 return;
             } catch (err) {
                 if (controller.signal.aborted) return;
@@ -240,6 +252,7 @@ window.App.GoldenPhrase = {
             this.prefetchController = null;
         }
         this.pendingPhrase = null;
+        this.pendingSource = null;
     },
 
     selectUntriedAPI(triedApis) {
@@ -353,16 +366,16 @@ window.App.GoldenPhrase = {
 
     // ==================== 显示 ====================
 
-    displayNext(text) {
+    displayNext(text, source) {
         // 音乐歌词正在接管，跳过本轮更新
         if (this._musicLyric !== null) return;
 
         window.App.State.lastPhrase = text;
         this.currentPhrase = text;
-        this.updateDisplay(text);
+        this.updateDisplay(text, source);
     },
 
-    updateDisplay(text) {
+    updateDisplay(text, source) {
         // 音乐歌词正在接管，普通金句不覆盖
         if (this._musicLyric !== null) return;
 
@@ -375,6 +388,9 @@ window.App.GoldenPhrase = {
         }
 
         const finalText = text === undefined || text === null ? '' : String(text);
+
+        // 记录到「金句历史」（音乐歌词不记）
+        window.App.PhraseHistory?.record(finalText, source || 'auto');
 
         const animationEnabled = window.App.Store
             ? window.App.Store.getSetting('animationSwitch') !== false
@@ -418,10 +434,10 @@ window.App.GoldenPhrase = {
                 container.style.transform = 'scale(0.98)';
                 setTimeout(() => {
                     container.style.transform = 'scale(1)';
-                    this.refreshNow();
+                    this.refreshNow('click');
                 }, 300);
             } else {
-                this.refreshNow();
+                this.refreshNow('click');
             }
         });
     },

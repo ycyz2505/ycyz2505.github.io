@@ -31,6 +31,8 @@ window.onload = async function () {
     safeInit('GoldenPhrase', () => window.App.GoldenPhrase?.init());
     safeInit('AutoRefresh', () => window.App.AutoRefresh?.init());
     safeInit('ThemeBackground', () => window.App.ThemeBackground?.init());
+    safeInit('Palette', () => window.App.ModalPalette?.init());
+    safeInit('PhraseHistory', () => window.App.ModalPhraseHistory?.init());
 
     safeInit('ModalCore', () => window.App.ModalCore?.init());
     safeInit('ModalSettings', () => window.App.ModalSettings?.init());

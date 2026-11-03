@@ -62,7 +62,10 @@ window.App.Store = {
             temporaryTimetable: null,
 
             // 虚拟时间偏移量（毫秒），0 表示跟随系统时间
-            timeOffset: 0
+            timeOffset: 0,
+
+            // 调色盘：null 表示使用默认 / 节气配色；对象内容见 palette.js
+            palette: null
         },
 
         // 座位表：见 modal_seating.js
@@ -70,6 +73,9 @@ window.App.Store = {
 
         // 倒计日：见 exam_countdown.js（第一项固定为高考，不可删除）
         countdowns: { version: 2, items: [], activeId: '' },
+
+        // 金句轮播历史：见 phrase_history.js（只保留近 24 小时）
+        phraseHistory: { version: 1, items: [] },
 
         // 广场：见 plaza_core.js
         //   plaza      名单 + 社交关系 + 账号（小文件，频繁写）

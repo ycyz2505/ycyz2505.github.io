@@ -18,12 +18,12 @@
 //
 //  MinGW 编译命令：
 //    g++ -O2 -static -mwindows LocalDataServer.cpp ^
-//        -o LocalDataServer.exe -lws2_32 -lole32 -lpropsys ^
+//        -o LocalDataServer.exe -lws2_32 -lole32 -lpropsys -lwinhttp -lbcrypt ^
 //        -static-libgcc -static-libstdc++
 //
 //  MSVC 编译命令：
-//    cl /O2 /MT /EHsc /DNDEBUG LocalDataServer.cpp ^
-//       /link /SUBSYSTEM:WINDOWS ws2_32.lib ole32.lib propsys.lib
+//    cl /O2 /utf-8 /MT /EHsc /DNDEBUG /Brepro LocalDataServer.cpp ^
+//       /link /SUBSYSTEM:WINDOWS ws2_32.lib ole32.lib propsys.lib winhttp.lib bcrypt.lib
 // ============================================================
 
 #ifndef WIN32_LEAN_AND_MEAN
@@ -33,6 +33,8 @@
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include <windows.h>
+#include <winhttp.h>
+#include <bcrypt.h>
 #include <mmreg.h>
 #include <objbase.h>
 #include <mmdeviceapi.h>
@@ -46,11 +48,27 @@
 #include <cctype>
 #include <cwctype>
 #include <cstdio>
+#include <cstring>
 
 // MSVC 下用 pragma 自动链接；MinGW 不认，靠命令行 -l 参数。
 #pragma comment(lib, "ws2_32.lib")
 #pragma comment(lib, "ole32.lib")
 #pragma comment(lib, "propsys.lib")
+#pragma comment(lib, "winhttp.lib")
+#pragma comment(lib, "bcrypt.lib")
+
+static const char* APP_VERSION = "1.5.0";
+
+// 自动更新：与 m-server 共用同一个 Release 清单，但各自看各自的版本号
+static const char* UPDATE_MANIFEST_URL =
+    "https://github.com/ycyz2505/ycyz2505.github.io/releases/download/build-latest/manifest.json";
+
+static const char* UPDATE_ACCELERATORS[] = {
+    "https://ghfast.top/",
+    "https://gh-proxy.com/",
+    "https://ghproxy.net/",
+    ""
+};
 
 static std::wstring g_exeDir;
 static std::wstring g_dataDir;
@@ -430,6 +448,374 @@ static bool ExtractJsonInt(const std::string& json,
     if (p == start) return false;
     out = ParseLL(json.substr(start, p - start), 0);
     return true;
+}
+
+// ============================================================
+//  自动更新
+//  每次启动时在后台读取 GitHub Releases 的 manifest.json。
+//  manifest 里 LocalDataServer 与 m-server 各有独立版本号，
+//  这里只比较自己的版本，只有自己落后时才下载自己的 exe。
+// ============================================================
+
+static void WriteUpdateStatus(const std::string& message)
+{
+    std::string body = "LocalDataServer ";
+    body += APP_VERSION;
+    body += "\r\n";
+    body += message;
+    body += "\r\n";
+    WriteTextFile(g_exeDir + L"\\LocalDataServer-update.txt", body);
+}
+
+// 极简 HTTP GET（WinHTTP，支持 HTTPS 与重定向）
+static bool WinHttpGet(const std::wstring& url, std::string& out, DWORD timeoutMs)
+{
+    out.clear();
+
+    URL_COMPONENTS uc;
+    ZeroMemory(&uc, sizeof(uc));
+    uc.dwStructSize = sizeof(uc);
+    uc.dwSchemeLength = (DWORD)-1;
+    uc.dwHostNameLength = (DWORD)-1;
+    uc.dwUrlPathLength = (DWORD)-1;
+    uc.dwExtraInfoLength = (DWORD)-1;
+
+    std::wstring urlCopy = url;
+    if (!WinHttpCrackUrl(urlCopy.c_str(), 0, 0, &uc)) return false;
+
+    std::wstring host(uc.lpszHostName, uc.dwHostNameLength);
+    std::wstring path(uc.lpszUrlPath, uc.dwUrlPathLength);
+    if (uc.dwExtraInfoLength > 0) path.append(uc.lpszExtraInfo, uc.dwExtraInfoLength);
+    if (path.empty()) path = L"/";
+
+    HINTERNET session = WinHttpOpen(L"ClassLocalDataServer",
+                                    WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
+                                    WINHTTP_NO_PROXY_NAME,
+                                    WINHTTP_NO_PROXY_BYPASS, 0);
+    if (!session) return false;
+
+    WinHttpSetTimeouts(session, (int)timeoutMs, (int)timeoutMs,
+                       (int)timeoutMs, (int)timeoutMs);
+
+    HINTERNET connect = WinHttpConnect(session, host.c_str(), uc.nPort, 0);
+    if (!connect) {
+        WinHttpCloseHandle(session);
+        return false;
+    }
+
+    DWORD flags = (uc.nScheme == INTERNET_SCHEME_HTTPS) ? WINHTTP_FLAG_SECURE : 0;
+    HINTERNET request = WinHttpOpenRequest(connect, L"GET", path.c_str(), NULL,
+                                           WINHTTP_NO_REFERER,
+                                           WINHTTP_DEFAULT_ACCEPT_TYPES, flags);
+    if (!request) {
+        WinHttpCloseHandle(connect);
+        WinHttpCloseHandle(session);
+        return false;
+    }
+
+    // GitHub Release 会 302 到 objects.githubusercontent.com，必须允许跟随
+    DWORD redirect = WINHTTP_OPTION_REDIRECT_POLICY_ALWAYS;
+    WinHttpSetOption(request, WINHTTP_OPTION_REDIRECT_POLICY,
+                     &redirect, sizeof(redirect));
+    WinHttpAddRequestHeaders(request, L"User-Agent: ClassLocalDataServer\r\n",
+                             (DWORD)-1, WINHTTP_ADDREQ_FLAG_ADD);
+
+    BOOL ok = WinHttpSendRequest(request, WINHTTP_NO_ADDITIONAL_HEADERS, 0,
+                                 WINHTTP_NO_REQUEST_DATA, 0, 0, 0);
+    if (ok) ok = WinHttpReceiveResponse(request, NULL);
+
+    if (ok) {
+        DWORD status = 0;
+        DWORD statusLen = sizeof(status);
+        if (!WinHttpQueryHeaders(request,
+                                 WINHTTP_QUERY_STATUS_CODE | WINHTTP_QUERY_FLAG_NUMBER,
+                                 WINHTTP_HEADER_NAME_BY_INDEX,
+                                 &status, &statusLen, WINHTTP_NO_HEADER_INDEX)) {
+            ok = FALSE;
+        } else if (status < 200 || status >= 300) {
+            ok = FALSE;
+        }
+    }
+
+    if (ok) {
+        char buf[8192];
+        DWORD read = 0;
+        while (WinHttpReadData(request, buf, sizeof(buf), &read) && read > 0) {
+            if (out.size() + read > 64u * 1024u * 1024u) {
+                ok = FALSE;
+                break;
+            }
+            out.append(buf, (size_t)read);
+        }
+    }
+
+    WinHttpCloseHandle(request);
+    WinHttpCloseHandle(connect);
+    WinHttpCloseHandle(session);
+
+    return ok && !out.empty();
+}
+
+// 在 JSON 里找到 "key": { ... } 的完整对象（支持字符串内的括号）
+static bool FindJsonObjectSection(const std::string& json,
+                                  const std::string& key,
+                                  std::string& out)
+{
+    std::string needle = "\"" + key + "\"";
+    size_t p = json.find(needle);
+    if (p == std::string::npos) return false;
+
+    p = json.find('{', p + needle.size());
+    if (p == std::string::npos) return false;
+
+    int depth = 0;
+    bool inString = false;
+    bool escaped = false;
+
+    for (size_t i = p; i < json.size(); ++i) {
+        char c = json[i];
+
+        if (inString) {
+            if (escaped) escaped = false;
+            else if (c == '\\') escaped = true;
+            else if (c == '"') inString = false;
+            continue;
+        }
+
+        if (c == '"') {
+            inString = true;
+        } else if (c == '{') {
+            depth++;
+        } else if (c == '}') {
+            depth--;
+            if (depth == 0) {
+                out = json.substr(p, i - p + 1);
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+static long long NextVersionPart(const std::string& s, size_t& i)
+{
+    while (i < s.size() && (s[i] < '0' || s[i] > '9')) ++i;
+
+    long long value = 0;
+    while (i < s.size() && s[i] >= '0' && s[i] <= '9') {
+        value = value * 10 + (s[i] - '0');
+        ++i;
+    }
+    return value;
+}
+
+static bool VersionGreater(const std::string& a, const std::string& b)
+{
+    size_t ia = 0, ib = 0;
+
+    for (int n = 0; n < 8; ++n) {
+        long long va = NextVersionPart(a, ia);
+        long long vb = NextVersionPart(b, ib);
+        if (va != vb) return va > vb;
+        if (ia >= a.size() && ib >= b.size()) break;
+    }
+    return false;
+}
+
+static bool HexEquals(const std::string& a, const std::string& b)
+{
+    if (a.size() != b.size()) return false;
+    for (size_t i = 0; i < a.size(); ++i) {
+        if (std::tolower((unsigned char)a[i]) != std::tolower((unsigned char)b[i])) {
+            return false;
+        }
+    }
+    return true;
+}
+
+static bool Sha256Hex(const std::string& data, std::string& out)
+{    BCRYPT_ALG_HANDLE alg = NULL;
+    BCRYPT_HASH_HANDLE hash = NULL;
+    DWORD objectLen = 0, hashLen = 0, cb = 0;
+    bool ok = false;
+
+    if (BCryptOpenAlgorithmProvider(&alg, BCRYPT_SHA256_ALGORITHM, NULL, 0) != 0) {
+        return false;
+    }
+
+    if (BCryptGetProperty(alg, BCRYPT_OBJECT_LENGTH,
+                          (PUCHAR)&objectLen, sizeof(objectLen), &cb, 0) == 0 &&
+        BCryptGetProperty(alg, BCRYPT_HASH_LENGTH,
+                          (PUCHAR)&hashLen, sizeof(hashLen), &cb, 0) == 0 &&
+        objectLen > 0 && hashLen > 0) {
+
+        std::vector<UCHAR> object(objectLen);
+        std::vector<UCHAR> digest(hashLen);
+
+        if (BCryptCreateHash(alg, &hash, object.data(), objectLen,
+                             NULL, 0, 0) == 0) {
+
+            if (BCryptHashData(hash, (PUCHAR)data.data(),
+                               (ULONG)data.size(), 0) == 0 &&
+                BCryptFinishHash(hash, digest.data(), hashLen, 0) == 0) {
+
+                static const char* hex = "0123456789abcdef";
+                out.clear();
+                out.reserve(hashLen * 2);
+
+                for (DWORD i = 0; i < hashLen; ++i) {
+                    out.push_back(hex[(digest[i] >> 4) & 0x0F]);
+                    out.push_back(hex[digest[i] & 0x0F]);
+                }
+                ok = true;
+            }
+            BCryptDestroyHash(hash);
+        }
+    }
+
+    BCryptCloseAlgorithmProvider(alg, 0);
+    return ok;
+}
+
+static bool FetchUpdateManifest(std::string& out)
+{
+    for (size_t i = 0; i < sizeof(UPDATE_ACCELERATORS) / sizeof(UPDATE_ACCELERATORS[0]); ++i) {
+        std::string url = std::string(UPDATE_ACCELERATORS[i]) + UPDATE_MANIFEST_URL;
+        if (WinHttpGet(ToWide(url), out, 6000)) return true;
+        out.clear();
+    }
+    return false;
+}
+
+static bool FetchUpdateAsset(const std::string& url, std::string& out)
+{
+    for (size_t i = 0; i < sizeof(UPDATE_ACCELERATORS) / sizeof(UPDATE_ACCELERATORS[0]); ++i) {
+        std::string candidate = std::string(UPDATE_ACCELERATORS[i]) + url;
+        if (WinHttpGet(ToWide(candidate), out, 60000)) return true;
+        out.clear();
+    }
+    return false;
+}
+
+static DWORD WINAPI UpdateThreadProc(LPVOID)
+{
+    if (GetEnvironmentVariableW(L"CLASS_NO_SELF_UPDATE", NULL, 0) > 0) {
+        return 0;
+    }
+
+    WriteUpdateStatus("正在检查 GitHub Releases…");
+
+    std::string manifest;
+    if (!FetchUpdateManifest(manifest)) {
+        WriteUpdateStatus("检查更新失败：无法获取 manifest.json，继续使用当前版本。");
+        return 0;
+    }
+
+    std::string section;
+    if (!FindJsonObjectSection(manifest, "local-data-server", section)) {
+        WriteUpdateStatus("检查更新失败：清单里没有 local-data-server。");
+        return 0;
+    }
+
+    std::string version, url, sha;
+    if (!ExtractJsonString(section, "version", version)) {
+        WriteUpdateStatus("检查更新失败：清单缺少版本号。");
+        return 0;
+    }
+
+    if (!VersionGreater(version, APP_VERSION)) {
+        WriteUpdateStatus("已是最新版本（" + version + "）。");
+        return 0;
+    }
+
+    if (!ExtractJsonString(section, "url", url) || url.empty()) {
+        WriteUpdateStatus("发现新版本 " + version + "，但清单缺少下载地址。");
+        return 0;
+    }
+    ExtractJsonString(section, "sha256", sha);
+
+    WriteUpdateStatus("发现新版本 " + version + "，正在下载…");
+
+    std::string data;
+    if (!FetchUpdateAsset(url, data)) {
+        WriteUpdateStatus("下载新版本失败，继续使用当前版本。");
+        return 0;
+    }
+
+    if (!sha.empty()) {
+        std::string actual;
+        if (!Sha256Hex(data, actual) || !HexEquals(actual, sha)) {
+            WriteUpdateStatus("下载文件的 SHA-256 校验失败，放弃本次更新。");
+            return 0;
+        }
+    }
+
+    std::wstring newPath = g_exeDir + L"\\LocalDataServer-new.exe";
+    HANDLE h = CreateFileW(newPath.c_str(), GENERIC_WRITE, 0, NULL,
+                           CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (h == INVALID_HANDLE_VALUE) {
+        WriteUpdateStatus("写入新版本失败，继续使用当前版本。");
+        return 0;
+    }
+
+    DWORD written = 0;
+    BOOL ok = WriteFile(h, data.data(), (DWORD)data.size(), &written, NULL) &&
+              written == (DWORD)data.size();
+    FlushFileBuffers(h);
+    CloseHandle(h);
+
+    if (!ok) {
+        DeleteFileW(newPath.c_str());
+        WriteUpdateStatus("写入新版本失败，继续使用当前版本。");
+        return 0;
+    }
+
+    std::wstring batPath = g_exeDir + L"\\LocalDataServer-update.bat";
+    std::string bat =
+        "@echo off\r\n"
+        "setlocal\r\n"
+        "set n=0\r\n"
+        ":retry\r\n"
+        "set /a n+=1\r\n"
+        "if %n% gtr 60 exit /b 1\r\n"
+        "ping -n 2 127.0.0.1 >nul\r\n"
+        "move /y \"%~dp0LocalDataServer-new.exe\" \"%~dp0LocalDataServer.exe\" >nul 2>nul\r\n"
+        "if errorlevel 1 goto retry\r\n"
+        "start \"\" \"%~dp0LocalDataServer.exe\"\r\n"
+        "del \"%~f0\"\r\n";
+
+    if (!WriteTextFile(batPath, bat)) {
+        WriteUpdateStatus("创建更新脚本失败，继续使用当前版本。");
+        return 0;
+    }
+
+    std::wstring commandLine = L"cmd.exe /C \"" + batPath + L"\"";
+    std::vector<wchar_t> commandBuffer(commandLine.begin(), commandLine.end());
+    commandBuffer.push_back(0);
+
+    STARTUPINFOW si;
+    ZeroMemory(&si, sizeof(si));
+    si.cb = sizeof(si);
+    si.dwFlags = STARTF_USESHOWWINDOW;
+    si.wShowWindow = SW_HIDE;
+
+    PROCESS_INFORMATION pi;
+    ZeroMemory(&pi, sizeof(pi));
+
+    if (!CreateProcessW(NULL, commandBuffer.data(), NULL, NULL, FALSE,
+                        CREATE_NO_WINDOW, NULL, g_exeDir.c_str(), &si, &pi)) {
+        WriteUpdateStatus("启动更新脚本失败，继续使用当前版本。");
+        return 0;
+    }
+
+    CloseHandle(pi.hProcess);
+    CloseHandle(pi.hThread);
+
+    WriteUpdateStatus("新版本 " + version + " 已下载，正在重启…");
+
+    Sleep(150);
+    ExitProcess(0);
+    return 0;
 }
 
 // ============================================================
@@ -1073,8 +1459,10 @@ static void HandleClient(SOCKET client)
     }
 
     if (path == "/api/ping" && method == "GET") {
-        SendResponse(client, 200, "OK", "application/json; charset=utf-8",
-                     "{\"ok\":true,\"service\":\"class-local-data\",\"version\":\"1.4\"}");
+        std::string ping = "{\"ok\":true,\"service\":\"class-local-data\",\"version\":\"";
+        ping += APP_VERSION;
+        ping += "\"}";
+        SendResponse(client, 200, "OK", "application/json; charset=utf-8", ping);
         closesocket(client);
         return;
     }
@@ -1359,6 +1747,10 @@ static int RunServer()
     }
 
     WriteTextFile(g_exeDir + L"\\service_port.txt", std::to_string(usedPort));
+
+    // 后台检查更新：有新版会下载、替换并重启自己，不影响当前服务
+    HANDLE updateThread = CreateThread(NULL, 0, UpdateThreadProc, NULL, 0, NULL);
+    if (updateThread) CloseHandle(updateThread);
 
     for (;;) {
         SOCKET client = accept(listenSock, NULL, NULL);
