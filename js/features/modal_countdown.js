@@ -13,13 +13,13 @@ window.App.ModalCountdown = {
         this.bindAddForm();
         this.bindList();
         this.render();
+    },
 
-        // 每次打开弹窗时刷新列表（可能在首页滑动切换过）
-        document.getElementById('openCountdownModal')?.addEventListener('click', () => {
-            this._editingId = null;
-            this.setStatus('');
-            this.render();
-        });
+    // 设置页切到「倒计日」时刷新列表（可能在首页滑动切换过）
+    onShow() {
+        this._editingId = null;
+        this.setStatus('');
+        this.render();
     },
 
     // ---------- 列表交互 ----------

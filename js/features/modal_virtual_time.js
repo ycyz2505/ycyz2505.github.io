@@ -19,7 +19,11 @@ window.App.ModalVirtualTime = {
     init() {
         this.bindVirtualTime();
         this.bindPreviewSlider();
-        this.bindEntryRefresh();
+        this.refreshUI();
+    },
+
+    // 设置页切到「虚拟时间」时刷新输入框
+    onShow() {
         this.refreshUI();
     },
 
@@ -46,10 +50,7 @@ window.App.ModalVirtualTime = {
 
     // ---------- 打开虚拟时间面板时刷新一下 UI（避免长时间停留后数据过期） ----------
     bindEntryRefresh() {
-        document.getElementById('openVirtualTimeModal')?.addEventListener('click', () => {
-            // 让 ModalCore 先加好 active，再刷新输入框
-            window.setTimeout(() => this.refreshUI(), 0);
-        });
+        // 旧版子面板入口已改成设置页标签；保留方法兼容旧调用
     },
 
     refreshUI() {
@@ -127,8 +128,7 @@ window.App.ModalVirtualTime = {
         const labelStart = document.getElementById('previewSliderLabelStart');
         const labelEnd = document.getElementById('previewSliderLabelEnd');
         const currentEl = document.getElementById('previewSliderCurrent');
-        const modal = document.getElementById('virtualTimeModal');
-        if (!zone || !slider || !modal) return;
+        if (!zone || !slider) return;
 
         // 以"当前虚拟时间"所在的年份作为滑动范围：1/1 ~ 12/31
         const now = window.App.Utils.now();
@@ -221,8 +221,8 @@ window.App.ModalVirtualTime = {
 
         refreshLabel();
 
-        // 关闭虚拟时间面板时也要清掉 previewing 状态
-        document.getElementById('closeVirtualTime')?.addEventListener('click', () => {
+        // 关闭设置面板时也要清掉 previewing 状态
+        document.getElementById('closeSettings')?.addEventListener('click', () => {
             this._setAllModalsPreviewing(false);
         });
     }

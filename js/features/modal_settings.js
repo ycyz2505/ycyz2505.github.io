@@ -1,9 +1,12 @@
 window.App.ModalSettings = {
+    currentPage: 'general',
+
     init() {
         this.applyFromStore();
         this.bindProbability();
         this.bindInterval();
         this.bindSwitches();
+        this.bindTabs();
 
         window.resetProbability = () => this.setProbability(50);
         window.resetInterval = () => this.setIntervalDuration(15);
@@ -140,5 +143,67 @@ window.App.ModalSettings = {
         document.getElementById('clickRefreshSwitch')?.addEventListener('change', e => {
             saveSetting('clickRefreshSwitch', e.target.checked);
         });
+    },
+
+    // ---------- 垂直标签页 ----------
+
+    bindTabs() {
+        const modal = document.getElementById('settingsModal');
+        if (!modal) return;
+
+        const tabs = Array.from(modal.querySelectorAll('.settings-tab'));
+        const pages = Array.from(modal.querySelectorAll('.settings-page'));
+
+        const activate = page => {
+            const valid = pages.some(item => item.dataset.page === page) ? page : 'general';
+
+            if (this.currentPage === 'roster' && valid !== 'roster') {
+                window.App.ModalRoster?.onHide?.();
+            }
+            if (valid !== 'virtualTime') {
+                window.App.ModalVirtualTime?._setAllModalsPreviewing?.(false);
+            }
+            if (valid !== 'palette') {
+                window.App.ModalPalette?.setPreviewing(false);
+            }
+
+            this.currentPage = valid;
+
+            tabs.forEach(tab => tab.classList.toggle('active', tab.dataset.page === valid));
+            pages.forEach(item => item.classList.toggle('active', item.dataset.page === valid));
+            modal.classList.toggle('virtual-tab', valid === 'virtualTime');
+
+            this.refreshPage(valid);
+        };
+
+        this._activatePage = activate;
+
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => activate(tab.dataset.page));
+        });
+
+        document.getElementById('settingsButton')?.addEventListener('click', () => {
+            // ModalCore 会先给设置模态框加 active，这里再刷新当前页
+            window.setTimeout(() => activate(this.currentPage), 0);
+        });
+
+        document.getElementById('closeSettings')?.addEventListener('click', () => this.onClose());
+
+        activate(this.currentPage);
+    },
+
+    refreshPage(page) {
+        if (page === 'virtualTime') window.App.ModalVirtualTime?.onShow?.();
+        if (page === 'timetable') window.App.ModalTimetable?.onShow?.();
+        if (page === 'countdown') window.App.ModalCountdown?.onShow?.();
+        if (page === 'palette') window.App.ModalPalette?.onShow?.();
+        if (page === 'phraseHistory') window.App.ModalPhraseHistory?.onShow?.();
+        if (page === 'roster') window.App.ModalRoster?.onShow?.();
+    },
+
+    onClose() {
+        window.App.ModalVirtualTime?._setAllModalsPreviewing?.(false);
+        window.App.ModalPalette?.setPreviewing(false);
+        window.App.ModalRoster?.onHide?.();
     }
 };

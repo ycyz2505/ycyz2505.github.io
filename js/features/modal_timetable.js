@@ -14,15 +14,12 @@ window.App.ModalTimetable = {
         this.render();
     },
 
-    bindEvents() {
-        // 入口按钮在设置面板里，点击后打开独立的课表编辑模态框
-        document
-            .getElementById('openTimetableModal')
-            ?.addEventListener('click', () => {
-                // 让 ModalCore 先加好 active，再重新读取一次数据（跨天同步）
-                window.setTimeout(() => this.render(), 0);
-            });
+    // 设置页切到「今日课表」时刷新
+    onShow() {
+        this.render();
+    },
 
+    bindEvents() {
         document
             .getElementById('saveTemporaryTimetable')
             ?.addEventListener('click', () => {

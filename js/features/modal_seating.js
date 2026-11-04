@@ -157,12 +157,6 @@ window.App = window.App || {};
                 });
             }
 
-            // 全屏按钮：尺寸变化后重排
-            on(document.getElementById('maximizeSeating'), 'click', function () {
-                setTimeout(function () { self.layout(); }, 60);
-                setTimeout(function () { self.layout(); }, 320);
-            });
-
             // 180° 翻转
             on(this.el.rotateBtn, 'click', function () { self.rotate180(); });
 

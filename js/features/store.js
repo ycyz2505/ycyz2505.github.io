@@ -64,8 +64,13 @@ window.App.Store = {
             // 虚拟时间偏移量（毫秒），0 表示跟随系统时间
             timeOffset: 0,
 
-            // 调色盘：null 表示使用默认 / 节气配色；对象内容见 palette.js
-            palette: null
+            // 调色盘：开关 + 多套方案；旧版 palette 字段保留用于迁移
+            paletteEnabled: false,
+            paletteSchemes: [],
+            activePaletteSchemeId: '',
+            palette: null,
+            paletteMode: 'full',
+            paletteThemeColor: '#8bc34a'
         },
 
         // 座位表：见 modal_seating.js

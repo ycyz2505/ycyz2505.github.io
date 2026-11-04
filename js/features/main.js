@@ -30,8 +30,10 @@ window.onload = async function () {
     safeInit('SchoolSchedule', () => window.App.SchoolSchedule?.init());
     safeInit('GoldenPhrase', () => window.App.GoldenPhrase?.init());
     safeInit('AutoRefresh', () => window.App.AutoRefresh?.init());
+    // 调色盘数据先初始化（含旧版迁移），再让主题背景决定用调色盘还是节气色
+    safeInit('Palette', () => window.App.Palette?.init());
     safeInit('ThemeBackground', () => window.App.ThemeBackground?.init());
-    safeInit('Palette', () => window.App.ModalPalette?.init());
+    safeInit('PaletteUI', () => window.App.ModalPalette?.init());
     safeInit('PhraseHistory', () => window.App.ModalPhraseHistory?.init());
 
     safeInit('ModalCore', () => window.App.ModalCore?.init());
@@ -50,6 +52,7 @@ window.onload = async function () {
     safeInit('MLib', () => window.App.MLib?.init());
     safeInit('MPrefs', () => window.App.MPrefs?.init());
     safeInit('ModalSeating', () => window.App.ModalSeating?.init());
+    safeInit('SeatPage', () => window.App.SeatPage?.init());
 
     // 广场：先建数据层，再建三个模态框
     safeInit('Plaza', () => window.App.Plaza?.init());

@@ -1,8 +1,11 @@
 // ============================================================
 // js/features/palette.js
-// 调色盘：把 :root 里的主题色变量改成用户自定义值，立即生效。
+// 调色盘：多套配色方案 + 两种调色模式。
 //
-// 这些变量平时由 theme_background.js 按节气动态写入内联样式，
+//   完整配色：分别调整主色、文字、背景、卡片、边框等变量
+//   单色主题：只选一个主题色，其余颜色按节气配色的同一套公式生成
+//
+// 变量平时由 theme_background.js 按节气动态写入内联样式，
 // 所以调色盘启用时由 ThemeBackground.update() 优先调用 Palette.apply()，
 // 不再让节气配色覆盖用户的选择。
 // ============================================================
@@ -25,59 +28,346 @@ window.App.Palette = {
         { key: 'border',        css: '--theme-border',         label: '边框',     fallback: '#eeeeee' }
     ],
 
+    DEFAULT_THEME_COLOR: '#8bc34a',
+
+    // ---------- 数据 ----------
+
+    getSchemes() {
+        const store = window.App.Store;
+        const list = store ? store.getSetting('paletteSchemes') : null;
+        return Array.isArray(list)
+            ? list.filter(item => item && typeof item === 'object' && item.id)
+            : [];
+    },
+
+    setSchemes(list) {
+        if (window.App.Store) {
+            window.App.Store.setSetting('paletteSchemes', Array.isArray(list) ? list : []);
+        }
+    },
+
+    getActiveId() {
+        return (window.App.Store && window.App.Store.getSetting('activePaletteSchemeId')) || '';
+    },
+
+    setActiveId(id) {
+        if (window.App.Store) {
+            window.App.Store.setSetting('activePaletteSchemeId', String(id || ''));
+        }
+    },
+
+    getActiveScheme() {
+        const list = this.getSchemes();
+        const id = this.getActiveId();
+        return list.find(item => item.id === id) || list[0] || null;
+    },
+
+    getMode() {
+        const scheme = this.getActiveScheme();
+        return scheme && scheme.mode === 'theme' ? 'theme' : 'full';
+    },
+
     get() {
-        if (!window.App.Store) return null;
-        const palette = window.App.Store.getSetting('palette');
-        return palette && typeof palette === 'object' ? palette : null;
+        const scheme = this.getActiveScheme();
+        return scheme && scheme.mode !== 'theme' ? (scheme.colors || {}) : null;
+    },
+
+    getThemeColor() {
+        const scheme = this.getActiveScheme();
+        return this.normalizeHex(scheme && scheme.themeColor) || this.DEFAULT_THEME_COLOR;
+    },
+
+    isEnabled() {
+        return !!(window.App.Store && window.App.Store.getSetting('paletteEnabled') === true);
     },
 
     isActive() {
-        return !!this.get();
+        return this.isEnabled();
     },
 
-    defaults() {
+    // ---------- 初始化 / 迁移 ----------
+
+    init() {
+        this.migrate();
+
+        if (this.isEnabled()) {
+            this.ensureScheme();
+            this.apply();
+        }
+    },
+
+    migrate() {
+        const store = window.App.Store;
+        if (!store) return;
+
+        let schemes = this.getSchemes();
+
+        if (!schemes.length) {
+            const oldPalette = store.getSetting('palette');
+            const oldMode = store.getSetting('paletteMode');
+            const oldThemeColor = store.getSetting('paletteThemeColor');
+
+            if (oldPalette && typeof oldPalette === 'object') {
+                const scheme = this.makeScheme('我的配色', 'full', oldPalette, oldThemeColor, true);
+                this.setSchemes([scheme]);
+                this.setActiveId(scheme.id);
+                // 旧版没有启用开关：存在自定义配色就视为启用，避免升级后突然回到绿色
+                store.setSetting('paletteEnabled', true);
+                schemes = [scheme];
+            } else if (oldMode === 'theme' && this.normalizeHex(oldThemeColor)) {
+                const scheme = this.makeScheme('我的配色', 'theme', null, oldThemeColor, false, true);
+                this.setSchemes([scheme]);
+                this.setActiveId(scheme.id);
+                store.setSetting('paletteEnabled', true);
+                schemes = [scheme];
+            }
+        }
+
+        if (schemes.length && !schemes.some(item => item.id === this.getActiveId())) {
+            this.setActiveId(schemes[0].id);
+        }
+    },
+
+    // 没有方案时用「当前页面上实际应用的颜色」建一套，而不是 CSS 里的默认绿色
+    ensureScheme() {
+        let scheme = this.getActiveScheme();
+
+        if (!scheme) {
+            scheme = this.makeScheme(
+                '我的配色',
+                'full',
+                this.captureCurrentColors(),
+                this.captureCurrentPrimary()
+            );
+            this.setSchemes([scheme]);
+            this.setActiveId(scheme.id);
+            return scheme;
+        }
+
+        if (!this.getActiveId()) this.setActiveId(scheme.id);
+        return scheme;
+    },
+
+    makeScheme(name, mode, colors, themeColor, colorsCustomized, themeCustomized) {
+        return {
+            id: 'ps_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 7),
+            name: String(name || '配色方案').slice(0, 20),
+            mode: mode === 'theme' ? 'theme' : 'full',
+            colors: this.normalizeColors(colors),
+            themeColor: this.normalizeHex(themeColor) || this.DEFAULT_THEME_COLOR,
+            colorsCustomized: !!colorsCustomized,
+            themeCustomized: !!themeCustomized
+        };
+    },
+
+    normalizeColors(colors) {
+        // 缺的字段用当前实际颜色补，避免又退回 CSS 里的绿色
+        const out = this.captureCurrentColors();
+
+        if (colors && typeof colors === 'object') {
+            this.COLORS.forEach(color => {
+                const value = this.normalizeHex(colors[color.key]);
+                if (value) out[color.key] = value;
+            });
+        }
+        return out;
+    },
+
+    defaultColors() {
         const out = {};
         this.COLORS.forEach(color => { out[color.key] = color.fallback; });
         return out;
     },
 
-    // 把用户配色写进 <html> 的内联样式
-    apply() {
-        const palette = this.get();
-        if (!palette) return false;
+    captureCurrentColors() {
+        const out = this.defaultColors();
 
+        if (typeof getComputedStyle !== 'function') return out;
+
+        const style = getComputedStyle(document.documentElement);
+        this.COLORS.forEach(color => {
+            const value = this.cssColorToHex(style.getPropertyValue(color.css));
+            if (value) out[color.key] = value;
+        });
+        return out;
+    },
+
+    captureCurrentPrimary() {
+        if (typeof getComputedStyle !== 'function') return this.DEFAULT_THEME_COLOR;
+
+        const style = getComputedStyle(document.documentElement);
+        return this.cssColorToHex(style.getPropertyValue('--theme-primary')) ||
+               this.DEFAULT_THEME_COLOR;
+    },
+
+    // ---------- 修改方案 ----------
+
+    updateScheme(scheme) {
+        if (!scheme) return;
+
+        const list = this.getSchemes();
+        const index = list.findIndex(item => item.id === scheme.id);
+
+        if (index === -1) list.push(scheme);
+        else list[index] = scheme;
+
+        this.setSchemes(list);
+        this.setActiveId(scheme.id);
+
+        if (this.isEnabled()) this.apply();
+    },
+
+    setEnabled(enabled) {
+        if (window.App.Store) {
+            window.App.Store.setSetting('paletteEnabled', !!enabled);
+        }
+
+        if (enabled) {
+            this.ensureScheme();
+            this.apply();
+        } else {
+            window.App.ThemeBackground?.update();
+        }
+    },
+
+    setMode(mode) {
+        const scheme = this.ensureScheme();
+        const nextMode = mode === 'theme' ? 'theme' : 'full';
+
+        // 从单色主题切回完整配色时，默认色取当前实际应用的颜色
+        if (nextMode === 'full' && !scheme.colorsCustomized) {
+            scheme.colors = this.captureCurrentColors();
+        }
+        if (nextMode === 'theme' && !scheme.themeCustomized) {
+            scheme.themeColor = this.captureCurrentPrimary();
+        }
+
+        scheme.mode = nextMode;
+        this.updateScheme(scheme);
+        return scheme;
+    },
+
+    setColor(key, value) {
+        const scheme = this.ensureScheme();
+        const normalized = this.normalizeHex(value);
+        if (!normalized) return;
+
+        scheme.colors = this.normalizeColors(scheme.colors);
+        scheme.colors[key] = normalized;
+        scheme.colorsCustomized = true;
+        this.updateScheme(scheme);
+    },
+
+    setThemeColor(value) {
+        const scheme = this.ensureScheme();
+        const normalized = this.normalizeHex(value);
+        if (!normalized) return;
+
+        scheme.themeColor = normalized;
+        scheme.themeCustomized = true;
+        this.updateScheme(scheme);
+    },
+
+    selectScheme(id) {
+        const scheme = this.getSchemes().find(item => item.id === id);
+        if (!scheme) return null;
+
+        this.setActiveId(id);
+        if (this.isEnabled()) this.apply();
+        return scheme;
+    },
+
+    createScheme(name) {
+        const current = this.getActiveScheme();
+        const scheme = this.makeScheme(
+            name || '新配色',
+            current ? current.mode : 'full',
+            current ? current.colors : this.captureCurrentColors(),
+            current ? current.themeColor : this.captureCurrentPrimary(),
+            current ? current.colorsCustomized : false,
+            current ? current.themeCustomized : false
+        );
+
+        const list = this.getSchemes();
+        list.push(scheme);
+        this.setSchemes(list);
+        this.setActiveId(scheme.id);
+
+        if (this.isEnabled()) this.apply();
+        return scheme;
+    },
+
+    renameScheme(id, name) {
+        const list = this.getSchemes();
+        const scheme = list.find(item => item.id === id);
+        if (!scheme) return false;
+
+        const nextName = String(name || '').trim().slice(0, 20);
+        if (!nextName) return false;
+
+        scheme.name = nextName;
+        this.setSchemes(list);
+        return true;
+    },
+
+    deleteScheme(id) {
+        const list = this.getSchemes();
+        if (list.length <= 1) return false;
+
+        const next = list.filter(item => item.id !== id);
+        this.setSchemes(next);
+
+        if (this.getActiveId() === id) {
+            this.setActiveId(next[0].id);
+            if (this.isEnabled()) this.apply();
+        }
+        return true;
+    },
+
+    // ---------- 应用 ----------
+
+    apply() {
+        if (!this.isEnabled()) return false;
+
+        const scheme = this.ensureScheme();
+        if (!scheme) return false;
+
+        if (scheme.mode === 'theme') {
+            const theme = window.App.ThemeBackground;
+            const base = theme && theme.hexToOklch(scheme.themeColor);
+            if (base) {
+                theme.applyTheme(base);
+                return true;
+            }
+        }
+
+        return this.applyColors(scheme.colors || this.defaultColors());
+    },
+
+    applyColors(colors) {
         const style = document.documentElement.style;
 
         this.COLORS.forEach(color => {
-            const value = this.normalizeHex(palette[color.key]) || color.fallback;
+            const value = this.normalizeHex(colors[color.key]) || color.fallback;
             style.setProperty(color.css, value);
         });
 
-        const rgb = this.hexToRgb(palette.primary || '#8bc34a');
+        const rgb = this.hexToRgb(colors.primary || this.DEFAULT_THEME_COLOR);
         if (rgb) style.setProperty('--theme-primary-rgb', rgb.join(', '));
 
         style.setProperty(
             '--theme-surface',
-            this.rgba(palette.surfaceSolid || '#ffffff', 0.9)
+            this.rgba(colors.surfaceSolid || '#ffffff', 0.9)
         );
 
         return true;
     },
 
-    save(palette) {
-        if (!window.App.Store) return;
-        window.App.Store.setSetting('palette', palette);
-        this.apply();
-    },
-
-    reset() {
-        if (window.App.Store) window.App.Store.setSetting('palette', null);
-        // 让 ThemeBackground 重新按节气渐变 / 默认值写回变量
-        window.App.ThemeBackground?.update();
-    },
+    // ---------- 颜色工具 ----------
 
     normalizeHex(value) {
         if (typeof value !== 'string') return null;
+
         let hex = value.trim();
         if (!/^#?[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/.test(hex)) return null;
         if (hex[0] !== '#') hex = '#' + hex;
@@ -87,9 +377,30 @@ window.App.Palette = {
         return hex.toLowerCase();
     },
 
+    cssColorToHex(value) {
+        if (typeof value !== 'string') return null;
+
+        const text = value.trim();
+        if (!text) return null;
+
+        const hex = this.normalizeHex(text);
+        if (hex) return hex;
+
+        const match = text.match(/^rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)/i);
+        if (!match) return null;
+
+        const toHex = number => {
+            const n = Math.max(0, Math.min(255, Math.round(Number(number))));
+            return n.toString(16).padStart(2, '0');
+        };
+
+        return '#' + toHex(match[1]) + toHex(match[2]) + toHex(match[3]);
+    },
+
     hexToRgb(value) {
         const hex = this.normalizeHex(value);
         if (!hex) return null;
+
         const num = parseInt(hex.slice(1), 16);
         return [(num >> 16) & 255, (num >> 8) & 255, num & 255];
     },
@@ -107,23 +418,131 @@ window.App.ModalPalette = {
     _previewDismissBound: false,
 
     init() {
-        document.getElementById('openPaletteModal')?.addEventListener('click', () => {
-            this.setPreviewing(false);
-            this.populate();
-            document.getElementById('paletteModal')?.classList.add('active');
+        this.bindControls();
+    },
+
+    // 设置页切到「调色盘」时调用
+    onShow() {
+        this.setPreviewing(false);
+        window.App.Palette.ensureScheme();
+        this.refreshUI();
+        this.populate();
+    },
+
+    bindControls() {
+        document.getElementById('paletteEnabledSwitch')?.addEventListener('change', e => {
+            window.App.Palette.setEnabled(e.target.checked);
+            this.refreshUI();
+            this.status(e.target.checked ? '已启用调色盘' : '已恢复原本配色');
         });
 
-        document.getElementById('closePalette')?.addEventListener('click', () => {
-            this.setPreviewing(false);
-            document.getElementById('paletteModal')?.classList.remove('active');
+        document.getElementById('paletteSchemeSelect')?.addEventListener('change', e => {
+            window.App.Palette.selectScheme(e.target.value);
+            this.refreshUI();
+            this.populate();
         });
 
-        document.getElementById('paletteReset')?.addEventListener('click', () => {
-            this.setPreviewing(false);
-            window.App.Palette.reset();
+        document.getElementById('paletteSchemeNew')?.addEventListener('click', () => {
+            const count = window.App.Palette.getSchemes().length + 1;
+            const name = prompt('新建配色方案名称', '新配色 ' + count);
+            if (name === null) return;
+
+            window.App.Palette.createScheme(name.trim() || ('新配色 ' + count));
+            this.refreshUI();
             this.populate();
-            this.status('已恢复默认配色');
+            this.status('已新建配色方案');
         });
+
+        document.getElementById('paletteSchemeRename')?.addEventListener('click', () => {
+            const scheme = window.App.Palette.getActiveScheme();
+            if (!scheme) return;
+
+            const name = prompt('重命名配色方案', scheme.name);
+            if (name === null) return;
+
+            if (window.App.Palette.renameScheme(scheme.id, name)) {
+                this.refreshUI();
+                this.status('已重命名');
+            }
+        });
+
+        document.getElementById('paletteSchemeDelete')?.addEventListener('click', () => {
+            const scheme = window.App.Palette.getActiveScheme();
+            if (!scheme) return;
+
+            if (window.App.Palette.getSchemes().length <= 1) {
+                this.status('至少保留一个配色方案');
+                return;
+            }
+            if (!confirm(`删除配色方案「${scheme.name}」？`)) return;
+
+            window.App.Palette.deleteScheme(scheme.id);
+            this.refreshUI();
+            this.populate();
+            this.status('已删除配色方案');
+        });
+
+        document.querySelectorAll('.palette-mode-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                window.App.Palette.setMode(tab.dataset.mode);
+                this.refreshUI();
+                this.populate();
+            });
+        });
+
+        const themeInput = document.getElementById('paletteThemeColor');
+        themeInput?.addEventListener('input', e => {
+            this.setPreviewing(true);
+            window.App.Palette.setThemeColor(e.target.value);
+            this.syncThemeHex();
+            this.status('已应用');
+        });
+        themeInput?.addEventListener('change', () => this.setPreviewing(false));
+    },
+
+    refreshUI() {
+        const scheme = window.App.Palette.ensureScheme();
+        if (!scheme) return;
+
+        const schemes = window.App.Palette.getSchemes();
+        const enabled = window.App.Palette.isEnabled();
+        const mode = window.App.Palette.getMode();
+
+        const enabledSwitch = document.getElementById('paletteEnabledSwitch');
+        if (enabledSwitch) enabledSwitch.checked = enabled;
+
+        const select = document.getElementById('paletteSchemeSelect');
+        if (select) {
+            select.innerHTML = '';
+            schemes.forEach(item => {
+                const option = document.createElement('option');
+                option.value = item.id;
+                option.textContent = item.name;
+                select.appendChild(option);
+            });
+            select.value = scheme.id;
+        }
+
+        const deleteBtn = document.getElementById('paletteSchemeDelete');
+        if (deleteBtn) deleteBtn.disabled = schemes.length <= 1;
+
+        document.querySelectorAll('.palette-mode-tab').forEach(tab => {
+            tab.classList.toggle('active', tab.dataset.mode === mode);
+        });
+
+        document.querySelectorAll('.palette-mode-panel').forEach(panel => {
+            panel.hidden = panel.dataset.modePanel !== mode;
+        });
+
+        const themeInput = document.getElementById('paletteThemeColor');
+        if (themeInput) themeInput.value = window.App.Palette.getThemeColor();
+
+        this.syncThemeHex();
+    },
+
+    syncThemeHex() {
+        const hex = document.getElementById('paletteThemeHex');
+        if (hex) hex.textContent = window.App.Palette.getThemeColor();
     },
 
     // 取色时把所有模态框一起淡出（和虚拟时间滑动条同一套做法），
@@ -163,13 +582,15 @@ window.App.ModalPalette = {
         const container = document.getElementById('paletteGrid');
         if (!container) return;
 
-        const palette = window.App.Palette.get() || window.App.Palette.defaults();
+        const scheme = window.App.Palette.ensureScheme();
+        const colors = (scheme && scheme.colors) || window.App.Palette.defaultColors();
+
         container.innerHTML = '';
 
         const fragment = document.createDocumentFragment();
 
         window.App.Palette.COLORS.forEach(color => {
-            const value = window.App.Palette.normalizeHex(palette[color.key]) || color.fallback;
+            const value = window.App.Palette.normalizeHex(colors[color.key]) || color.fallback;
 
             const row = document.createElement('label');
             row.className = 'palette-row';
@@ -200,10 +621,8 @@ window.App.ModalPalette = {
                 // 第一次移动颜色就淡出面板，让页面实时可见
                 this.setPreviewing(true);
 
-                const next = window.App.Palette.get() || window.App.Palette.defaults();
+                window.App.Palette.setColor(color.key, e.target.value);
                 const normalized = window.App.Palette.normalizeHex(e.target.value) || color.fallback;
-                next[color.key] = normalized;
-                window.App.Palette.save(next);
                 hex.textContent = normalized;
                 this.status('已应用');
             });

@@ -78,14 +78,11 @@ window.App.PhraseHistory = {
 
 window.App.ModalPhraseHistory = {
     init() {
-        document.getElementById('openPhraseHistoryModal')?.addEventListener('click', () => {
-            this.populate();
-            document.getElementById('phraseHistoryModal')?.classList.add('active');
-        });
+        // 设置页标签切换时由 ModalSettings 调用 onShow
+    },
 
-        document.getElementById('closePhraseHistory')?.addEventListener('click', () => {
-            document.getElementById('phraseHistoryModal')?.classList.remove('active');
-        });
+    onShow() {
+        this.populate();
     },
 
     populate() {
@@ -131,7 +128,8 @@ window.App.ModalPhraseHistory = {
 
             row.addEventListener('click', () => {
                 window.App.GoldenPhrase?.updateDisplay(item.text, 'manual');
-                document.getElementById('phraseHistoryModal')?.classList.remove('active');
+                document.getElementById('settingsModal')?.classList.remove('active');
+                window.App.ModalSettings?.onClose?.();
 
                 if (document.getElementById('goldenSwitch')?.checked &&
                     window.App.GoldenPhrase) {

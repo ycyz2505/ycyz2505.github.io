@@ -29,6 +29,7 @@ window.App = window.App || {};
         csvOpen: false,
         _inited: false,
         _busy: false,
+        _visible: false,
 
         // ------------------------------------------------------
         // 初始化
@@ -37,8 +38,6 @@ window.App = window.App || {};
         init() {
             if (this._inited) return;
 
-            this.el.modal = document.getElementById('rosterModal');
-            this.el.close = document.getElementById('closeRoster');
             this.el.body = document.getElementById('rosterBody');
 
             this.bind();
@@ -46,7 +45,7 @@ window.App = window.App || {};
             var self = this;
             App.Plaza.on(function () {
                 if (self.state !== 'list') return;
-                if (!self.el.modal?.classList.contains('active')) return;
+                if (!self._visible) return;
 
                 // 光标还在表格里打字时就别重绘了，否则焦点和输入位置都会丢
                 var active = document.activeElement;
@@ -58,26 +57,28 @@ window.App = window.App || {};
             this._inited = true;
         },
 
+        // 设置页切到「管理员」时调用
+        onShow() {
+            this._visible = true;
+            this.state = App.Plaza.adminUnlocked
+                ? 'list'
+                : (App.Plaza.hasAdmin() ? 'locked' : 'setup');
+            this.query = '';
+            this.render();
+        },
+
+        // 离开「管理员」页 / 关闭设置时锁上
+        onHide() {
+            this._visible = false;
+            App.Plaza.lockAdmin();
+            this.state = App.Plaza.hasAdmin() ? 'locked' : 'setup';
+            this.issued = {};
+            this.batchOpen = false;
+            this.csvOpen = false;
+        },
+
         bind() {
             var self = this;
-
-            this.el.close?.addEventListener('click', function () {
-                // 关闭即锁上
-                App.Plaza.lockAdmin();
-                self.state = App.Plaza.hasAdmin() ? 'locked' : 'setup';
-                self.issued = {};
-                self.batchOpen = false;
-                self.csvOpen = false;
-            });
-
-            // 打开时决定进入哪个状态
-            document.getElementById('openRosterModal')?.addEventListener('click', function () {
-                self.state = App.Plaza.adminUnlocked
-                    ? 'list'
-                    : (App.Plaza.hasAdmin() ? 'locked' : 'setup');
-                self.query = '';
-                self.render();
-            });
 
             this.el.body?.addEventListener('click', function (e) {
                 self.onClick(e);
@@ -429,9 +430,10 @@ window.App = window.App || {};
                 case 'change-admin': this.changeAdminPassword(); break;
 
                 case 'edit-student':
-                    // 关掉名单管理，打开这位同学的空间（管理员视图，能看能改）
+                    // 关掉设置面板，打开这位同学的空间（管理员视图，能看能改）
                     if (st) {
-                        this.el.modal?.classList.remove('active');
+                        document.getElementById('settingsModal')?.classList.remove('active');
+                        this.onHide();
                         App.ModalSpace?.open(st.id);
                     }
                     break;

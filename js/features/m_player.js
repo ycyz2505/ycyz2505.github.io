@@ -1512,7 +1512,7 @@ window.App = window.App || {};
 
         // 任意位置滚轮调音量
         // 一次滚轮手势会连发十几条事件，直接逐条加减会让音量瞬间拉满，
-        // 所以先累积位移，够一格（约 100）才走 5%
+        // 所以先累积位移，够一格（约 100）才走 2%
         window.addEventListener('wheel', e => {
             if (e.ctrlKey) return;
 
@@ -1531,11 +1531,11 @@ window.App = window.App || {};
             // 有系统音量接口就调系统音量，否则退回播放器自身的音量
             if (SYSVOL.supported) {
                 const base = SYSVOL.value >= 0 ? SYSVOL.value : 50;
-                SYSVOL.value = Math.max(0, Math.min(100, base + steps * 5));
+                SYSVOL.value = Math.max(0, Math.min(100, base + steps * 2));
                 showVolumeHud(SYSVOL.value);
                 pushSysVolume(SYSVOL.value);
             } else {
-                applyVolume(S.volume + steps * 0.05, true);
+                applyVolume(S.volume + steps * 0.02, true);
                 showVolumeHud(S.volume * 100);
                 scheduleVolumeSave();
             }

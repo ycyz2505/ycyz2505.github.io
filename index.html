@@ -86,166 +86,262 @@
             <button id="musicStopButton" class="action-button" style="display:none;">⏹ 关闭</button>
         </div>
 
-        <!-- 设置模态框 -->
-        <div class="settings-modal" id="settingsModal">
+        <!-- 设置模态框（垂直标签页分页） -->
+        <div class="settings-modal settings-shell" id="settingsModal">
             <div class="settings-content">
                 <div class="settings-header">
                     <h3>设置</h3>
                     <span class="close-btn" id="closeSettings">&times;</span>
                 </div>
 
-                <div class="settings-body">
-                    <div class="switch-container">
-                        <label class="switch">
-                            <span class="switch-text">金句自动轮播</span>
-                            <input type="checkbox" id="goldenSwitch" checked>
-                            <span class="slider"></span>
-                        </label>
+                <div class="settings-layout">
+                    <nav class="settings-tabs" id="settingsTabs" aria-label="设置分类">
+                        <button type="button" class="settings-tab active" data-page="general">
+                            <span class="settings-tab-icon">⚙️</span>
+                            <span class="settings-tab-text">常规</span>
+                        </button>
+                        <button type="button" class="settings-tab" data-page="virtualTime">
+                            <span class="settings-tab-icon">🕒</span>
+                            <span class="settings-tab-text">虚拟时间</span>
+                        </button>
+                        <button type="button" class="settings-tab" data-page="timetable">
+                            <span class="settings-tab-icon">📝</span>
+                            <span class="settings-tab-text">今日课表</span>
+                        </button>
+                        <button type="button" class="settings-tab" data-page="countdown">
+                            <span class="settings-tab-icon">📅</span>
+                            <span class="settings-tab-text">倒计日</span>
+                        </button>
+                        <button type="button" class="settings-tab" data-page="palette">
+                            <span class="settings-tab-icon">🎨</span>
+                            <span class="settings-tab-text">调色盘</span>
+                        </button>
+                        <button type="button" class="settings-tab" data-page="phraseHistory">
+                            <span class="settings-tab-icon">🕘</span>
+                            <span class="settings-tab-text">金句历史</span>
+                        </button>
+                        <button type="button" class="settings-tab" data-page="roster">
+                            <span class="settings-tab-icon">👥</span>
+                            <span class="settings-tab-text">管理员</span>
+                        </button>
+                    </nav>
 
-                        <label class="switch">
-                            <span class="switch-text">显示每日60s</span>
-                            <input type="checkbox" id="imageSwitch">
-                            <span class="slider"></span>
-                        </label>
+                    <div class="settings-pages" id="settingsPages">
+                        <!-- 1. 常规 -->
+                        <section class="settings-page active" data-page="general">
+                            <div class="settings-body">
+                                <div class="switch-container">
+                                    <label class="switch">
+                                        <span class="switch-text">金句自动轮播</span>
+                                        <input type="checkbox" id="goldenSwitch" checked>
+                                        <span class="slider"></span>
+                                    </label>
 
-                        <div class="probability-control">
-                            <span class="switch-text">联网获取金句的概率(%)</span>
-                            <div class="range-group">
-                                <input type="range" id="apiProbability" min="0" max="100" value="50">
-                                <input type="number" id="apiProbabilityValue" min="0" max="100" value="50">
-                                <button class="reset-btn" onclick="resetProbability()">重置</button>
+                                    <label class="switch">
+                                        <span class="switch-text">显示每日60s</span>
+                                        <input type="checkbox" id="imageSwitch">
+                                        <span class="slider"></span>
+                                    </label>
+
+                                    <div class="probability-control">
+                                        <span class="switch-text">联网获取金句的概率(%)</span>
+                                        <div class="range-group">
+                                            <input type="range" id="apiProbability" min="0" max="100" value="50">
+                                            <input type="number" id="apiProbabilityValue" min="0" max="100" value="50">
+                                            <button class="reset-btn" onclick="resetProbability()">重置</button>
+                                        </div>
+                                    </div>
+
+                                    <div class="probability-control">
+                                        <span class="switch-text">金句轮播时间间隔（秒）</span>
+                                        <div class="range-group">
+                                            <input type="range" id="intervalSlider" min="1" max="600" value="15">
+                                            <input type="number" id="intervalValue" min="1" max="600" value="15">
+                                            <button class="reset-btn" onclick="resetInterval()">重置</button>
+                                        </div>
+                                    </div>
+
+                                    <label class="switch">
+                                        <span class="switch-text">启用点击刷新金句</span>
+                                        <input type="checkbox" id="clickRefreshSwitch">
+                                        <span class="slider"></span>
+                                    </label>
+
+                                    <label class="switch">
+                                        <span class="switch-text">开启金句动画效果</span>
+                                        <input type="checkbox" id="animationSwitch" checked>
+                                        <span class="slider"></span>
+                                    </label>
+
+                                    <label class="switch">
+                                        <span class="switch-text">主题色随时间渐变</span>
+                                        <input type="checkbox" id="themeGradientSwitch" checked>
+                                        <span class="slider"></span>
+                                    </label>
+
+                                    <label class="switch">
+                                        <span class="switch-text">自动刷新页面</span>
+                                        <input type="checkbox" id="autoRefreshSwitch">
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
                             </div>
-                        </div>
+                        </section>
 
-                        <div class="probability-control">
-                            <span class="switch-text">金句轮播时间间隔（秒）</span>
-                            <div class="range-group">
-                                <input type="range" id="intervalSlider" min="1" max="600" value="15">
-                                <input type="number" id="intervalValue" min="1" max="600" value="15">
-                                <button class="reset-btn" onclick="resetInterval()">重置</button>
+                        <!-- 2. 虚拟时间 -->
+                        <section class="settings-page" data-page="virtualTime">
+                            <div class="settings-body">
+                                <section class="time-offset-panel" id="virtualTimePanel">
+                                    <div class="time-offset-header">
+                                        <h4 class="time-offset-title">设置网站时间</h4>
+                                        <span class="time-offset-meta" id="timeOffsetStatus">当前跟随系统时间</span>
+                                    </div>
+
+                                    <p class="time-offset-note">
+                                        设置后，网站的所有时间判断（时钟、高考倒计时、作息、课表、节气）都会按此时间计算。设置会被保存，点击"恢复系统时间"即可关闭。
+                                    </p>
+
+                                    <div class="time-offset-actions">
+                                        <input
+                                            type="datetime-local"
+                                            id="virtualTimeInput"
+                                            class="virtual-time-input"
+                                            step="1"
+                                        >
+                                        <button type="button" class="timetable-save-btn" id="applyVirtualTime">
+                                            应用
+                                        </button>
+                                        <button type="button" class="timetable-reset-btn" id="resetVirtualTime">
+                                            恢复系统时间
+                                        </button>
+                                    </div>
+
+                                    <div class="time-offset-hint" id="timeOffsetHint"></div>
+                                </section>
                             </div>
-                        </div>
+                        </section>
 
-                        <label class="switch">
-                            <span class="switch-text">启用点击刷新金句</span>
-                            <input type="checkbox" id="clickRefreshSwitch">
-                            <span class="slider"></span>
-                        </label>
+                        <!-- 3. 今日课表临时编辑 -->
+                        <section class="settings-page" data-page="timetable">
+                            <div class="settings-body">
+                                <section class="timetable-editor" id="temporaryTimetablePanel">
+                                    <div class="timetable-editor-header">
+                                        <h4 class="timetable-editor-title">今日课表</h4>
+                                        <span class="timetable-editor-meta" id="temporaryTimetableDate">加载中...</span>
+                                    </div>
 
-                        <label class="switch">
-                            <span class="switch-text">开启金句动画效果</span>
-                            <input type="checkbox" id="animationSwitch" checked>
-                            <span class="slider"></span>
-                        </label>
+                                    <p class="timetable-editor-note">
+                                        修改只在今天生效，第二天会自动恢复原始课表。
+                                    </p>
 
-                        <label class="switch">
-                            <span class="switch-text">主题色随时间渐变</span>
-                            <input type="checkbox" id="themeGradientSwitch" checked>
-                            <span class="slider"></span>
-                        </label>
+                                    <div class="timetable-editor-grid" id="temporaryTimetableEditor"></div>
 
-                        <label class="switch">
-                            <span class="switch-text">自动刷新页面</span>
-                            <input type="checkbox" id="autoRefreshSwitch">
-                            <span class="slider"></span>
-                        </label>
+                                    <div class="timetable-editor-actions">
+                                        <div class="timetable-editor-buttons">
+                                            <button type="button" class="timetable-save-btn" id="saveTemporaryTimetable">
+                                                保存今日课表
+                                            </button>
+                                            <button type="button" class="timetable-reset-btn" id="resetTemporaryTimetable">
+                                                恢复原始课表
+                                            </button>
+                                        </div>
+                                        <span class="timetable-editor-status" id="temporaryTimetableStatus"></span>
+                                    </div>
+                                </section>
+                            </div>
+                        </section>
+
+                        <!-- 4. 自定义倒计日 -->
+                        <section class="settings-page" data-page="countdown">
+                            <div class="settings-body">
+                                <section class="countdown-editor">
+                                    <div class="countdown-editor-header">
+                                        <h4 class="countdown-editor-title">倒计日列表</h4>
+                                        <span class="countdown-editor-meta" id="countdownEditorMeta">加载中...</span>
+                                    </div>
+
+                                    <p class="countdown-editor-note">
+                                        首页在倒计日区域左右滑动即可切换；也可以点击下方列表项，直接设为首页展示。高考倒计日为固定项，不可删除或修改。
+                                    </p>
+
+                                    <div class="countdown-list" id="countdownList"></div>
+
+                                    <div class="countdown-editor-actions">
+                                        <button type="button" class="timetable-save-btn" id="countdownAddBtn">＋ 添加倒计日</button>
+                                        <span class="countdown-editor-status" id="countdownStatus"></span>
+                                    </div>
+
+                                    <div class="countdown-add-form" id="countdownAddForm">
+                                        <input type="text" class="countdown-input countdown-name-input" id="countdownNewName" maxlength="20" placeholder="名称，如：期末考试">
+                                        <input type="date" class="countdown-input countdown-date-input" id="countdownNewDate">
+                                        <button type="button" class="timetable-save-btn" id="countdownAddConfirm">添加</button>
+                                        <button type="button" class="timetable-reset-btn" id="countdownAddCancel">取消</button>
+                                    </div>
+                                </section>
+                            </div>
+                        </section>
+
+                        <!-- 5. 调色盘 -->
+                        <section class="settings-page" data-page="palette">
+                            <div class="settings-body palette-page">
+                                <div class="palette-enable-row">
+                                    <label class="switch">
+                                        <span class="switch-text">启用调色盘</span>
+                                        <input type="checkbox" id="paletteEnabledSwitch">
+                                        <span class="slider"></span>
+                                    </label>
+                                    <span class="palette-enable-hint">关闭后恢复节气 / 默认配色</span>
+                                </div>
+
+                                <div class="palette-scheme-bar">
+                                    <span class="palette-scheme-label">配色方案</span>
+                                    <select id="paletteSchemeSelect" class="palette-select" aria-label="配色方案"></select>
+                                    <button type="button" class="palette-btn" id="paletteSchemeNew">新建</button>
+                                    <button type="button" class="palette-btn" id="paletteSchemeRename">重命名</button>
+                                    <button type="button" class="palette-btn danger" id="paletteSchemeDelete">删除</button>
+                                </div>
+
+                                <div class="palette-mode-tabs" id="paletteModeTabs">
+                                    <button type="button" class="palette-mode-tab active" data-mode="full">完整配色</button>
+                                    <button type="button" class="palette-mode-tab" data-mode="theme">单色主题</button>
+                                </div>
+
+                                <div class="palette-mode-panel" data-mode-panel="full">
+                                    <p class="palette-hint">
+                                        拖动颜色即可实时预览。这里的初始颜色取自当前页面实际应用的颜色，不是 CSS 里写死的默认绿色。
+                                    </p>
+                                    <div class="palette-grid" id="paletteGrid"></div>
+                                </div>
+
+                                <div class="palette-mode-panel" data-mode-panel="theme" hidden>
+                                    <p class="palette-hint">
+                                        只选一个主题色，主色、文字、背景、卡片和边框会按照节气配色的同一套公式自动计算。
+                                    </p>
+                                    <div class="palette-theme-row">
+                                        <input type="color" id="paletteThemeColor" class="palette-swatch palette-theme-swatch" aria-label="主题色">
+                                        <div class="palette-info">
+                                            <span class="palette-label">主题色</span>
+                                            <span class="palette-hex" id="paletteThemeHex">#8bc34a</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="palette-actions">
+                                    <span class="palette-status" id="paletteStatus"></span>
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- 6. 金句历史 -->
+                        <section class="settings-page" data-page="phraseHistory">
+                            <div class="text-content phrase-history-list" id="phraseHistoryList"></div>
+                        </section>
+
+                        <!-- 7. 管理员设置（名单管理） -->
+                        <section class="settings-page" data-page="roster">
+                            <div class="roster-body" id="rosterBody"></div>
+                        </section>
                     </div>
-                    <!-- 子面板入口 -->
-                    <div class="settings-entries">
-                        <button type="button" class="settings-entry" id="openVirtualTimeModal">
-                            <span class="settings-entry-icon">🕒</span>
-                            <span class="settings-entry-info">
-                                <span class="settings-entry-title">虚拟时间</span>
-                                <span class="settings-entry-desc">修改网站显示的日期和时间</span>
-                            </span>
-                            <span class="settings-entry-arrow">›</span>
-                        </button>
-
-                        <button type="button" class="settings-entry" id="openTimetableModal">
-                            <span class="settings-entry-icon">📝</span>
-                            <span class="settings-entry-info">
-                                <span class="settings-entry-title">今日课表临时编辑</span>
-                                <span class="settings-entry-desc">修改只在今天生效，第二天自动恢复</span>
-                            </span>
-                            <span class="settings-entry-arrow">›</span>
-                        </button>
-
-                        <button type="button" class="settings-entry" id="openCountdownModal">
-                            <span class="settings-entry-icon">📅</span>
-                            <span class="settings-entry-info">
-                                <span class="settings-entry-title">自定义倒计日</span>
-                                <span class="settings-entry-desc">添加多个倒计日，首页左右滑动切换</span>
-                            </span>
-                            <span class="settings-entry-arrow">›</span>
-                        </button>
-
-                        <button type="button" class="settings-entry" id="openRosterModal">
-                            <span class="settings-entry-icon">👥</span>
-                            <span class="settings-entry-info">
-                                <span class="settings-entry-title">名单管理</span>
-                                <span class="settings-entry-desc">录入真实姓名、性别、学号，发放广场的初始密码</span>
-                            </span>
-                            <span class="settings-entry-arrow">›</span>
-                        </button>
-
-                        <button type="button" class="settings-entry" id="openPaletteModal">
-                            <span class="settings-entry-icon">🎨</span>
-                            <span class="settings-entry-info">
-                                <span class="settings-entry-title">调色盘</span>
-                                <span class="settings-entry-desc">自由调整全站配色，拖动即生效</span>
-                            </span>
-                            <span class="settings-entry-arrow">›</span>
-                        </button>
-
-                        <button type="button" class="settings-entry" id="openPhraseHistoryModal">
-                            <span class="settings-entry-icon">🕘</span>
-                            <span class="settings-entry-info">
-                                <span class="settings-entry-title">金句历史</span>
-                                <span class="settings-entry-desc">查看近 24 小时轮播过的金句，点击可重新展示</span>
-                            </span>
-                            <span class="settings-entry-arrow">›</span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- 虚拟时间模态框 -->
-        <div class="settings-modal" id="virtualTimeModal">
-            <div class="settings-content">
-                <div class="settings-header">
-                    <h3>虚拟时间</h3>
-                    <span class="close-btn" id="closeVirtualTime">&times;</span>
-                </div>
-
-                <div class="settings-body">
-                    <section class="time-offset-panel" id="virtualTimePanel">
-                        <div class="time-offset-header">
-                            <h4 class="time-offset-title">设置网站时间</h4>
-                            <span class="time-offset-meta" id="timeOffsetStatus">当前跟随系统时间</span>
-                        </div>
-
-                        <p class="time-offset-note">
-                            设置后，网站的所有时间判断（时钟、高考倒计时、作息、课表、节气）都会按此时间计算。设置会被保存，点击"恢复系统时间"即可关闭。
-                        </p>
-
-                        <div class="time-offset-actions">
-                            <input
-                                type="datetime-local"
-                                id="virtualTimeInput"
-                                class="virtual-time-input"
-                                step="1"
-                            >
-                            <button type="button" class="timetable-save-btn" id="applyVirtualTime">
-                                应用
-                            </button>
-                            <button type="button" class="timetable-reset-btn" id="resetVirtualTime">
-                                恢复系统时间
-                            </button>
-                        </div>
-
-                        <div class="time-offset-hint" id="timeOffsetHint"></div>
-                    </section>
                 </div>
             </div>
 
@@ -261,114 +357,6 @@
             </div>
         </div>
 
-        <!-- 今日课表临时编辑模态框 -->
-        <div class="settings-modal" id="timetableModal">
-            <div class="settings-content">
-                <div class="settings-header">
-                    <h3>今日课表临时编辑</h3>
-                    <span class="close-btn" id="closeTimetable">&times;</span>
-                </div>
-
-                <div class="settings-body">
-                    <section class="timetable-editor" id="temporaryTimetablePanel">
-                        <div class="timetable-editor-header">
-                            <h4 class="timetable-editor-title">今日课表</h4>
-                            <span class="timetable-editor-meta" id="temporaryTimetableDate">加载中...</span>
-                        </div>
-
-                        <p class="timetable-editor-note">
-                            修改只在今天生效，第二天会自动恢复原始课表。
-                        </p>
-
-                        <div class="timetable-editor-grid" id="temporaryTimetableEditor"></div>
-
-                        <div class="timetable-editor-actions">
-                            <div class="timetable-editor-buttons">
-                                <button type="button" class="timetable-save-btn" id="saveTemporaryTimetable">
-                                    保存今日课表
-                                </button>
-                                <button type="button" class="timetable-reset-btn" id="resetTemporaryTimetable">
-                                    恢复原始课表
-                                </button>
-                            </div>
-                            <span class="timetable-editor-status" id="temporaryTimetableStatus"></span>
-                        </div>
-                    </section>
-                </div>
-            </div>
-        </div>
-
-        <!-- 自定义倒计日模态框 -->
-        <div class="settings-modal" id="countdownModal">
-            <div class="settings-content">
-                <div class="settings-header">
-                    <h3>自定义倒计日</h3>
-                    <span class="close-btn" id="closeCountdown">&times;</span>
-                </div>
-
-                <div class="settings-body">
-                    <section class="countdown-editor">
-                        <div class="countdown-editor-header">
-                            <h4 class="countdown-editor-title">倒计日列表</h4>
-                            <span class="countdown-editor-meta" id="countdownEditorMeta">加载中...</span>
-                        </div>
-
-                        <p class="countdown-editor-note">
-                            首页在倒计日区域左右滑动即可切换；也可以点击下方列表项，直接设为首页展示。高考倒计日为固定项，不可删除或修改。
-                        </p>
-
-                        <div class="countdown-list" id="countdownList"></div>
-
-                        <div class="countdown-editor-actions">
-                            <button type="button" class="timetable-save-btn" id="countdownAddBtn">＋ 添加倒计日</button>
-                            <span class="countdown-editor-status" id="countdownStatus"></span>
-                        </div>
-
-                        <div class="countdown-add-form" id="countdownAddForm">
-                            <input type="text" class="countdown-input countdown-name-input" id="countdownNewName" maxlength="20" placeholder="名称，如：期末考试">
-                            <input type="date" class="countdown-input countdown-date-input" id="countdownNewDate">
-                            <button type="button" class="timetable-save-btn" id="countdownAddConfirm">添加</button>
-                            <button type="button" class="timetable-reset-btn" id="countdownAddCancel">取消</button>
-                        </div>
-                    </section>
-                </div>
-            </div>
-        </div>
-
-        <!-- 调色盘模态框 -->
-        <div class="settings-modal" id="paletteModal">
-            <div class="settings-content">
-                <div class="settings-header">
-                    <h3>调色盘</h3>
-                    <span class="close-btn" id="closePalette">&times;</span>
-                </div>
-
-                <div class="settings-body">
-                    <p class="palette-hint">
-                        拖动颜色即可实时预览，设置会被记住。启用调色盘后，主题色将不再随节气自动渐变；点「恢复默认配色」即可回到节气配色。
-                    </p>
-
-                    <div class="palette-grid" id="paletteGrid"></div>
-
-                    <div class="palette-actions">
-                        <button type="button" class="timetable-save-btn" id="paletteReset">恢复默认配色</button>
-                        <span class="palette-status" id="paletteStatus"></span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- 金句历史模态框 -->
-        <div class="settings-modal" id="phraseHistoryModal">
-            <div class="settings-content">
-                <div class="settings-header">
-                    <h3>金句历史</h3>
-                    <span class="close-btn" id="closePhraseHistory">&times;</span>
-                </div>
-                <div class="text-content phrase-history-list" id="phraseHistoryList"></div>
-            </div>
-        </div>
-
         <!-- 更新日志模态框 -->
         <div class="settings-modal" id="changelogModal">
             <div class="settings-content">
@@ -380,6 +368,13 @@
                     本网站是网站作者在初中时做的，稍微改了下就搬过来了。因为整体重构过，所以有一些 bug，且功能不完善的问题。
 
                     待添加的新功能：自定义倒计时（不只是高考倒计时，如一月考倒计时、期末倒计时等）、方便地统计需要讲的题目（课前统计好，课上老师直接讲）等。欢迎提建议。
+
+                    2026.11.4
+                    1. 设置改为垂直标签页分页：常规、虚拟时间、今日课表、倒计日、调色盘、金句历史、管理员，切换更直观；
+                    2. 调色盘支持多套配色方案，可新建、重命名、删除、切换；支持「完整配色」和「单色主题」两种模式，单色主题按节气同款公式自动生成整套颜色；
+                    3. 调色盘新增启用开关：开启时应用调色盘，关闭时恢复节气 / 默认配色；首次打开时待调颜色取自当前实际应用的颜色，不再固定为 CSS 里的绿色；
+                    4. 座位表不再弹模态框，改为从主页面下滑进入的整页（类似 iOS 控制中心），底部「座位表」按钮和下滑效果一致；座位表右下角新增返回按钮，上滑或点击即可回到主页面；
+                    5. 放歌模式下，鼠标滚轮调整音量的最小单位由 5 改为 2；
 
                     2026.11.3
                     1. 设置新增「调色盘」：可自由调整主色、文字、背景、卡片、边框等全站配色，拖动颜色立即生效，设置会被记住；启用后暂停节气渐变，点「恢复默认配色」即可回到节气配色；
@@ -536,7 +531,7 @@
                             <ul>
                                 <li><strong>参与条件：</strong>拥有一个鼻子两只眼睛一个嘴巴</li>
                                 <li><strong>时间：</strong>即日起至野生狗奶过期</li>
-                                <li><strong>征稿内容：</strong>包括但不限于<strong>励志文字</strong>、<strong>优美作文素材</strong>、<strong>诗歌（含现代诗）</strong>或<strong>整活</strong>等，既可以原创，也可以投现有的，但是要<strong>标明出处</strong>，若是原创句子可选择展示时是否显示署名
+                                <li><strong>征稿内容：</strong>包括但不限于<strong>励志文字</strong>、<strong>优美作文素材</strong>、<strong>诗歌（含现代诗）</strong>或<strong>整活</strong>等，既可以原创，也可以投现有的，但是要<strong>标明出处</strong>，若是原创句子可选择展示时是否显示署名</li>
                                 <li><strong>展示概率：</strong>励志文字 ≈ 优美作文素材 ≈ 诗歌 > 整活，可根据具体情况调整，特别地，若原创句子写的<strong>过于精妙</strong>，可以<strong>提高展示概率</strong>）</li>
                                 <li><strong>字数要求：</strong>1~80字（包含标点）</li>
                                 <li><strong>提交方式：</strong>找 tqc</li>
@@ -899,15 +894,12 @@
             </div>
         </div>
 
-        <!-- 座位表模态框 -->
-        <div class="settings-modal seating-modal" id="seatingModal">
+        <!-- 座位表页（主页面下滑进入） -->
+        <div class="seating-page" id="seatingModal">
             <div class="settings-content">
                 <div class="settings-header">
                     <h3>座位表</h3>
-                    <div class="settings-header-actions">
-                        <span class="maximize-btn" id="maximizeSeating">⛶</span>
-                        <span class="close-btn" id="closeSeating">&times;</span>
-                    </div>
+                    <span class="seating-page-hint">向下滑动或点右下角返回主页面</span>
                 </div>
 
                 <div class="seat-body">
@@ -1066,6 +1058,8 @@
                         </div>
                     </div>
                 </div>
+
+                <button type="button" class="seat-page-back" id="seatPageBack">⌃ 返回</button>
             </div>
         </div>
 
@@ -1182,21 +1176,6 @@
             </div>
         </div>
 
-        <!-- ==================== 名单管理（管理员） ==================== -->
-        <div class="settings-modal roster-modal" id="rosterModal">
-            <div class="settings-content">
-                <div class="settings-header">
-                    <h3>名单管理</h3>
-                    <div class="settings-header-actions">
-                        <span class="maximize-btn" id="maximizeRoster">⛶</span>
-                        <span class="close-btn" id="closeRoster">&times;</span>
-                    </div>
-                </div>
-
-                <div class="roster-body" id="rosterBody"></div>
-            </div>
-        </div>
-
     </div>
 
     <script src="js/data/solarterms.js"></script>
@@ -1238,6 +1217,7 @@
     <script src="js/features/m_library.js"></script>
     <script src="js/features/m_prefs.js"></script>
     <script src="js/features/modal_seating.js"></script>
+    <script src="js/features/seat_page.js"></script>
 
     <script src="js/features/plaza_crypto.js"></script>
     <script src="js/features/plaza_core.js"></script>
