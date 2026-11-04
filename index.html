@@ -374,7 +374,8 @@
                     2. 调色盘支持多套配色方案，可新建、重命名、删除、切换；支持「完整配色」和「单色主题」两种模式，单色主题按节气同款公式自动生成整套颜色；
                     3. 调色盘新增启用开关：开启时应用调色盘，关闭时恢复节气 / 默认配色；首次打开时待调颜色取自当前实际应用的颜色，不再固定为 CSS 里的绿色；
                     4. 座位表不再弹模态框，改为从主页面下滑进入的整页（类似 iOS 控制中心），底部「座位表」按钮和下滑效果一致；座位表右下角新增返回按钮，上滑或点击即可回到主页面；
-                    5. 放歌模式下，鼠标滚轮调整音量的最小单位由 5 改为 2；
+                    5. 座位表页面按视口宽高自适应缩放，修复底部超出屏幕；支持手指 / 触摸屏 / 鼠标左键拖动 / 鼠标滚轮切换，放歌时滚轮仍用于调音量；切换时主页面向上滑出、座位表从下方滑入，像翻页一样；
+                    6. 放歌模式下，鼠标滚轮调整音量的最小单位由 5 改为 2；
 
                     2026.11.3
                     1. 设置新增「调色盘」：可自由调整主色、文字、背景、卡片、边框等全站配色，拖动颜色立即生效，设置会被记住；启用后暂停节气渐变，点「恢复默认配色」即可回到节气配色；
@@ -1228,22 +1229,41 @@
     <script>
         (function () {
             const targetWidth = 1920;
+            const targetHeight = 1080;
 
             function resize() {
                 const currentWidth =
                     document.documentElement.clientWidth ||
                     document.body.clientWidth;
 
-                const scale = currentWidth / targetWidth;
+                const currentHeight =
+                    document.documentElement.clientHeight ||
+                    document.body.clientHeight;
+
+                // 同时按宽、高缩放，保证 1920×1080 画布完整落在视口内，
+                // 不会因为浏览器上下栏/任务栏占掉高度而把底部裁掉。
+                const scale = Math.min(
+                    currentWidth / targetWidth,
+                    currentHeight / targetHeight
+                );
+
                 const pageContent = document.getElementById('pageContent');
 
                 if (!pageContent) return;
 
+                const visualWidth = targetWidth * scale;
+                const visualHeight = targetHeight * scale;
+
                 pageContent.style.zoom = scale;
                 pageContent.style.width = targetWidth + 'px';
-                pageContent.style.height = '1080px';
-                pageContent.style.position = 'relative';
-                pageContent.style.overflow = 'hidden';
+                pageContent.style.height = targetHeight + 'px';
+                pageContent.style.position = 'absolute';
+                pageContent.style.overflow = 'visible';
+                // zoom 会同时缩放 left/top，所以偏移量要先除以 scale 才能精确居中
+                pageContent.style.left =
+                    (((currentWidth - visualWidth) / 2) / scale) + 'px';
+                pageContent.style.top =
+                    (((currentHeight - visualHeight) / 2) / scale) + 'px';
                 document.body.style.overflowX = 'hidden';
             }
 

@@ -1516,6 +1516,12 @@ window.App = window.App || {};
         window.addEventListener('wheel', e => {
             if (e.ctrlKey) return;
 
+            // 没有在放歌、音乐面板也没打开时，滚轮让给座位表翻页
+            if (!isPlayingNow() &&
+                !document.getElementById('musicModal')?.classList.contains('active')) {
+                return;
+            }
+
             const delta = Number(e.deltaY) || 0;
             if (!delta) return;
 

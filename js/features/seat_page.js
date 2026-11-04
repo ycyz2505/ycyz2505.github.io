@@ -19,6 +19,7 @@ window.App.SeatPage = {
         document.getElementById('seatPageBack')?.addEventListener('click', () => this.close());
 
         this.bindGestures();
+        this.bindWheel();
     },
 
     isOpen() {
@@ -31,11 +32,14 @@ window.App.SeatPage = {
         if (document.querySelector('.settings-modal.active')) return;
 
         document.getElementById('seatingModal')?.classList.add('active');
+        // 主页面整体向上滑出，座位表从下方滑入
+        document.getElementById('pageContent')?.classList.add('seat-open');
     },
 
     close() {
         if (!this.isOpen()) return;
         document.getElementById('seatingModal')?.classList.remove('active');
+        document.getElementById('pageContent')?.classList.remove('seat-open');
     },
 
     bindGestures() {
@@ -98,5 +102,45 @@ window.App.SeatPage = {
         document.addEventListener('pointerdown', start, true);
         document.addEventListener('pointerup', finish, true);
         document.addEventListener('pointercancel', () => { this._tracking = null; }, true);
+    },
+
+    // 鼠标滚轮：主页面下滑打开，座位表上滑返回。
+    // 放歌时滚轮用于调音量，这里让路。
+    bindWheel() {
+        let lastAt = 0;
+
+        window.addEventListener('wheel', event => {
+            const delta = Number(event.deltaY) || 0;
+            if (!delta) return;
+
+            // 设置面板打开时滚轮用于面板内部滚动
+            if (document.querySelector('.settings-modal.active')) return;
+
+            // 放歌时滚轮调音量，不切页
+            if (window.App.Music?.isPlaying?.()) return;
+
+            const now = Date.now();
+            if (now - lastAt < 500) return;
+
+            if (this.isOpen()) {
+                // 座位表内部的滚动区域保留滚轮滚动
+                if (event.target.closest?.('.seat-side, .seat-stage, .seat-panel, .seat-csv-doc, .seat-pick-names')) {
+                    return;
+                }
+
+                if (delta < -20) {
+                    lastAt = now;
+                    event.preventDefault();
+                    this.close();
+                }
+                return;
+            }
+
+            if (delta > 20) {
+                lastAt = now;
+                event.preventDefault();
+                this.open();
+            }
+        }, { passive: false, capture: true });
     }
 };
