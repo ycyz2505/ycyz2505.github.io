@@ -248,7 +248,9 @@ func handleResolve(w http.ResponseWriter, r *http.Request) {
 	if res == nil {
 		res = &Resolution{Song: song, Warnings: []string{"解析失败"}}
 	}
-	if !res.Quality.Audio.OK && res.URL == "" && len(res.Bytes) == 0 {
+	if !res.Quality.Audio.OK &&
+		(res.URL == "" || res.Song.Source == relaySource) &&
+		len(res.Bytes) == 0 {
 		mlogWarn("[resolve] 全部失败 source=%s id=%s", song.Source, song.ID)
 		writeJSON(w, http.StatusOK, map[string]any{
 			"ok":       false,

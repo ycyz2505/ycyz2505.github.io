@@ -18,7 +18,7 @@ import (
 
 const (
 	appService = "class-m-online"
-	appVersion = "1.4.1"
+	appVersion = "1.4.2"
 
 	portStart = 17650
 	portEnd   = 17659

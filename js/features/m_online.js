@@ -164,6 +164,9 @@ window.App = window.App || {};
 
     function toQueue(raw) {
         const provider = raw.extra && raw.extra.provider;
+        const searchOnly = raw.extra && raw.extra.relay === 'icodeq' &&
+            (raw.extra.upstream === 'tencent' || raw.extra.upstream === 'kugou')
+            ? '仅搜索' : '';
         return {
             kind: 'm',
             source: raw.source,
@@ -175,7 +178,7 @@ window.App = window.App || {};
             cover: raw.cover || '',
             extra: raw.extra || null,
             title: raw.name,
-            sub: [raw.artist, provider || LABEL[raw.source] || raw.source]
+            sub: [raw.artist, provider || LABEL[raw.source] || raw.source, searchOnly]
                 .filter(Boolean).join(' · '),
             sid: '',
             ext: raw.ext || '',
@@ -342,13 +345,16 @@ window.App = window.App || {};
                 ? '<img src="' + esc(coverUrl(raw)) + '" alt="" loading="lazy">'
                 : '♪';
             const provider = raw.extra && raw.extra.provider;
+            const searchOnly = raw.extra && raw.extra.relay === 'icodeq' &&
+                (raw.extra.upstream === 'tencent' || raw.extra.upstream === 'kugou')
+                ? '仅搜索' : '';
             return '' +
                 '<div class="m-row" data-i="' + i + '">' +
                     '<div class="m-row-cover">' + cov + '</div>' +
                     '<div class="m-row-main">' +
                         '<div class="m-row-title">' + esc(raw.name) + '</div>' +
                         '<div class="m-row-sub">' +
-                            esc([raw.artist, raw.album, provider].filter(Boolean).join(' · ')) +
+                            esc([raw.artist, raw.album, provider, searchOnly].filter(Boolean).join(' · ')) +
                         '</div>' +
                     '</div>' +
                     '<span class="m-badge">' + esc(LABEL[raw.source] || raw.source) + '</span>' +
