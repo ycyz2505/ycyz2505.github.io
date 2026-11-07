@@ -507,6 +507,7 @@ func relaySearchICodeqOne(ctx context.Context, ep *relayEndpoint, upstream, keyw
 			"audio_url": audio,
 			"lyric_url": strings.TrimSpace(row.Lrc),
 			"pic_url":   strings.TrimSpace(row.Pic),
+			"ts":        strconv.FormatInt(time.Now().Unix(), 10),
 		}
 
 		out = append(out, Song{
@@ -771,7 +772,66 @@ func relayCover(song Song) ([]byte, string, Check) {
 //  解析
 // ============================================================
 
+// icodeq 返回的 auth 直链会过期；搜索结果放久后再播放时先重新搜一次，
+// 拿到同一首歌的新直链，避免解析到别的翻唱。
+func relayRefreshIfNeeded(song Song) Song {
+	if strings.TrimSpace(song.Extra["relay"]) != "icodeq" {
+		return song
+	}
+
+	ts, _ := strconv.ParseInt(strings.TrimSpace(song.Extra["ts"]), 10, 64)
+	if ts > 0 && time.Now().Unix()-ts < 120 {
+		return song
+	}
+
+	return relayRefreshICodeq(song)
+}
+
+func relayRefreshICodeq(song Song) Song {
+	keyword := strings.TrimSpace(song.Name)
+	if strings.TrimSpace(song.Artist) != "" {
+		keyword = keyword + " " + strings.TrimSpace(song.Artist)
+	}
+	if keyword == "" {
+		return song
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
+	defer cancel()
+
+	songs, err := relaySearchICodeq(ctx, keyword, 12)
+	if err != nil || len(songs) == 0 {
+		return song
+	}
+
+	originID := strings.TrimSpace(song.Extra["song_id"])
+	originUpstream := strings.TrimSpace(song.Extra["upstream"])
+	best := song
+	bestScore := 0.0
+
+	for _, cand := range songs {
+		score := core.CalcSongSimilarity(song.Name, song.Artist, cand.Name, cand.Artist)
+		if originID != "" && strings.TrimSpace(cand.Extra["song_id"]) == originID {
+			score += 1.0
+		}
+		if strings.TrimSpace(cand.Extra["upstream"]) == originUpstream {
+			score += 0.15
+		}
+		if score > bestScore {
+			bestScore = score
+			best = cand
+		}
+	}
+
+	if bestScore < 0.55 {
+		return song
+	}
+	return best
+}
+
 func tryResolveMeting(song Song) *Resolution {
+	song = relayRefreshIfNeeded(song)
+
 	res := &Resolution{
 		Song:    song,
 		Quality: Quality{},

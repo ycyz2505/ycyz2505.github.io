@@ -465,9 +465,18 @@ func searchAlternatives(origin Song) []Song {
 	if origin.Source == relaySource {
 		candidates := relaySearchAllCandidates(origin.Name, origin.Artist, 12)
 		originRelay := strings.TrimSpace(origin.Extra["relay"])
+		originSongID := strings.TrimSpace(origin.Extra["song_id"])
+		originUpstream := strings.TrimSpace(origin.Extra["upstream"])
+
+		type relayAlt struct {
+			song  Song
+			score float64
+			other bool
+			diff  int
+		}
+
 		seen := map[string]bool{}
-		other := make([]Song, 0, len(candidates))
-		same := make([]Song, 0, len(candidates))
+		alts := make([]relayAlt, 0, len(candidates))
 
 		for _, cand := range candidates {
 			key := cand.key()
@@ -475,15 +484,51 @@ func searchAlternatives(origin Song) []Song {
 				continue
 			}
 			seen[key] = true
-			if strings.TrimSpace(cand.Extra["relay"]) != originRelay {
-				other = append(other, cand)
-			} else {
-				same = append(same, cand)
+
+			score := core.CalcSongSimilarity(origin.Name, origin.Artist, cand.Name, cand.Artist)
+			sameID := originSongID != "" &&
+				strings.TrimSpace(cand.Extra["song_id"]) == originSongID
+			if sameID {
+				score += 1.0
 			}
+			if strings.TrimSpace(cand.Extra["upstream"]) == originUpstream {
+				score += 0.15
+			}
+			if score < 0.55 && !sameID {
+				continue
+			}
+
+			diff := 0
+			if origin.Duration > 0 && cand.Duration > 0 {
+				diff = origin.Duration - cand.Duration
+				if diff < 0 {
+					diff = -diff
+				}
+			}
+
+			alts = append(alts, relayAlt{
+				song:  cand,
+				score: score,
+				other: strings.TrimSpace(cand.Extra["relay"]) != originRelay,
+				diff:  diff,
+			})
 		}
 
-		// 优先试另一个中转：同一首歌在 GD 的直链失效时，icodeq 的代理直链往往还能用
-		return append(other, same...)
+		sort.SliceStable(alts, func(i, j int) bool {
+			if alts[i].score != alts[j].score {
+				return alts[i].score > alts[j].score
+			}
+			if alts[i].other != alts[j].other {
+				return alts[i].other
+			}
+			return alts[i].diff < alts[j].diff
+		})
+
+		out := make([]Song, 0, len(alts))
+		for _, alt := range alts {
+			out = append(out, alt.song)
+		}
+		return out
 	}
 
 	keyword := strings.TrimSpace(origin.Name)

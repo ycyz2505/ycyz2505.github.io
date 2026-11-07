@@ -191,7 +191,8 @@ func checkLyric(raw string) (string, Check) {
 		c.Issues = append(c.Issues, "歌词为空")
 		return text, c
 	}
-	if looksLikeText([]byte(trimmed)) || htmlTagRe.MatchString(trimmed) {
+	if (looksLikeText([]byte(trimmed)) || htmlTagRe.MatchString(trimmed)) &&
+		!lrcStampRe.MatchString(trimmed) {
 		c.OK = false
 		c.Score = 0
 		c.Issues = append(c.Issues, "歌词内容异常（疑似网页）")
