@@ -52,7 +52,6 @@ window.onload = async function () {
     safeInit('MLib', () => window.App.MLib?.init());
     safeInit('MPrefs', () => window.App.MPrefs?.init());
     safeInit('ModalSeating', () => window.App.ModalSeating?.init());
-    safeInit('SeatPage', () => window.App.SeatPage?.init());
 
     // 广场：先建数据层，再建三个模态框
     safeInit('Plaza', () => window.App.Plaza?.init());

@@ -1,7 +1,6 @@
 window.App.ModalCore = {
     init() {
         // 注意：金句选择弹窗由 ModalPhrase 独立处理；
-        // 座位表是主页面下滑页，由 SeatPage 独立处理；
         // 设置里的各分页由 ModalSettings 的垂直标签页切换。
         const modals = [
             { btn: 'settingsButton',       modal: 'settingsModal',     close: 'closeSettings' },
@@ -10,6 +9,7 @@ window.App.ModalCore = {
             { btn: 'lostAndFoundButton',   modal: 'lostAndFoundModal', close: 'closeLostAndFound' },
             { btn: 'notificationButton',   modal: 'notificationModal', close: 'closeNotification' },
             { btn: 'calculatorButton',     modal: 'calculatorModal',   close: 'closeCalculator' },
+            { btn: 'seatingButton',        modal: 'seatingModal',      close: 'closeSeating' },
             { btn: 'plazaButton',          modal: 'plazaModal',        close: 'closePlaza' }
         ];
 
@@ -24,7 +24,7 @@ window.App.ModalCore = {
         });
 
         ['maximizeNotification', 'maximizeLostAndFound', 'maximizeAnnouncement',
-         'maximizePlaza', 'maximizeSpace'].forEach(id => {
+         'maximizeSeating', 'maximizePlaza', 'maximizeSpace'].forEach(id => {
             document.getElementById(id)?.addEventListener('click', function () {
                 const modal = this.closest('.settings-modal');
                 modal.classList.toggle('fullscreen');

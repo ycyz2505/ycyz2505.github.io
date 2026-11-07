@@ -66,7 +66,7 @@ body,html{overflow:hidden;margin:0;padding:0;width:100%;height:100%;font-family:
 
 /* ===== 按钮 ===== */
 .action-button,.settings-button,.add-notification-btn,.reset-btn{background:var(--theme-primary);border:none;cursor:pointer;color:#fff;transition:all .3s}
-.action-buttons,.settings-button{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);z-index:10}
+.action-buttons,.settings-button{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:10}
 .action-buttons{display:flex;gap:15px}
 .action-button{padding:0 20px;height:40px;border-radius:20px;box-shadow:0 2px 8px rgba(0,0,0,.2);font-size:14px;display:flex;align-items:center;justify-content:center;white-space:nowrap}
 .settings-button{width:40px;height:40px;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,.2);display:flex;align-items:center;justify-content:center;font-size:24px}
@@ -247,21 +247,6 @@ body,html{overflow:hidden;margin:0;padding:0;width:100%;height:100%;font-family:
 .palette-theme-row{display:flex;align-items:center;gap:14px;padding:14px;background:var(--theme-surface-soft);border:1px solid var(--theme-border);border-radius:10px;width:fit-content;min-width:260px}
 .palette-theme-swatch{width:56px;height:56px}
 .palette-actions{margin-top:0}
-
-/* ===== 座位表页（主页面下滑） ===== */
-#pageContent{transform:translateY(0);transition:transform .46s cubic-bezier(.32,.72,0,1);will-change:transform}
-#pageContent.seat-open{transform:translateY(-100%)}
-#pageContent > :not(.seating-page):not(.settings-modal){touch-action:none}
-
-.seating-page{position:absolute;inset:0;z-index:500;background:linear-gradient(to bottom right,var(--theme-bg-start),var(--theme-bg-end));transform:translateY(100%);transition:none;pointer-events:none}
-.seating-page.active{pointer-events:auto}
-.seating-page .settings-content{width:100%;height:100%;max-width:none;max-height:none;padding:0;border-radius:0;transform:none;opacity:1;transition:none;background:transparent;overflow:hidden}
-.seating-page .settings-header{margin:0;padding:18px 28px 14px;flex-shrink:0;border-bottom:1px solid var(--theme-border);touch-action:none}
-.seating-page .settings-header h3{font-size:24px;font-family:STZhongsong,serif;color:var(--theme-dark)}
-.seating-page-hint{font-size:13px;color:var(--theme-muted)}
-.seating-page .seat-body{padding-bottom:80px}
-.seat-page-back{position:absolute;right:30px;bottom:26px;z-index:40;display:flex;align-items:center;gap:8px;padding:13px 22px;border:1px solid rgba(var(--theme-primary-rgb),.35);border-radius:999px;background:var(--theme-surface-solid);color:var(--theme-primary-active);font-family:inherit;font-size:16px;font-weight:600;cursor:pointer;box-shadow:0 8px 26px rgba(0,0,0,.16);transition:all .2s}
-.seat-page-back:hover{background:var(--theme-primary);color:#fff;transform:translateY(-2px);box-shadow:0 12px 30px rgba(var(--theme-primary-rgb),.3)}
 
 /* 虚拟时间预览滑条只在「虚拟时间」页显示 */
 .settings-modal.active:not(.virtual-tab) .preview-slider-zone{display:none}
