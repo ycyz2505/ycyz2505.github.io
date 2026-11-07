@@ -745,8 +745,11 @@ window.App = window.App || {};
                     song.name = res.song.name || song.name;
                     song.artist = res.song.artist || song.artist;
                     song.album = res.song.album || song.album;
+                    song.extra = res.song.extra || song.extra;
+                    song.cover = res.song.cover || song.cover;
                     song.title = song.name;
-                    song.sub = [song.artist, MO.label(song.source)]
+                    song.sub = [song.artist,
+                        (song.extra && song.extra.provider) || MO.label(song.source)]
                         .filter(Boolean).join(' · ');
                 }
 
@@ -829,7 +832,12 @@ window.App = window.App || {};
             song.audioUrl = MO.streamUrl(data.sid);
             if (data.song) {
                 song.source = data.song.source || song.source;
-                song.sub = [song.artist, MO.label(song.source)]
+                song.id = data.song.id || song.id;
+                song.extra = data.song.extra || song.extra;
+                song.cover = data.song.cover || song.cover;
+                song.coverUrl = song.cover ? MO.coverUrl(song) : song.coverUrl;
+                song.sub = [song.artist,
+                    (song.extra && song.extra.provider) || MO.label(song.source)]
                     .filter(Boolean).join(' · ');
             }
 
@@ -838,6 +846,8 @@ window.App = window.App || {};
 
             const p = audio.play();
             if (p && p.catch) p.catch(() => {});
+
+            loadMLyric(song, S.lyricToken);
 
             if (pos > 0) {
                 setTimeout(() => {

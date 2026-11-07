@@ -18,6 +18,7 @@ window.App = window.App || {};
     ];
 
     const LABEL = {
+        meting: 'Meting',
         netease: '网易云',
         qq: 'QQ',
         kugou: '酷狗',
@@ -28,8 +29,10 @@ window.App = window.App || {};
         bilibili: 'B站'
     };
 
-    const DEFAULT_SOURCES = ['netease', 'qq', 'kugou', 'kuwo', 'qianqian'];
-    const OPTIONAL_SOURCES = ['migu', 'qianqian', 'soda', 'bilibili'];
+    // 教室网络直连音乐接口会被拦，默认只选中 Meting 中转；
+    // 直连音源保留在可选列表里，网络允许时可以手动打开。
+    const DEFAULT_SOURCES = ['meting'];
+    const OPTIONAL_SOURCES = ['netease', 'qq', 'kugou', 'kuwo', 'qianqian', 'migu', 'soda', 'bilibili'];
 
     const M = {
         base: null,
@@ -160,6 +163,7 @@ window.App = window.App || {};
     // ---------------- 数据转换 ----------------
 
     function toQueue(raw) {
+        const provider = raw.extra && raw.extra.provider;
         return {
             kind: 'm',
             source: raw.source,
@@ -171,7 +175,7 @@ window.App = window.App || {};
             cover: raw.cover || '',
             extra: raw.extra || null,
             title: raw.name,
-            sub: [raw.artist, LABEL[raw.source] || raw.source]
+            sub: [raw.artist, provider || LABEL[raw.source] || raw.source]
                 .filter(Boolean).join(' · '),
             sid: '',
             ext: raw.ext || '',
@@ -337,13 +341,14 @@ window.App = window.App || {};
             const cov = raw.cover
                 ? '<img src="' + esc(coverUrl(raw)) + '" alt="" loading="lazy">'
                 : '♪';
+            const provider = raw.extra && raw.extra.provider;
             return '' +
                 '<div class="m-row" data-i="' + i + '">' +
                     '<div class="m-row-cover">' + cov + '</div>' +
                     '<div class="m-row-main">' +
                         '<div class="m-row-title">' + esc(raw.name) + '</div>' +
                         '<div class="m-row-sub">' +
-                            esc([raw.artist, raw.album].filter(Boolean).join(' · ')) +
+                            esc([raw.artist, raw.album, provider].filter(Boolean).join(' · ')) +
                         '</div>' +
                     '</div>' +
                     '<span class="m-badge">' + esc(LABEL[raw.source] || raw.source) + '</span>' +

@@ -75,19 +75,21 @@ func songFromQuery(r *http.Request) Song {
 
 // 音源
 var (
-	// 默认参与搜索的音源
-	defaultSources = []string{"netease", "qq", "kugou", "kuwo", "qianqian"}
+	// 默认参与搜索的音源：教室网络直连音乐接口会被拦，默认走公共中转
+	defaultSources = []string{"meting"}
 	// 需要整段下载后才能播放的音源（音频被加密）
 	fullFetchSources = map[string]bool{"soda": true, "migu": true}
 	// 全部可搜索音源
 	allSources = []string{
-		"netease", "qq", "kugou", "kuwo", "migu",
+		"meting", "netease", "qq", "kugou", "kuwo", "migu",
 		"qianqian", "soda", "bilibili",
 	}
 )
 
 func sourceLabel(src string) string {
 	switch src {
+	case "meting":
+		return "Meting"
 	case "netease":
 		return "网易云"
 	case "qq":

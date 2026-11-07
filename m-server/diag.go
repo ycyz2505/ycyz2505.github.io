@@ -45,6 +45,26 @@ func handleDiag(w http.ResponseWriter, r *http.Request) {
 			t0 := time.Now()
 			res := diagResult{Source: s, Label: sourceLabel(s)}
 
+			if s == relaySource {
+				songs, err := relaySearch(keyword, 5)
+				res.MS = time.Since(t0).Milliseconds()
+				if err != nil {
+					res.Error = err.Error()
+					res.ErrKind = "relay"
+					res.Reason = errKindLabel(res.ErrKind)
+					mlogWarn("[diag][%s] 中转失败 kind=%s 用时=%dms err=%q",
+						s, res.Reason, res.MS, shortErr(err))
+				} else {
+					res.OK = true
+					res.Songs = len(songs)
+					mlogInfo("[diag][%s] 中转成功 songs=%d 用时=%dms", s, res.Songs, res.MS)
+				}
+				mu.Lock()
+				out = append(out, res)
+				mu.Unlock()
+				return
+			}
+
 			fn := core.GetSearchFunc(s)
 			if fn == nil {
 				res.Error = "音源未注册"

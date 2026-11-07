@@ -187,6 +187,19 @@ func fetchAudioBytes(song Song) ([]byte, error) {
 }
 
 func fetchLyric(song Song) (string, Check) {
+	if song.Source == relaySource {
+		key := "l:" + song.key()
+		if e, ok := memoGet(lyricMemo, key); ok {
+			return e.Text, Check{OK: true, Score: 100}
+		}
+
+		text, c := relayLyric(song)
+		if strings.TrimSpace(text) != "" {
+			memoPut(lyricMemo, key, cacheEntry{Text: text})
+		}
+		return text, c
+	}
+
 	key := "l:" + song.key()
 	if e, ok := memoGet(lyricMemo, key); ok {
 		return e.Text, Check{OK: true, Score: 100}
@@ -209,6 +222,24 @@ func fetchLyric(song Song) (string, Check) {
 }
 
 func fetchCover(song Song) ([]byte, string, Check) {
+	if song.Source == relaySource {
+		cover := strings.TrimSpace(song.Cover)
+		if cover == "" {
+			return nil, "", Check{OK: false, Score: 0, Issues: []string{"该中转结果没有封面"}}
+		}
+
+		key := "c:" + cover
+		if e, ok := memoGet(coverMemo, key); ok {
+			return e.Data, e.Mime, Check{OK: true, Score: 100}
+		}
+
+		data, mime, c := relayCover(song)
+		if c.OK && len(data) > 0 {
+			memoPut(coverMemo, key, cacheEntry{Data: data, Mime: mime})
+		}
+		return data, mime, c
+	}
+
 	if strings.TrimSpace(song.Cover) == "" {
 		return nil, "", Check{OK: false, Score: 0, Issues: []string{"该音源没有封面"}}
 	}
@@ -271,6 +302,10 @@ func resolveSong(song Song, allowSwitch bool) *Resolution {
 }
 
 func tryResolve(song Song) *Resolution {
+	if song.Source == relaySource {
+		return tryResolveMeting(song)
+	}
+
 	if strings.TrimSpace(song.ID) == "" || song.Source == "" {
 		return nil
 	}
@@ -427,6 +462,30 @@ type scoredSong struct {
 }
 
 func searchAlternatives(origin Song) []Song {
+	if origin.Source == relaySource {
+		candidates := relaySearchAllCandidates(origin.Name, origin.Artist, 12)
+		originRelay := strings.TrimSpace(origin.Extra["relay"])
+		seen := map[string]bool{}
+		other := make([]Song, 0, len(candidates))
+		same := make([]Song, 0, len(candidates))
+
+		for _, cand := range candidates {
+			key := cand.key()
+			if key == origin.key() || seen[key] {
+				continue
+			}
+			seen[key] = true
+			if strings.TrimSpace(cand.Extra["relay"]) != originRelay {
+				other = append(other, cand)
+			} else {
+				same = append(same, cand)
+			}
+		}
+
+		// 优先试另一个中转：同一首歌在 GD 的直链失效时，icodeq 的代理直链往往还能用
+		return append(other, same...)
+	}
+
 	keyword := strings.TrimSpace(origin.Name)
 	if origin.Artist != "" {
 		keyword = keyword + " " + origin.Artist

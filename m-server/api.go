@@ -87,6 +87,38 @@ func handleSearch(w http.ResponseWriter, r *http.Request) {
 			t0 := time.Now()
 			mlogDebug("[search#%d][%s] 开始", rid, s)
 
+			if s == relaySource {
+				defer func() {
+					if rec := recover(); rec != nil {
+						ms := time.Since(t0).Milliseconds()
+						mlogWarn("[search#%d][%s] 中转 panic %v (%dms)", rid, s, rec, ms)
+						ch <- sourceResult{
+							Source: s, Label: sourceLabel(s),
+							Error:  fmt.Sprintf("内部异常：%v", rec),
+							ErrKind: "panic", MS: ms,
+						}
+					}
+				}()
+
+				songs, err := relaySearch(keyword, limit)
+				ms := time.Since(t0).Milliseconds()
+				if err != nil {
+					mlogWarn("[search#%d][%s] 中转失败（%s）用时=%dms err=%q",
+						rid, s, errKindLabel("relay"), ms, shortErr(err))
+					ch <- sourceResult{
+						Source: s, Label: sourceLabel(s),
+						Error: err.Error(), ErrKind: "relay", MS: ms,
+					}
+					return
+				}
+				if len(songs) > limit {
+					songs = songs[:limit]
+				}
+				mlogInfo("[search#%d][%s] 中转完成 songs=%d 用时=%dms", rid, s, len(songs), ms)
+				ch <- sourceResult{Source: s, Label: sourceLabel(s), Songs: songs, MS: ms}
+				return
+			}
+
 			fn := core.GetSearchFunc(s)
 			if fn == nil {
 				mlogWarn("[search#%d][%s] 该音源未注册", rid, s)
@@ -296,6 +328,11 @@ func handleStream(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if sess.Song.Source == relaySource {
+		proxyRelayStream(w, r, sess.URL)
+		return
+	}
+
 	rangeHeader := r.Header.Get("Range")
 
 	fetch, handled, err := core.NewSourceRangeFetch(sess.URL, sess.Song.Source, rangeHeader)
@@ -378,6 +415,17 @@ func handleCover(w http.ResponseWriter, r *http.Request) {
 	key := "c:" + url
 	if e, ok := memoGet(coverMemo, key); ok && len(e.Data) > 0 {
 		writeImage(w, e.Data, e.Mime)
+		return
+	}
+
+	if source == relaySource {
+		data, mime, err := relayFetchCoverURL(url)
+		if err != nil || len(data) == 0 || !checkCover(data, mime).OK {
+			http.Error(w, "cover fetch failed", http.StatusBadGateway)
+			return
+		}
+		memoPut(coverMemo, key, cacheEntry{Data: data, Mime: mime})
+		writeImage(w, data, mime)
 		return
 	}
 
