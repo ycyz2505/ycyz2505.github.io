@@ -34,6 +34,8 @@ window.onload = async function () {
     safeInit('Palette', () => window.App.Palette?.init());
     safeInit('ThemeBackground', () => window.App.ThemeBackground?.init());
     safeInit('PaletteUI', () => window.App.ModalPalette?.init());
+    safeInit('ThemeWallpaper', () => window.App.ThemeWallpaper?.init());
+    safeInit('ThemeWallpaperUI', () => window.App.ThemeWallpaperUI?.init());
     safeInit('PhraseHistory', () => window.App.ModalPhraseHistory?.init());
 
     safeInit('ModalCore', () => window.App.ModalCore?.init());

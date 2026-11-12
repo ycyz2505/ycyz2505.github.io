@@ -114,7 +114,7 @@
                         </button>
                         <button type="button" class="settings-tab" data-page="palette">
                             <span class="settings-tab-icon">🎨</span>
-                            <span class="settings-tab-text">调色盘</span>
+                            <span class="settings-tab-text">主题设置</span>
                         </button>
                         <button type="button" class="settings-tab" data-page="phraseHistory">
                             <span class="settings-tab-icon">🕘</span>
@@ -281,53 +281,104 @@
                             </div>
                         </section>
 
-                        <!-- 5. 调色盘 -->
+                        <!-- 5. 主题设置（原调色盘） -->
                         <section class="settings-page" data-page="palette">
-                            <div class="settings-body palette-page">
+                            <div class="settings-body theme-page">
+                                <div class="theme-page-header">
+                                    <h4 class="theme-page-title">主题设置</h4>
+                                    <p class="theme-page-desc">预设主题一键切换；也可以自定义完整配色，或只选一个主题色自动生成整套颜色。</p>
+                                </div>
+
+                                <div class="theme-block">
+                                    <div class="theme-block-head">
+                                        <span class="theme-block-title">预设主题</span>
+                                        <span class="theme-block-hint">点一下立即应用</span>
+                                    </div>
+                                    <div class="theme-preset-grid" id="themePresetGrid"></div>
+                                </div>
+
+                                <div class="theme-block">
+                                    <div class="theme-block-head">
+                                        <span class="theme-block-title">我的主题</span>
+                                        <span class="theme-scheme-actions">
+                                            <button type="button" class="palette-btn" id="paletteSchemeNew">＋ 新建</button>
+                                            <button type="button" class="palette-btn" id="paletteSchemeRename">重命名</button>
+                                            <button type="button" class="palette-btn danger" id="paletteSchemeDelete">删除</button>
+                                        </span>
+                                    </div>
+                                    <div class="theme-scheme-list" id="themeSchemeList"></div>
+                                </div>
+
                                 <div class="palette-enable-row">
                                     <label class="switch">
-                                        <span class="switch-text">启用调色盘</span>
+                                        <span class="switch-text">启用自定义主题</span>
                                         <input type="checkbox" id="paletteEnabledSwitch">
                                         <span class="slider"></span>
                                     </label>
                                     <span class="palette-enable-hint">关闭后恢复节气 / 默认配色</span>
                                 </div>
 
-                                <div class="palette-scheme-bar">
-                                    <span class="palette-scheme-label">配色方案</span>
-                                    <select id="paletteSchemeSelect" class="palette-select" aria-label="配色方案"></select>
-                                    <button type="button" class="palette-btn" id="paletteSchemeNew">新建</button>
-                                    <button type="button" class="palette-btn" id="paletteSchemeRename">重命名</button>
-                                    <button type="button" class="palette-btn danger" id="paletteSchemeDelete">删除</button>
-                                </div>
+                                <div class="theme-block">
+                                    <div class="theme-block-head">
+                                        <span class="theme-block-title">编辑当前主题</span>
+                                        <span class="theme-block-hint" id="themeCurrentName"></span>
+                                    </div>
 
-                                <div class="palette-mode-tabs" id="paletteModeTabs">
-                                    <button type="button" class="palette-mode-tab active" data-mode="full">完整配色</button>
-                                    <button type="button" class="palette-mode-tab" data-mode="theme">单色主题</button>
-                                </div>
+                                    <div class="palette-mode-tabs" id="paletteModeTabs">
+                                        <button type="button" class="palette-mode-tab active" data-mode="full">完整配色</button>
+                                        <button type="button" class="palette-mode-tab" data-mode="theme">单色主题</button>
+                                    </div>
 
-                                <div class="palette-mode-panel" data-mode-panel="full">
-                                    <p class="palette-hint">
-                                        拖动颜色即可实时预览。这里的初始颜色取自当前页面实际应用的颜色，不是 CSS 里写死的默认绿色。
-                                    </p>
-                                    <div class="palette-grid" id="paletteGrid"></div>
-                                </div>
+                                    <div class="palette-mode-panel" data-mode-panel="full">
+                                        <p class="palette-hint">
+                                            拖动颜色即可实时预览。这里的初始颜色取自当前页面实际应用的颜色，不是 CSS 里写死的默认绿色。
+                                        </p>
+                                        <div class="palette-grid" id="paletteGrid"></div>
+                                    </div>
 
-                                <div class="palette-mode-panel" data-mode-panel="theme" hidden>
-                                    <p class="palette-hint">
-                                        只选一个主题色，主色、文字、背景、卡片和边框会按照节气配色的同一套公式自动计算。
-                                    </p>
-                                    <div class="palette-theme-row">
-                                        <input type="color" id="paletteThemeColor" class="palette-swatch palette-theme-swatch" aria-label="主题色">
-                                        <div class="palette-info">
-                                            <span class="palette-label">主题色</span>
-                                            <span class="palette-hex" id="paletteThemeHex">#8bc34a</span>
+                                    <div class="palette-mode-panel" data-mode-panel="theme" hidden>
+                                        <p class="palette-hint">
+                                            只选一个主题色，主色、文字、背景、卡片和边框会按照节气配色的同一套公式自动计算。
+                                        </p>
+                                        <div class="palette-theme-row">
+                                            <input type="color" id="paletteThemeColor" class="palette-swatch palette-theme-swatch" aria-label="主题色">
+                                            <div class="palette-info">
+                                                <span class="palette-label">主题色</span>
+                                                <span class="palette-hex" id="paletteThemeHex">#8bc34a</span>
+                                            </div>
                                         </div>
+                                    </div>
+
+                                    <div class="palette-actions">
+                                        <span class="palette-status" id="paletteStatus"></span>
                                     </div>
                                 </div>
 
-                                <div class="palette-actions">
-                                    <span class="palette-status" id="paletteStatus"></span>
+                                <div class="theme-block theme-wallpaper-block">
+                                    <div class="theme-block-head">
+                                        <span class="theme-block-title">背景壁纸</span>
+                                        <span class="theme-block-hint">显示在页面背景，卡片保持主题色</span>
+                                    </div>
+
+                                    <div class="wallpaper-toolbar">
+                                        <label class="switch wallpaper-switch">
+                                            <span class="switch-text">启用背景壁纸</span>
+                                            <input type="checkbox" id="wallpaperEnabledSwitch">
+                                            <span class="slider"></span>
+                                        </label>
+                                        <button type="button" class="palette-btn" id="wallpaperUploadBtn">上传图片</button>
+                                        <button type="button" class="palette-btn" id="wallpaperClearBtn">清除</button>
+                                        <input type="file" id="wallpaperFile" accept="image/*" hidden>
+                                    </div>
+
+                                    <div class="wallpaper-preset-grid" id="wallpaperPresetGrid"></div>
+                                    <div class="wallpaper-preview" id="wallpaperPreview"></div>
+
+                                    <div class="wallpaper-dim-row">
+                                        <span>白色遮罩</span>
+                                        <input type="range" id="wallpaperDim" min="0" max="80" value="35">
+                                        <span id="wallpaperDimValue">35%</span>
+                                    </div>
                                 </div>
                             </div>
                         </section>
@@ -369,20 +420,18 @@
 
                     待添加的新功能：自定义倒计时（不只是高考倒计时，如一月考倒计时、期末倒计时等）、方便地统计需要讲的题目（课前统计好，课上老师直接讲）等。欢迎提建议。
 
-                    2026.11.11
-                    1. 音乐搜索默认改走公共 Meting 中转：同时请求 GD Studio 和 icodeq 两个可用接口，自动合并网易云、QQ 音乐、酷狗的结果，网络不好时谁先返回用谁；
-                    2. 播放、歌词、封面也通过中转获取，音频由 m-server 代理并支持拖动进度条；教室网络直连音乐接口被拦截时，搜索和播放仍然可用；
-                    3. 直连音源保留在可选列表里，网络允许时可以手动打开；m-server 升级到 1.4.2；
-                    4. 说明：icodeq 中转目前只代理网易云音频；QQ / 酷狗结果会保留用于搜索，并标注「仅搜索」，播放时会尝试网易云同名曲目；
+                    2026.11.12
+                    1. 设置里的「调色盘」更名为「主题设置」，新增背景壁纸：内置 9 张节气图，也可上传本地图片（自动压缩），支持白色遮罩调节；
+                    2. 重新设计预设主题：新增 8 套一键切换的预设，「我的主题」改成可视化卡片，切换更直观；
+                    3. 优化调色性能：拖动颜色时只更新当前变量，不再重复读取和重算整套配色；
 
                     2026.11.4
-                    1. 设置改为垂直标签页分页：常规、虚拟时间、今日课表、倒计日、调色盘、金句历史、管理员，切换更直观；
-                    2. 调色盘支持多套配色方案，可新建、重命名、删除、切换；支持「完整配色」和「单色主题」两种模式，单色主题按节气同款公式自动生成整套颜色；
-                    3. 调色盘新增启用开关：开启时应用调色盘，关闭时恢复节气 / 默认配色；首次打开时待调颜色取自当前实际应用的颜色，不再固定为 CSS 里的绿色；
-                    4. 放歌模式下，鼠标滚轮调整音量的最小单位由 5 改为 2；
+                    1. 设置改为垂直标签页分页：常规、虚拟时间、今日课表、倒计日、主题设置、金句历史、管理员，切换更直观；
+                    2. 主题设置支持多套配色方案，可新建、重命名、删除、切换；支持「完整配色」和「单色主题」两种模式，单色主题按节气同款公式自动生成整套颜色；
+                    3. 主题设置新增启用开关：开启时应用自定义主题，关闭时恢复节气 / 默认配色；首次打开时待调颜色取自当前实际应用的颜色，不再固定为 CSS 里的绿色；
 
                     2026.11.3
-                    1. 设置新增「调色盘」：可自由调整主色、文字、背景、卡片、边框等全站配色，拖动颜色立即生效，设置会被记住；启用后暂停节气渐变，点「恢复默认配色」即可回到节气配色；
+                    1. 设置新增「主题设置」（原调色盘）：可自由调整主色、文字、背景、卡片、边框等全站配色，拖动颜色立即生效，设置会被记住；启用后暂停节气渐变，点「恢复默认配色」即可回到节气配色；
                     2. 设置新增「金句历史」：自动记录近 24 小时内展示过的所有金句（自动轮播、点击刷新、手动选择都算，含联网获取的句子），点列表里的任意一条即可重新展示，来不及看清的句子不会再错过；
                     3. m-server 禁止多开：同一时间只允许运行一个实例，重复启动会直接退出；
                     4. m-server 与 LocalDataServer 支持自动更新：启动时从 GitHub Releases 读取清单，只有自己的版本落后时才下载并替换自己，两个 exe 的版本号互相独立；下载内置 ghfast.top、gh-proxy.com、ghproxy.net 加速源；
@@ -1206,6 +1255,7 @@
     <script src="js/features/auto_refresh.js"></script>
     <script src="js/features/theme_background.js"></script>
     <script src="js/features/palette.js"></script>
+    <script src="js/features/wallpaper.js"></script>
 
     <script src="js/features/modal_core.js"></script>
     <script src="js/features/modal_settings.js"></script>

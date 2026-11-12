@@ -1,12 +1,12 @@
 // ============================================================
 // js/features/palette.js
-// 调色盘：多套配色方案 + 两种调色模式。
+// 主题设置：预设主题 + 多套自定义主题 + 两种调色模式。
 //
 //   完整配色：分别调整主色、文字、背景、卡片、边框等变量
 //   单色主题：只选一个主题色，其余颜色按节气配色的同一套公式生成
 //
 // 变量平时由 theme_background.js 按节气动态写入内联样式，
-// 所以调色盘启用时由 ThemeBackground.update() 优先调用 Palette.apply()，
+// 所以主题设置启用时由 ThemeBackground.update() 优先调用 Palette.apply()，
 // 不再让节气配色覆盖用户的选择。
 // ============================================================
 
@@ -29,6 +29,18 @@ window.App.Palette = {
     ],
 
     DEFAULT_THEME_COLOR: '#8bc34a',
+
+    // 一键切换的预设主题（单色主题，用节气同款公式生成整套颜色）
+    PRESETS: [
+        { id: 'fresh-green', name: '清风绿', color: '#8bc34a' },
+        { id: 'sky-blue',    name: '天空蓝', color: '#4a90d9' },
+        { id: 'sakura-pink', name: '樱花粉', color: '#e57399' },
+        { id: 'sunset',      name: '暖阳橙', color: '#f5a623' },
+        { id: 'quiet-violet',name: '静谧紫', color: '#7e57c2' },
+        { id: 'sea-teal',    name: '海盐青', color: '#26a69a' },
+        { id: 'graphite',    name: '石墨灰', color: '#607d8b' },
+        { id: 'rose-red',    name: '玫瑰红', color: '#d9534f' }
+    ],
 
     // ---------- 数据 ----------
 
@@ -108,14 +120,14 @@ window.App.Palette = {
             const oldThemeColor = store.getSetting('paletteThemeColor');
 
             if (oldPalette && typeof oldPalette === 'object') {
-                const scheme = this.makeScheme('我的配色', 'full', oldPalette, oldThemeColor, true);
+                const scheme = this.makeScheme('我的主题', 'full', oldPalette, oldThemeColor, true);
                 this.setSchemes([scheme]);
                 this.setActiveId(scheme.id);
                 // 旧版没有启用开关：存在自定义配色就视为启用，避免升级后突然回到绿色
                 store.setSetting('paletteEnabled', true);
                 schemes = [scheme];
             } else if (oldMode === 'theme' && this.normalizeHex(oldThemeColor)) {
-                const scheme = this.makeScheme('我的配色', 'theme', null, oldThemeColor, false, true);
+                const scheme = this.makeScheme('我的主题', 'theme', null, oldThemeColor, false, true);
                 this.setSchemes([scheme]);
                 this.setActiveId(scheme.id);
                 store.setSetting('paletteEnabled', true);
@@ -134,7 +146,7 @@ window.App.Palette = {
 
         if (!scheme) {
             scheme = this.makeScheme(
-                '我的配色',
+                '我的主题',
                 'full',
                 this.captureCurrentColors(),
                 this.captureCurrentPrimary()
@@ -151,7 +163,7 @@ window.App.Palette = {
     makeScheme(name, mode, colors, themeColor, colorsCustomized, themeCustomized) {
         return {
             id: 'ps_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 7),
-            name: String(name || '配色方案').slice(0, 20),
+            name: String(name || '主题').slice(0, 20),
             mode: mode === 'theme' ? 'theme' : 'full',
             colors: this.normalizeColors(colors),
             themeColor: this.normalizeHex(themeColor) || this.DEFAULT_THEME_COLOR,
@@ -202,7 +214,7 @@ window.App.Palette = {
 
     // ---------- 修改方案 ----------
 
-    updateScheme(scheme) {
+    updateScheme(scheme, options) {
         if (!scheme) return;
 
         const list = this.getSchemes();
@@ -214,7 +226,7 @@ window.App.Palette = {
         this.setSchemes(list);
         this.setActiveId(scheme.id);
 
-        if (this.isEnabled()) this.apply();
+        if (this.isEnabled() && !(options && options.skipApply)) this.apply();
     },
 
     setEnabled(enabled) {
@@ -252,10 +264,16 @@ window.App.Palette = {
         const normalized = this.normalizeHex(value);
         if (!normalized) return;
 
-        scheme.colors = this.normalizeColors(scheme.colors);
-        scheme.colors[key] = normalized;
+        // 只更新一个颜色。不要在这里调用 normalizeColors / getComputedStyle，
+        // 否则取色器每移动一次都会把全部 12 个变量重新读一遍，非常卡。
+        const colors = Object.assign({}, this.defaultColors(), scheme.colors || {});
+        colors[key] = normalized;
+        scheme.colors = colors;
         scheme.colorsCustomized = true;
-        this.updateScheme(scheme);
+
+        this.updateScheme(scheme, { skipApply: true });
+
+        if (this.isEnabled()) this.applyColor(key, normalized);
     },
 
     setThemeColor(value) {
@@ -265,7 +283,68 @@ window.App.Palette = {
 
         scheme.themeColor = normalized;
         scheme.themeCustomized = true;
-        this.updateScheme(scheme);
+        this.updateScheme(scheme, { skipApply: true });
+
+        if (this.isEnabled()) this.apply();
+    },
+
+    // 完整配色模式下只写当前改动的 CSS 变量，避免拖色时重算整套主题
+    applyColor(key, value) {
+        if (!this.isEnabled()) return false;
+
+        const color = this.COLORS.find(item => item.key === key);
+        const normalized = this.normalizeHex(value);
+        if (!color || !normalized) return false;
+
+        const style = document.documentElement.style;
+        style.setProperty(color.css, normalized);
+
+        if (key === 'primary') {
+            const rgb = this.hexToRgb(normalized);
+            if (rgb) style.setProperty('--theme-primary-rgb', rgb.join(', '));
+        }
+        if (key === 'surfaceSolid') {
+            style.setProperty('--theme-surface', this.rgba(normalized, 0.9));
+        }
+
+        return true;
+    },
+
+    // 一键应用预设主题：同名预设复用已有方案，编辑过也会重置回预设色
+    usePreset(preset) {
+        if (!preset || !preset.id) return null;
+
+        const list = this.getSchemes();
+        let scheme = list.find(item => item.presetId === preset.id);
+
+        if (!scheme) {
+            scheme = this.makeScheme(
+                preset.name,
+                'theme',
+                null,
+                preset.color,
+                false,
+                false
+            );
+            scheme.presetId = preset.id;
+            list.push(scheme);
+            this.setSchemes(list);
+        } else {
+            scheme.mode = 'theme';
+            scheme.themeColor = preset.color;
+            scheme.themeCustomized = false;
+            scheme.name = preset.name;
+            this.setSchemes(list);
+        }
+
+        this.setActiveId(scheme.id);
+
+        if (window.App.Store) {
+            window.App.Store.setSetting('paletteEnabled', true);
+        }
+
+        this.apply();
+        return scheme;
     },
 
     selectScheme(id) {
@@ -280,7 +359,7 @@ window.App.Palette = {
     createScheme(name) {
         const current = this.getActiveScheme();
         const scheme = this.makeScheme(
-            name || '新配色',
+            name || '新主题',
             current ? current.mode : 'full',
             current ? current.colors : this.captureCurrentColors(),
             current ? current.themeColor : this.captureCurrentPrimary(),
@@ -421,43 +500,38 @@ window.App.ModalPalette = {
         this.bindControls();
     },
 
-    // 设置页切到「调色盘」时调用
+    // 设置页切到「主题设置」时调用
     onShow() {
         this.setPreviewing(false);
         window.App.Palette.ensureScheme();
         this.refreshUI();
         this.populate();
+        window.App.ThemeWallpaperUI?.refresh?.();
     },
 
     bindControls() {
         document.getElementById('paletteEnabledSwitch')?.addEventListener('change', e => {
             window.App.Palette.setEnabled(e.target.checked);
             this.refreshUI();
-            this.status(e.target.checked ? '已启用调色盘' : '已恢复原本配色');
-        });
-
-        document.getElementById('paletteSchemeSelect')?.addEventListener('change', e => {
-            window.App.Palette.selectScheme(e.target.value);
-            this.refreshUI();
-            this.populate();
+            this.status(e.target.checked ? '已启用自定义主题' : '已恢复原本配色');
         });
 
         document.getElementById('paletteSchemeNew')?.addEventListener('click', () => {
             const count = window.App.Palette.getSchemes().length + 1;
-            const name = prompt('新建配色方案名称', '新配色 ' + count);
+            const name = prompt('新建主题名称', '新主题 ' + count);
             if (name === null) return;
 
-            window.App.Palette.createScheme(name.trim() || ('新配色 ' + count));
+            window.App.Palette.createScheme(name.trim() || ('新主题 ' + count));
             this.refreshUI();
             this.populate();
-            this.status('已新建配色方案');
+            this.status('已新建主题');
         });
 
         document.getElementById('paletteSchemeRename')?.addEventListener('click', () => {
             const scheme = window.App.Palette.getActiveScheme();
             if (!scheme) return;
 
-            const name = prompt('重命名配色方案', scheme.name);
+            const name = prompt('重命名主题', scheme.name);
             if (name === null) return;
 
             if (window.App.Palette.renameScheme(scheme.id, name)) {
@@ -471,15 +545,15 @@ window.App.ModalPalette = {
             if (!scheme) return;
 
             if (window.App.Palette.getSchemes().length <= 1) {
-                this.status('至少保留一个配色方案');
+                this.status('至少保留一个主题');
                 return;
             }
-            if (!confirm(`删除配色方案「${scheme.name}」？`)) return;
+            if (!confirm(`删除主题「${scheme.name}」？`)) return;
 
             window.App.Palette.deleteScheme(scheme.id);
             this.refreshUI();
             this.populate();
-            this.status('已删除配色方案');
+            this.status('已删除主题');
         });
 
         document.querySelectorAll('.palette-mode-tab').forEach(tab => {
@@ -491,13 +565,105 @@ window.App.ModalPalette = {
         });
 
         const themeInput = document.getElementById('paletteThemeColor');
+        let themeRaf = null;
+        let themeValue = themeInput ? themeInput.value : '';
+
         themeInput?.addEventListener('input', e => {
-            this.setPreviewing(true);
-            window.App.Palette.setThemeColor(e.target.value);
-            this.syncThemeHex();
+            if (!this._previewing) this.setPreviewing(true);
+            themeValue = e.target.value;
+
+            if (themeRaf) return;
+            themeRaf = requestAnimationFrame(() => {
+                themeRaf = null;
+                window.App.Palette.setThemeColor(themeValue);
+                this.syncThemeHex();
+            });
+        });
+
+        themeInput?.addEventListener('change', () => {
+            this.setPreviewing(false);
             this.status('已应用');
         });
-        themeInput?.addEventListener('change', () => this.setPreviewing(false));
+    },
+
+    renderPresets() {
+        const grid = document.getElementById('themePresetGrid');
+        if (!grid) return;
+
+        const active = window.App.Palette.getActiveScheme();
+        grid.innerHTML = '';
+
+        window.App.Palette.PRESETS.forEach(preset => {
+            const card = document.createElement('button');
+            card.type = 'button';
+            card.className = 'theme-preset-card' +
+                (active && active.presetId === preset.id ? ' active' : '');
+            card.style.setProperty('--preset-color', preset.color);
+
+            const swatch = document.createElement('span');
+            swatch.className = 'theme-preset-swatch';
+
+            const name = document.createElement('span');
+            name.className = 'theme-preset-name';
+            name.textContent = preset.name;
+
+            card.appendChild(swatch);
+            card.appendChild(name);
+
+            card.addEventListener('click', () => {
+                window.App.Palette.usePreset(preset);
+                this.refreshUI();
+                this.populate();
+                this.status(`已应用预设：${preset.name}`);
+            });
+
+            grid.appendChild(card);
+        });
+    },
+
+    renderSchemeList(scheme) {
+        const list = document.getElementById('themeSchemeList');
+        if (!list) return;
+
+        const schemes = window.App.Palette.getSchemes();
+        list.innerHTML = '';
+
+        schemes.forEach(item => {
+            const primary = item.mode === 'theme'
+                ? (window.App.Palette.normalizeHex(item.themeColor) || '#8bc34a')
+                : (window.App.Palette.normalizeHex(item.colors && item.colors.primary) || '#8bc34a');
+            const bg = item.mode === 'theme'
+                ? '#f5fff5'
+                : (window.App.Palette.normalizeHex(item.colors && item.colors.bgStart) || '#f5fff5');
+
+            const card = document.createElement('button');
+            card.type = 'button';
+            card.className = 'theme-scheme-card' + (item.id === scheme.id ? ' active' : '');
+
+            const swatch = document.createElement('span');
+            swatch.className = 'theme-scheme-swatch';
+            swatch.style.background = `linear-gradient(135deg, ${primary}, ${bg})`;
+
+            const name = document.createElement('span');
+            name.className = 'theme-scheme-name';
+            name.textContent = item.name;
+
+            const mode = document.createElement('span');
+            mode.className = 'theme-scheme-mode';
+            mode.textContent = item.mode === 'theme' ? '单色' : '完整';
+
+            card.appendChild(swatch);
+            card.appendChild(name);
+            card.appendChild(mode);
+
+            card.addEventListener('click', () => {
+                window.App.Palette.selectScheme(item.id);
+                this.refreshUI();
+                this.populate();
+            });
+
+            list.appendChild(card);
+        });
     },
 
     refreshUI() {
@@ -511,20 +677,14 @@ window.App.ModalPalette = {
         const enabledSwitch = document.getElementById('paletteEnabledSwitch');
         if (enabledSwitch) enabledSwitch.checked = enabled;
 
-        const select = document.getElementById('paletteSchemeSelect');
-        if (select) {
-            select.innerHTML = '';
-            schemes.forEach(item => {
-                const option = document.createElement('option');
-                option.value = item.id;
-                option.textContent = item.name;
-                select.appendChild(option);
-            });
-            select.value = scheme.id;
-        }
-
         const deleteBtn = document.getElementById('paletteSchemeDelete');
         if (deleteBtn) deleteBtn.disabled = schemes.length <= 1;
+
+        this.renderPresets();
+        this.renderSchemeList(scheme);
+
+        const currentName = document.getElementById('themeCurrentName');
+        if (currentName) currentName.textContent = scheme.name;
 
         document.querySelectorAll('.palette-mode-tab').forEach(tab => {
             tab.classList.toggle('active', tab.dataset.mode === mode);
@@ -548,6 +708,8 @@ window.App.ModalPalette = {
     // 取色时把所有模态框一起淡出（和虚拟时间滑动条同一套做法），
     // 这样能直接看到页面上的真实配色，而不是被设置面板挡住。
     setPreviewing(on) {
+        if (this._previewing === !!on) return;
+
         this._previewing = !!on;
 
         document.querySelectorAll('.settings-modal').forEach(modal => {
@@ -619,16 +781,18 @@ window.App.ModalPalette = {
 
             swatch.addEventListener('input', e => {
                 // 第一次移动颜色就淡出面板，让页面实时可见
-                this.setPreviewing(true);
+                if (!this._previewing) this.setPreviewing(true);
 
                 window.App.Palette.setColor(color.key, e.target.value);
                 const normalized = window.App.Palette.normalizeHex(e.target.value) || color.fallback;
                 hex.textContent = normalized;
-                this.status('已应用');
             });
 
             // 取色器关闭 / 确认颜色后恢复面板
-            swatch.addEventListener('change', () => this.setPreviewing(false));
+            swatch.addEventListener('change', () => {
+                this.setPreviewing(false);
+                this.status('已应用');
+            });
 
             fragment.appendChild(row);
         });

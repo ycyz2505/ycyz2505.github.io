@@ -82,6 +82,9 @@ window.App.Store = {
         // 金句轮播历史：见 phrase_history.js（只保留近 24 小时）
         phraseHistory: { version: 1, items: [] },
 
+        // 背景壁纸：见 wallpaper.js（内置节气图或上传的压缩图片）
+        themeWallpaper: { version: 1, enabled: false, image: '', dim: 35, name: '' },
+
         // 广场：见 plaza_core.js
         //   plaza      名单 + 社交关系 + 账号（小文件，频繁写）
         //   plazaMedia 头像与背景图（大文件，极少写、不订阅轮询）
