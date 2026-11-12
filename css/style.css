@@ -986,3 +986,44 @@ body.wallpaper-on .music-settings-panel{
 body.wallpaper-on .settings-content{
     box-shadow:0 24px 80px rgba(0,0,0,.26),inset 0 1px 0 rgba(255,255,255,.55);
 }
+/* 原本没有卡片底的高考倒计时 / 节气时间轴 / 金句，补一层毛玻璃卡片 */
+body.wallpaper-on .countdown-zone,
+body.wallpaper-on .timeline-container{
+    isolation:isolate;
+}
+body.wallpaper-on .countdown-zone::before,
+body.wallpaper-on .timeline-container::before{
+    content:'';
+    position:absolute;
+    left:50%;
+    transform:translateX(-50%);
+    background:rgba(255,255,255,.48);
+    -webkit-backdrop-filter:blur(20px) saturate(1.25);
+    backdrop-filter:blur(20px) saturate(1.25);
+    box-shadow:0 8px 32px rgba(0,0,0,.12),inset 0 1px 0 rgba(255,255,255,.6);
+    pointer-events:none;
+    z-index:-1;
+}
+body.wallpaper-on .countdown-zone::before{
+    top:16px;
+    bottom:0;
+    width:min(1040px,92%);
+    border-radius:28px;
+}
+body.wallpaper-on .timeline-container::before{
+    top:-52px;
+    bottom:-24px;
+    width:calc(100% + 56px);
+    border-radius:22px;
+}
+body.wallpaper-on #goldenPhrase{
+    width:820px;
+    box-sizing:border-box;
+    padding:14px 24px;
+    background:rgba(255,255,255,.48);
+    -webkit-backdrop-filter:blur(20px) saturate(1.25);
+    backdrop-filter:blur(20px) saturate(1.25);
+    border-radius:18px;
+    box-shadow:0 8px 32px rgba(0,0,0,.12),inset 0 1px 0 rgba(255,255,255,.6);
+}
+
