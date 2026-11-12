@@ -958,3 +958,31 @@ input:checked~.switch-text{color:var(--theme-primary)}
 .m-list-bar button:hover{border-color:var(--theme-primary);color:var(--theme-primary)}
 
 .m-warn{display:inline-block;margin-left:5px;color:#d98032;font-size:12px;cursor:help}
+
+/* ============================================================
+   壁纸模式：半透明面板 + 毛玻璃
+   只在启用壁纸时生效；纯色 / 节气渐变背景保持原来的实色 UI。
+   ============================================================ */
+body.wallpaper-on{
+    --theme-surface:       rgba(255,255,255,.55);
+    --theme-surface-solid: rgba(255,255,255,.58);
+    --theme-surface-soft:  rgba(255,255,255,.34);
+    --theme-surface-hover: rgba(var(--theme-primary-rgb),.16);
+}
+/* 模态框遮罩变浅，让壁纸透出来；调色预览时仍然完全透明 */
+body.wallpaper-on .settings-modal:not(.previewing){background:rgba(0,0,0,.26)}
+body.wallpaper-on .navbar,
+body.wallpaper-on #currentDateTime,
+body.wallpaper-on .schedule-container,
+body.wallpaper-on .solar-card,
+body.wallpaper-on .right-image-container,
+body.wallpaper-on .preview-slider-zone,
+body.wallpaper-on .settings-content,
+body.wallpaper-on .modal-timer-panel,
+body.wallpaper-on .music-settings-panel{
+    -webkit-backdrop-filter:blur(18px) saturate(1.25);
+    backdrop-filter:blur(18px) saturate(1.25);
+}
+body.wallpaper-on .settings-content{
+    box-shadow:0 24px 80px rgba(0,0,0,.26),inset 0 1px 0 rgba(255,255,255,.55);
+}

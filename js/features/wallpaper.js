@@ -53,8 +53,12 @@ window.App.ThemeWallpaper = {
 
         const data = this.get();
         const style = document.body.style;
+        const active = !!(data.enabled && data.image);
 
-        if (data.enabled && data.image) {
+        // 有壁纸时给所有半透明面板开启毛玻璃，避免 UI 把壁纸盖死
+        document.body.classList.toggle('wallpaper-on', active);
+
+        if (active) {
             const dim = Math.max(0, Math.min(80, Number(data.dim) || 0)) / 100;
 
             style.backgroundImage =
