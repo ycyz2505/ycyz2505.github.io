@@ -1005,10 +1005,10 @@ body.wallpaper-on .timeline-container::before{
     z-index:-1;
 }
 body.wallpaper-on .countdown-zone::before{
-    top:16px;
-    bottom:0;
-    width:min(1040px,92%);
-    border-radius:28px;
+    top:-14px;
+    bottom:32px;
+    width:min(920px,88%);
+    border-radius:26px;
 }
 body.wallpaper-on .timeline-container::before{
     top:-52px;
