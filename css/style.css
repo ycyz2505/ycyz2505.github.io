@@ -960,17 +960,18 @@ input:checked~.switch-text{color:var(--theme-primary)}
 .m-warn{display:inline-block;margin-left:5px;color:#d98032;font-size:12px;cursor:help}
 
 /* ============================================================
-   壁纸模式：半透明面板 + 毛玻璃
-   只在启用壁纸时生效；纯色 / 节气渐变背景保持原来的实色 UI。
+   壁纸模式：轻量半透明玻璃
+   不使用 backdrop-filter：大面积实时模糊会在教室机上持续触发 GPU 重采样。
+   改用较高不透明度 + 静态高光渐变，保留通透感但不做实时模糊。
    ============================================================ */
 body.wallpaper-on{
-    --theme-surface:       rgba(255,255,255,.55);
-    --theme-surface-solid: rgba(255,255,255,.58);
-    --theme-surface-soft:  rgba(255,255,255,.34);
-    --theme-surface-hover: rgba(var(--theme-primary-rgb),.16);
+    --theme-surface:       rgba(255,255,255,.78);
+    --theme-surface-solid: rgba(255,255,255,.82);
+    --theme-surface-soft:  rgba(255,255,255,.62);
+    --theme-surface-hover: rgba(var(--theme-primary-rgb),.20);
 }
 /* 模态框遮罩变浅，让壁纸透出来；调色预览时仍然完全透明 */
-body.wallpaper-on .settings-modal:not(.previewing){background:rgba(0,0,0,.26)}
+body.wallpaper-on .settings-modal:not(.previewing){background:rgba(0,0,0,.24)}
 body.wallpaper-on .navbar,
 body.wallpaper-on #currentDateTime,
 body.wallpaper-on .schedule-container,
@@ -980,11 +981,10 @@ body.wallpaper-on .preview-slider-zone,
 body.wallpaper-on .settings-content,
 body.wallpaper-on .modal-timer-panel,
 body.wallpaper-on .music-settings-panel{
-    -webkit-backdrop-filter:blur(18px) saturate(1.25);
-    backdrop-filter:blur(18px) saturate(1.25);
+    background-image:linear-gradient(135deg,rgba(255,255,255,.22),rgba(255,255,255,.04));
 }
 body.wallpaper-on .settings-content{
-    box-shadow:0 24px 80px rgba(0,0,0,.26),inset 0 1px 0 rgba(255,255,255,.55);
+    box-shadow:0 24px 80px rgba(0,0,0,.24),inset 0 1px 0 rgba(255,255,255,.72);
 }
 /* 纯文字区域：不加矩形卡片，用无边界渐隐底 + 白色文字光晕 */
 body.wallpaper-on .countdown-zone,
@@ -1023,7 +1023,7 @@ body.wallpaper-on .timeline-container .end-marker,
 body.wallpaper-on #goldenPhrase{
     -webkit-text-stroke:.45px rgba(255,255,255,.92);
     paint-order:stroke fill;
-    text-shadow:-1px -1px 0 rgba(255,255,255,.9),1px -1px 0 rgba(255,255,255,.9),-1px 1px 0 rgba(255,255,255,.9),1px 1px 0 rgba(255,255,255,.9),0 2px 5px rgba(0,0,0,.28),0 0 18px rgba(255,255,255,.86),0 0 38px rgba(255,255,255,.58);
+    text-shadow:0 1px 1px rgba(255,255,255,.95),0 2px 5px rgba(0,0,0,.30),0 0 16px rgba(255,255,255,.82);
 }
 body.wallpaper-on .solar-term-marker>div:nth-child(2){
     color:#454545!important;

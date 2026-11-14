@@ -66,7 +66,7 @@ window.App.ThemeWallpaper = {
                 `url("${data.image}")`;
             style.backgroundSize = 'cover';
             style.backgroundPosition = 'center';
-            style.backgroundAttachment = 'fixed';
+            style.backgroundAttachment = 'scroll';
             style.backgroundRepeat = 'no-repeat';
             return;
         }
